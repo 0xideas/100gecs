@@ -28,11 +28,16 @@ def optimise_hyperparameters(
     ]
     ranges = [x[1] for x in hyperparameters[1]]
     gaussian = GaussianProcessRegressor(**kwargs)
+    # parameters for gaussian process
     gp_datas = {
         c: (np.zeros((0, len(ranges))), np.zeros((0)))
         for c in categorical_hyperparameters
     }
 
+    best_scores = []
+    best_configurations = []
+
+    # parameters for bandit
     counts = {c: 0.001 for c in categorical_hyperparameters}
     rewards = {c: [1] for c in categorical_hyperparameters}
 
@@ -44,7 +49,8 @@ def optimise_hyperparameters(
                 for c, count in counts.items()
             ]
         )
-        selected_arm = categorical_hyperparameters[ucb.argmax()]
+        selected_arm_index = ucb.argmax()
+        selected_arm = categorical_hyperparameters[selected_arm_index]
         counts[selected_arm] = int(counts[selected_arm] + 1)
 
         if gp_datas[selected_arm][0].shape[0] > 0:
@@ -63,14 +69,23 @@ def optimise_hyperparameters(
             selected_arm.split("-")
             + combinations[np.argmax(predicted_rewards)].tolist()
         )
-        arguments = zip(
-            [x[0] for x in hyperparameters[0]] + [x[0] for x in hyperparameters[1]],
-            hyperparameter_values,
+        arguments = dict(
+            zip(
+                [x[0] for x in hyperparameters[0]] + [x[0] for x in hyperparameters[1]],
+                hyperparameter_values,
+            )
         )
-        clf = Class(**dict(arguments))
+        clf = Class(**arguments)
         score = np.mean(cross_val_score(clf, X, Y, cv=5))
         if np.isnan(score):
             score = 0
+
+        if len(best_scores) == 0 or score > best_scores[0]:
+            best_scores += [score]
+            best_configurations += [arguments]
+            score_order = np.argsort(best_scores)
+            best_scores = list(np.array(best_scores)[score_order])[-10:]
+            best_configurations = list(np.array(best_configurations)[score_order])[-10:]
 
         gp_datas[selected_arm] = (
             np.concatenate(
@@ -94,4 +109,4 @@ def optimise_hyperparameters(
                 hp for hp in categorical_hyperparameters if hp != failure
             ]
 
-    return gp_datas
+    return ((best_configurations[::-1], best_scores[::-1]), gp_datas)
