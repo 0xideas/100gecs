@@ -20,6 +20,15 @@ optimise_hpyerparameters(RandomForestClassifier, hyperparameters, 100, X, Y, n_s
 """
 
 
+def cast_to_type(value, type_):
+    if type_ == np.float64:
+        return float(value)
+    elif type_ == np.int64:
+        return int(value)
+    else:
+        raise Exception(f"type {type_} currently not supported")
+
+
 def optimise_hyperparameters(
     Class, hyperparameters, n_iter, X, Y, n_sample=10, **kwargs
 ):
@@ -57,6 +66,7 @@ def optimise_hyperparameters(
             gaussian.fit(gp_datas[selected_arm][0], gp_datas[selected_arm][1])
 
         sets = [np.random.choice(range_, n_sample) for range_ in ranges]
+        sets_types = [s.dtype for s in sets]
         combinations = cartesian(sets)
 
         mean, sigma = gaussian.predict(combinations, return_std=True)
@@ -65,10 +75,12 @@ def optimise_hyperparameters(
             [np.random.normal(m, s) for m, s in zip(mean, sigma)]
         )
 
-        hyperparameter_values = (
-            selected_arm.split("-")
-            + combinations[np.argmax(predicted_rewards)].tolist()
-        )
+        hyperparameter_values = selected_arm.split("-") + [
+            cast_to_type(c, t)
+            for c, t in zip(
+                combinations[np.argmax(predicted_rewards)].tolist(), sets_types
+            )
+        ]
         arguments = dict(
             zip(
                 [x[0] for x in hyperparameters[0]] + [x[0] for x in hyperparameters[1]],
@@ -76,6 +88,7 @@ def optimise_hyperparameters(
             )
         )
         clf = Class(**arguments)
+
         score = np.mean(cross_val_score(clf, X, Y, cv=5))
         if np.isnan(score):
             score = 0
