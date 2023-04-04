@@ -30,7 +30,7 @@ def cast_to_type(value, type_):
 
 
 def optimise_hyperparameters(
-    Class, hyperparameters, n_iter, X, Y, n_sample=10, **kwargs
+    Class, hyperparameters, n_iter, X, Y, n_sample=10, gp_datas=None, **kwargs
 ):
     categorical_hyperparameters = [
         "-".join(y) for y in itertools.product(*[x[1] for x in hyperparameters[0]])
@@ -38,10 +38,16 @@ def optimise_hyperparameters(
     ranges = [x[1] for x in hyperparameters[1]]
     gaussian = GaussianProcessRegressor(**kwargs)
     # parameters for gaussian process
-    gp_datas = {
-        c: (np.zeros((0, len(ranges))), np.zeros((0)))
-        for c in categorical_hyperparameters
-    }
+    if gp_datas is not None:
+        assert np.all(
+            np.array(sorted(list(gp_datas.keys())))
+            == np.array(categorical_hyperparameters)
+        )
+    else:
+        gp_datas = {
+            c: (np.zeros((0, len(ranges))), np.zeros((0)))
+            for c in categorical_hyperparameters
+        }
 
     best_scores = []
     best_configurations = []
