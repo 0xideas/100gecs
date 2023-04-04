@@ -192,7 +192,7 @@ class GEC(LGBMClassifier):
         self.kernel = RBF(1.0)
         self.gp_datas = None
 
-    def fit_model(self, X, y, n_iter):
+    def fit(self, X, y, n_iter=100):
 
         (best_configuration, best_score), gp_datas = optimise_hyperparameters(
             LGBMClassifier,
@@ -219,6 +219,6 @@ class GEC(LGBMClassifier):
 
         self.gp_datas = gp_datas
 
-        self.fit(X, y)
+        super().fit(X, y)
 
         return self
