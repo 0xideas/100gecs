@@ -187,6 +187,9 @@ class GEC(LGBMClassifier):
             [
                 ("lambda_l1", list((np.logspace(0.00, 1, 50) - 1) / 9)),
                 ("num_leaves", [int(x) for x in np.arange(10, 200, 1)]),
+                ("min_data_in_leaf", [int(x) for x in np.arange(2, 50, 2)]),
+                ("feature_fraction", [float(x) for x in np.arange(0.1, 1.1, 0.1)]),
+                ("learning_rate", list((np.logspace(0.01, 1.5, 30)) / 100)),
             ],
         ]
         self.kernel = RBF(1.0)
@@ -200,7 +203,7 @@ class GEC(LGBMClassifier):
             n_iter,
             X,
             y,
-            100,
+            20,
             gp_datas=self.gp_datas,
             kernel=self.kernel,
         )
