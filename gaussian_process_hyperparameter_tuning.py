@@ -49,8 +49,8 @@ def optimise_hyperparameters(
             for c in categorical_hyperparameters
         }
 
-    best_scores = []
-    best_configurations = []
+    best_score = None
+    best_configuration = None
 
     # parameters for bandit
     counts = {c: 0.001 for c in categorical_hyperparameters}
@@ -99,12 +99,9 @@ def optimise_hyperparameters(
         if np.isnan(score):
             score = 0
 
-        if len(best_scores) == 0 or score > best_scores[0]:
-            best_scores += [score]
-            best_configurations += [arguments]
-            score_order = np.argsort(best_scores)
-            best_scores = list(np.array(best_scores)[score_order])[-10:]
-            best_configurations = list(np.array(best_configurations)[score_order])[-10:]
+        if best_score is None or score > best_score:
+            best_score = score
+            best_configuration = arguments
 
         gp_datas[selected_arm] = (
             np.concatenate(
@@ -128,4 +125,4 @@ def optimise_hyperparameters(
                 hp for hp in categorical_hyperparameters if hp != failure
             ]
 
-    return ((best_configurations[::-1], best_scores[::-1]), gp_datas)
+    return ((best_configuration, best_score), gp_datas)

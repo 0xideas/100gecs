@@ -194,7 +194,7 @@ class GEC(LGBMClassifier):
 
     def fit_model(self, X, y, n_iter):
 
-        (best_configurations, best_scores), gp_datas = optimise_hyperparameters(
+        (best_configuration, best_score), gp_datas = optimise_hyperparameters(
             LGBMClassifier,
             self.hyperparameters,
             n_iter,
@@ -205,7 +205,6 @@ class GEC(LGBMClassifier):
             kernel=self.kernel,
         )
 
-        best_configuration = best_configurations[0]
         gec = GEC(**best_configuration)
         self.__dict__.update(gec.__dict__)
 
@@ -214,8 +213,8 @@ class GEC(LGBMClassifier):
         else:
             self.gec_iter = n_iter
 
-        if not hasattr(self, "best_score") or best_scores[0] > self.best_score:
-            self.best_score = best_scores[0]
+        if not hasattr(self, "best_score") or best_score > self.best_score:
+            self.best_score = best_score
             self.best_configuration = best_configuration
 
         self.gp_datas = gp_datas
