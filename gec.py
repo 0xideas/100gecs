@@ -200,7 +200,7 @@ class GEC(LGBMClassifier):
             n_iter,
             X,
             y,
-            10,
+            100,
             gp_datas=self.gp_datas,
             kernel=self.kernel,
         )
