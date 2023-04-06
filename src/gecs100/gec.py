@@ -202,7 +202,7 @@ class GEC(LGBMClassifier):
 
     def fit(self, X, y, n_iter=100):
 
-        (best_configuration, best_score), gp_datas = self.optimise_hyperparameters(
+        (best_params, best_score), gp_datas = self.optimise_hyperparameters(
             self.hyperparameters,
             n_iter,
             X,
@@ -212,7 +212,7 @@ class GEC(LGBMClassifier):
             kernel=self.kernel,
         )
 
-        gec = GEC(**best_configuration)
+        gec = GEC(**best_params)
         self.__dict__.update(gec.__dict__)
 
         if hasattr(self, "gec_iter"):
@@ -222,7 +222,7 @@ class GEC(LGBMClassifier):
 
         if not hasattr(self, "best_score") or best_score > self.best_score:
             self.best_score = best_score
-            self.best_configuration = best_configuration
+            self.best_params_ = best_params
 
         self.gp_datas = gp_datas
 
@@ -252,7 +252,7 @@ class GEC(LGBMClassifier):
             }
 
         best_score = None
-        best_configuration = None
+        best_params = None
 
         # parameters for bandit
         counts = {c: 0.001 for c in categorical_hyperparameters}
@@ -304,7 +304,7 @@ class GEC(LGBMClassifier):
 
             if best_score is None or score > best_score:
                 best_score = score
-                best_configuration = arguments
+                best_params = arguments
 
             gp_datas[selected_arm] = (
                 np.concatenate(
@@ -328,7 +328,7 @@ class GEC(LGBMClassifier):
                     hp for hp in categorical_hyperparameters if hp != failure
                 ]
 
-        return ((best_configuration, best_score), gp_datas)
+        return ((best_params, best_score), gp_datas)
 
     @classmethod
     def cast_to_type(cls, value, type_):
