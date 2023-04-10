@@ -189,11 +189,11 @@ class GEC(LGBMClassifier):
 
         self.categorical_hyperparameters = [("boosting", ["gbdt"])]
         self.real_hyperparameters = [
-            ("lambda_l1", (np.logspace(0.00, 1, 50) - 1) / 9),
+            ("lambda_l1", (np.logspace(0.00, 1, 1000) - 1) / 9),
             ("num_leaves", [int(x) for x in np.arange(10, 200, 1)]),
-            ("min_data_in_leaf", [int(x) for x in np.arange(2, 50, 2)]),
-            ("feature_fraction", [float(x) for x in np.arange(0.1, 1.1, 0.1)]),
-            ("learning_rate", (np.logspace(0.01, 1.5, 30)) / 100),
+            ("min_data_in_leaf", [int(x) for x in np.arange(2, 50, 1)]),
+            ("feature_fraction", [float(x) for x in np.arange(0.1, 1.01, 0.01)]),
+            ("learning_rate", (np.logspace(0.001, 1.5, 1500)) / 100),
         ]
         self.real_hyperparameters_linear = [
             (name, np.arange(-1, 1, 2 / len(values)))
@@ -207,7 +207,7 @@ class GEC(LGBMClassifier):
             )
         }
 
-        self.kernel = RBF(0.1)
+        self.kernel = RBF(0.02)
         self.gp_datas = None
         self.best_score = None
         self.best_params_ = None
@@ -237,7 +237,7 @@ class GEC(LGBMClassifier):
         super().fit(X, y)
 
         self.n_iterations = np.sum(
-            [len(value["outputs"]) for value in self.gp_datas.values()]
+            [len(value["output"]) for value in self.gp_datas.values()]
         )
 
         return self
@@ -337,7 +337,7 @@ class GEC(LGBMClassifier):
                 best_params = arguments
 
             gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
-            gp_datas[selected_arm]["output"].append(score)
+            gp_datas[selected_arm]["output"].append(score - (1 / len(np.unique(Y))))
             gp_datas[selected_arm]["means"].append(mean)
             gp_datas[selected_arm]["sigmas"].append(sigma)
 
