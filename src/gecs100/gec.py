@@ -3,6 +3,8 @@ import itertools
 from typing import Optional, Union, Dict, Callable
 
 import numpy as np
+import json
+import math
 
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.utils.extmath import cartesian
@@ -188,6 +190,18 @@ class GEC(LGBMClassifier):
         self.set_params(**kwargs)
 
         self.categorical_hyperparameters = [("boosting", ["gbdt"])]
+
+        self.categorical_hyperparameter_names, _ = zip(
+            *self.categorical_hyperparameters
+        )
+
+        self.categorical_hyperparameter_combinations = [
+            "-".join(y)
+            for y in itertools.product(
+                *[x[1] for x in self.categorical_hyperparameters]
+            )
+        ]
+
         self.real_hyperparameters = [
             ("lambda_l1", (np.logspace(0.00, 1, 1000) - 1) / 9),
             ("num_leaves", [int(x) for x in np.arange(10, 200, 1)]),
@@ -207,12 +221,94 @@ class GEC(LGBMClassifier):
             )
         }
 
+        self.real_hyperparameter_names, self.linear_ranges = zip(
+            *self.real_hyperparameters_linear
+        )
+        self.sets_types = [np.array(s).dtype for _, s in self.real_hyperparameters]
+
         self.kernel = RBF(0.02)
+        self.gaussian = GaussianProcessRegressor(kernel=self.kernel)
         self.gp_datas = None
         self.best_score = None
         self.best_params_ = None
         self.n_sample = 1000
         self.n_iterations = 0
+
+    def export_gp_datas(self, path):
+        gp_datas = {
+            k: {
+                k2: [list(vv) if isinstance(vv, np.ndarray) else vv for vv in v]
+                for k2, v in values.items()
+            }
+            for k, values in self.gp_datas.items()
+        }
+        with open(path, "w") as f:
+            f.write(json.dumps(gp_datas))
+
+    def load_gp_datas(self, path):
+        with open(path, "r") as f:
+            gp_datas = json.loads(f.read())
+
+        self.gp_datas = {
+            k: {
+                k2: [np.array(vv) if isinstance(vv, list) else vv for vv in v]
+                for k2, v in values.items()
+            }
+            for k, values in self.gp_datas.items()
+        }
+
+    def find_best_parameters(self):
+        sets = [
+            list(range_[:: math.floor(len(range_) / 10)])
+            for range_ in self.linear_ranges
+        ]
+        real_combinations = itertools.product(*sets)
+        initial_combinations = {
+            categorical_param_comb: real_combinations
+            for categorical_param_comb in self.categorical_hyperparameter_combinations
+        }
+        best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
+        neighbouring_combinations = self.get_neghbouring_combinations(best_combinations)
+        best_combinations_2, best_scores_2 = self.find_best_parameters_iter(
+            neighbouring_combinations
+        )
+        max_score = np.max(list(best_scores_2.values()))
+        for categorical_combination, real_combination in best_combinations_2.items():
+            if best_scores_2[categorical_combination] == max_score:
+                arguments = self.build_arguments(
+                    categorical_combination.split("-"), real_combination
+                )
+        return (arguments, max_score)
+
+    def get_neghbouring_combinations(self, best_combinations):
+
+        neighbouring_combinations = {}
+        for categorical_combination, real_combination in best_combinations.items():
+            new_sets = []
+            for real_value, range_ in zip(real_combination, self.linear_ranges):
+                real_value_index = np.argmax(range_ == real_value)
+                step_size = math.floor(len(range_) / 10)
+                new_set = range_[
+                    real_value_index - step_size : real_value_index + step_size
+                ]
+                new_sets.append(new_set)
+
+            neighbouring_combinations[categorical_combination] = itertools.product(
+                *new_sets
+            )
+        return neighbouring_combinations
+
+    def find_best_parameters_iter(self, combinations):
+        best_combinations = {}
+        best_scores = {}
+        for categorical_combination, combs in combinations.items():
+            self.gaussian.fit(self.gp_datas[categorical_combination])
+            mean = self.gaussian.predict(combs)
+            best_scores[categorical_combination] = np.max(mean)
+            best_combination = combs[np.argmax(mean)]
+            best_combinations[categorical_combination] = best_combination
+
+        return best_combinations, best_scores
 
     def fit(self, X, y, n_iter=100):
 
@@ -220,13 +316,17 @@ class GEC(LGBMClassifier):
             n_iter, X, y, self.gp_datas, self.best_score, self.best_params_
         )
 
-        gec = GEC(**best_params)
+        best_params_grid, best_score_grid = self.find_best_parameters()
+
+        gec = GEC(**best_params_grid)
         self.__dict__.update(gec.__dict__)
 
         if hasattr(self, "gec_iter"):
             self.gec_iter += n_iter
         else:
             self.gec_iter = n_iter
+
+        self.best_params_grid, self.best_score_grid = best_params_grid, best_score_grid
 
         if self.best_score is None or best_score > self.best_score:
             self.best_score = best_score
@@ -242,6 +342,28 @@ class GEC(LGBMClassifier):
 
         return self
 
+    def build_arguments(self, categorical_combination, real_combination_linear):
+        best_predicted_combination_converted = [
+            self.real_hyperparameters_map[name][value]
+            for name, value in zip(
+                self.real_hyperparameter_names,
+                real_combination_linear,
+            )
+        ]
+
+        hyperparameter_values = categorical_combination + [
+            self.cast_to_type(c, t)
+            for c, t in zip(list(best_predicted_combination_converted), self.sets_types)
+        ]
+
+        arguments = dict(
+            zip(
+                self.categorical_hyperparameter_names + self.real_hyperparameter_names,
+                hyperparameter_values,
+            )
+        )
+        return arguments
+
     def optimise_hyperparameters(
         self,
         n_iter,
@@ -252,31 +374,22 @@ class GEC(LGBMClassifier):
         best_params,
         **kwargs,
     ):
-        real_hyperparameter_names, ranges = zip(*self.real_hyperparameters_linear)
-        categorical_hyperparameter_names, _ = zip(*self.categorical_hyperparameters)
-        categorical_hyperparameter_combinations = [
-            "-".join(y)
-            for y in itertools.product(
-                *[x[1] for x in self.categorical_hyperparameters]
-            )
-        ]
-        ranges = [x[1] for x in self.real_hyperparameters_linear]
-        gaussian = GaussianProcessRegressor(**kwargs)
+
         # parameters for gaussian process
         if gp_datas is not None:
             assert np.all(
                 np.array(sorted(list(gp_datas.keys())))
-                == np.array(categorical_hyperparameter_combinations)
+                == np.array(self.categorical_hyperparameter_combinations)
             )
         else:
             gp_datas = {
                 c: {"inputs": [], "output": [], "means": [], "sigmas": []}
-                for c in categorical_hyperparameter_combinations
+                for c in self.categorical_hyperparameter_combinations
             }
 
         # parameters for bandit
-        counts = {c: 0.001 for c in categorical_hyperparameter_combinations}
-        rewards = {c: [1] for c in categorical_hyperparameter_combinations}
+        counts = {c: 0.001 for c in self.categorical_hyperparameter_combinations}
+        rewards = {c: [1] for c in self.categorical_hyperparameter_combinations}
 
         for i in range(n_iter):
             ucb = np.array(
@@ -287,45 +400,35 @@ class GEC(LGBMClassifier):
                 ]
             )
             selected_arm_index = ucb.argmax()
-            selected_arm = categorical_hyperparameter_combinations[selected_arm_index]
+            selected_arm = self.categorical_hyperparameter_combinations[
+                selected_arm_index
+            ]
             counts[selected_arm] = int(counts[selected_arm] + 1)
 
             if len(gp_datas[selected_arm]["inputs"]) > 0:
-                gaussian.fit(
+                adjustment_factor = 1 / len(np.unique(Y))
+                self.gaussian.fit(
                     np.array(gp_datas[selected_arm]["inputs"]),
-                    np.array(gp_datas[selected_arm]["output"]),
+                    np.array(gp_datas[selected_arm]["output"]) - adjustment_factor,
                 )
 
-            sets = [list(np.random.choice(range_, self.n_sample)) for range_ in ranges]
-            sets_types = [np.array(s).dtype for _, s in self.real_hyperparameters]
+            sets = [
+                list(np.random.choice(range_, self.n_sample))
+                for range_ in self.linear_ranges
+            ]
             combinations = [np.array(comb) for comb in zip(*sets)]
 
-            mean, sigma = gaussian.predict(combinations, return_std=True)
+            mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
             predicted_rewards = np.array(
                 [m + 0.3 * np.random.normal(m, s) for m, s in zip(mean, sigma)]
             )
 
             best_predicted_combination = combinations[np.argmax(predicted_rewards)]
-            best_predicted_combination_converted = [
-                self.real_hyperparameters_map[name][value]
-                for name, value in zip(
-                    real_hyperparameter_names,
-                    best_predicted_combination,
-                )
-            ]
-
-            hyperparameter_values = selected_arm.split("-") + [
-                self.cast_to_type(c, t)
-                for c, t in zip(list(best_predicted_combination_converted), sets_types)
-            ]
-
-            arguments = dict(
-                zip(
-                    categorical_hyperparameter_names + real_hyperparameter_names,
-                    hyperparameter_values,
-                )
+            arguments = self.build_arguments(
+                selected_arm.split("-"), best_predicted_combination
             )
+
             clf = LGBMClassifier(**arguments)
 
             score = np.mean(cross_val_score(clf, X, Y, cv=5))
@@ -337,7 +440,7 @@ class GEC(LGBMClassifier):
                 best_params = arguments
 
             gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
-            gp_datas[selected_arm]["output"].append(score - (1 / len(np.unique(Y))))
+            gp_datas[selected_arm]["output"].append(score)
             gp_datas[selected_arm]["means"].append(mean)
             gp_datas[selected_arm]["sigmas"].append(sigma)
 
@@ -349,9 +452,9 @@ class GEC(LGBMClassifier):
                 counts.pop(failure)
                 rewards.pop(failure)
                 gp_datas.pop(failure)
-                categorical_hyperparameter_combinations = [
+                self.categorical_hyperparameter_combinations = [
                     hp
-                    for hp in categorical_hyperparameter_combinations
+                    for hp in self.categorical_hyperparameter_combinations
                     if hp != failure
                 ]
 
