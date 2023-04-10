@@ -258,41 +258,51 @@ class GEC(LGBMClassifier):
         }
 
     def find_best_parameters(self):
-        sets = [
-            list(range_[:: math.floor(len(range_) / 10)])
-            for range_ in self.linear_ranges
-        ]
+        sets = [list(range_[::10]) for range_ in self.linear_ranges]
         real_combinations = np.array(list(itertools.product(*sets)))
         initial_combinations = {
             categorical_param_comb: real_combinations
             for categorical_param_comb in self.categorical_hyperparameter_combinations
         }
         best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
-        neighbouring_combinations = self.get_neghbouring_combinations(best_combinations)
+        neighbouring_combinations = self.get_neghbouring_combinations(
+            best_combinations, 3, 10
+        )
 
-        best_combinations_2, best_scores_2 = self.find_best_parameters_iter(
+        best_combinations_2, _ = self.find_best_parameters_iter(
             neighbouring_combinations
         )
-        max_score = np.max(list(best_scores_2.values()))
-        for categorical_combination, real_combination in best_combinations_2.items():
-            if best_scores_2[categorical_combination] == max_score:
+
+        neighbouring_combinations_2 = self.get_neghbouring_combinations(
+            best_combinations_2, 1, 3
+        )
+
+        best_combinations_3, best_scores_3 = self.find_best_parameters_iter(
+            neighbouring_combinations_2
+        )
+
+        max_score = np.max(list(best_scores_3.values()))
+        for categorical_combination, real_combination in best_combinations_3.items():
+            if best_scores_3[categorical_combination] == max_score:
                 arguments = self.build_arguments(
                     categorical_combination.split("-"), real_combination
                 )
         return (arguments, max_score)
 
-    def get_neghbouring_combinations(self, best_combinations):
-
+    def get_neghbouring_combinations(
+        self, best_combinations, step_size, previous_step_size
+    ):
         neighbouring_combinations = {}
         for categorical_combination, real_combination in best_combinations.items():
             new_sets = []
             for real_value, range_ in zip(real_combination, self.linear_ranges):
                 real_value_index = np.argmax(range_ == real_value)
-                step_size = math.floor(len(range_) / 10)
-                start_index = real_value_index - step_size
+
+                start_index = real_value_index - previous_step_size
                 start_index = start_index if start_index > 0 else 0
-                end_index = min(real_value_index + step_size, len(range_))
-                new_set = list(range_[start_index:end_index:3])
+                end_index = min(real_value_index + previous_step_size, len(range_))
+
+                new_set = list(range_[start_index:end_index:step_size])
                 new_sets.append(new_set)
 
             neighbouring_combinations[categorical_combination] = np.array(
