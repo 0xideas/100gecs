@@ -203,11 +203,11 @@ class GEC(LGBMClassifier):
         ]
 
         self.real_hyperparameters = [
-            ("lambda_l1", (np.logspace(0.00, 1, 1000) - 1) / 9),
+            ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("num_leaves", [int(x) for x in np.arange(10, 200, 1)]),
             ("min_data_in_leaf", [int(x) for x in np.arange(2, 50, 1)]),
             ("feature_fraction", [float(x) for x in np.arange(0.1, 1.01, 0.01)]),
-            ("learning_rate", (np.logspace(0.001, 1.5, 1500)) / 100),
+            ("learning_rate", (np.logspace(0.001, 1.5, 150)) / 100),
         ]
         self.real_hyperparameters_linear = [
             (name, np.arange(-1, 1, 2 / len(values)))
@@ -254,7 +254,7 @@ class GEC(LGBMClassifier):
                 k2: [np.array(vv) if isinstance(vv, list) else vv for vv in v]
                 for k2, v in values.items()
             }
-            for k, values in self.gp_datas.items()
+            for k, values in gp_datas.items()
         }
 
     def find_best_parameters(self):
@@ -262,13 +262,14 @@ class GEC(LGBMClassifier):
             list(range_[:: math.floor(len(range_) / 10)])
             for range_ in self.linear_ranges
         ]
-        real_combinations = itertools.product(*sets)
+        real_combinations = np.array(list(itertools.product(*sets)))
         initial_combinations = {
             categorical_param_comb: real_combinations
             for categorical_param_comb in self.categorical_hyperparameter_combinations
         }
         best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
         neighbouring_combinations = self.get_neghbouring_combinations(best_combinations)
+
         best_combinations_2, best_scores_2 = self.find_best_parameters_iter(
             neighbouring_combinations
         )
@@ -288,13 +289,14 @@ class GEC(LGBMClassifier):
             for real_value, range_ in zip(real_combination, self.linear_ranges):
                 real_value_index = np.argmax(range_ == real_value)
                 step_size = math.floor(len(range_) / 10)
-                new_set = range_[
-                    real_value_index - step_size : real_value_index + step_size
-                ]
+                start_index = real_value_index - step_size
+                start_index = start_index if start_index > 0 else 0
+                end_index = min(real_value_index + step_size, len(range_))
+                new_set = list(range_[start_index:end_index:3])
                 new_sets.append(new_set)
 
-            neighbouring_combinations[categorical_combination] = itertools.product(
-                *new_sets
+            neighbouring_combinations[categorical_combination] = np.array(
+                list(itertools.product(*new_sets))
             )
         return neighbouring_combinations
 
@@ -302,7 +304,10 @@ class GEC(LGBMClassifier):
         best_combinations = {}
         best_scores = {}
         for categorical_combination, combs in combinations.items():
-            self.gaussian.fit(self.gp_datas[categorical_combination])
+            self.gaussian.fit(
+                self.gp_datas[categorical_combination]["inputs"],
+                self.gp_datas[categorical_combination]["output"],
+            )
             mean = self.gaussian.predict(combs)
             best_scores[categorical_combination] = np.max(mean)
             best_combination = combs[np.argmax(mean)]
