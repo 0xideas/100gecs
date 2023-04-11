@@ -7,6 +7,8 @@ import numpy as np
 import json
 import math
 
+import matplotlib.pyplot as plt
+
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.utils.extmath import cartesian
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -274,6 +276,74 @@ class GEC(LGBMClassifier):
             }
             for k, values in gp_datas.items()
         }
+
+    def summarise_gp_datas(self):
+
+        figs = {}
+
+        for categorical_combination in self.categorical_hyperparameter_combinations:
+            fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=False)
+            ax1, ax2, ax3, ax4 = axes.flatten()
+
+            x = np.arange(len(self.gp_datas[categorical_combination]["means"]))
+            self.plot_mean_prediction_and_mean_variance(categorical_combination, ax1, x)
+            self.plot_prediction_std_and_variance_std(categorical_combination, ax2, x)
+            self.plot_prediction_mean_variance_correlation(
+                categorical_combination, ax3, x
+            )
+            self.plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
+            figs[categorical_combination] = fig
+
+        return figs
+
+    def figures_to_html(figs, path):
+        with open(path, "w") as f:
+            f.write("<html><head></head><body>" + "\n")
+            for categorical_combination, fig in figs.items():
+                inner_html = fig.to_html().split("<body>")[1].split("</body>")[0]
+                f.write(f"<h2>{categorical_combination}</h2>")
+                f.write(inner_html)
+            f.write("</body></html>" + "\n")
+
+    def save_figs(self, path):
+        figs = self.summarise_gp_datas()
+        self.figures_to_html(figs, path)
+
+    def plot_linear_scaled_parameter_samples(self, cat, ax, x):
+        inputs_ = np.array(self.gp_datas[cat]["inputs"])
+        for i in range(inputs_.shape[1]):
+            ax.plot(x, inputs_[:, i], label=self.real_hyperparameter_names[i])
+
+    def plot_prediction_mean_variance_correlation(self, cat, ax, x):
+        correlation = [
+            np.corrcoef(
+                self.gp_datas[cat]["means"][i], self.gp_datas[cat]["sigmas"][i]
+            )[0, 1]
+            for i in x
+        ]
+
+        ax.plot(
+            x,
+            correlation,
+            label="correlation between prediction mean and prediction variance",
+        )
+        ax.legend(loc="lower right")
+
+    def plot_prediction_std_and_variance_std(self, cat, ax, x):
+        gp_prediction_variance = [np.std(x) for x in self.gp_datas[cat]["means"]]
+        gp_sigma_variance = [np.std(x) for x in self.gp_datas[cat]["sigmas"]]
+
+        ax.plot(x, gp_prediction_variance, label="prediction_variance")
+        ax.plot(x, gp_sigma_variance, label="sigma_variance")
+        ax.legend(loc="lower right")
+
+    def plot_mean_prediction_and_mean_variance(self, cat, ax, x):
+        gp_mean_prediction = [np.mean(x) for x in self.gp_datas[cat]["means"]]
+        gp_mean_sigma = [np.mean(x) for x in self.gp_datas[cat]["sigmas"]]
+
+        ax.plot(x, gp_mean_prediction, label="mean_prediction")
+        ax.plot(x, gp_mean_sigma, label="mean_sigma")
+        ax.legend(loc="upper right")
 
     def find_best_parameters(self, gp_datas):
         sets = [list(range_[::10]) for range_ in self.linear_ranges]
