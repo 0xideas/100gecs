@@ -1,6 +1,9 @@
 import inspect
 import itertools
 from typing import Optional, Union, Dict, Callable
+import os
+import contextlib
+from tqdm import tqdm
 
 import warnings
 import numpy as np
@@ -220,14 +223,19 @@ class GEC(LGBMClassifier):
                 "n_estimators",
                 ten_to_thousand,
             ),
-            ("bagging_fraction", np.arange(0.1, 1.01, 0.05)),
+            (
+                "bagging_fraction",
+                np.concatenate([np.arange(0.1, 1.00, 0.05), np.array([1.0])]),
+            ),
             ("bagging_freq", np.arange(1, 10, 1)),
             ("max_bin", ten_to_thousand),
             ("max_depth", np.concatenate([np.array([-1]), ten_to_thousand[0:21:3]])),
-            ("num_iterations", ten_to_thousand[4:16]),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("min_data_in_leaf", np.arange(2, 50, 1)),
-            ("feature_fraction", np.arange(0.1, 1.01, 0.01)),
+            (
+                "feature_fraction",
+                np.concatenate([np.arange(0.1, 1.00, 0.01), np.array([1.0])]),
+            ),
         ]
         self.real_hyperparameters_linear = [
             (name, np.arange(-1, 1, 2 / len(values)))
@@ -246,7 +254,7 @@ class GEC(LGBMClassifier):
         )
         self.sets_types = [np.array(s).dtype for _, s in self.real_hyperparameters]
 
-        self.kernel = RBF(0.02)
+        self.kernel = RBF(1.0)
         self.gaussian = GaussianProcessRegressor(kernel=self.kernel)
         self.gp_datas = None
         self.best_score = None
@@ -296,18 +304,13 @@ class GEC(LGBMClassifier):
 
         return figs
 
-    def figures_to_html(figs, path):
-        with open(path, "w") as f:
-            f.write("<html><head></head><body>" + "\n")
-            for categorical_combination, fig in figs.items():
-                inner_html = fig.to_html().split("<body>")[1].split("</body>")[0]
-                f.write(f"<h2>{categorical_combination}</h2>")
-                f.write(inner_html)
-            f.write("</body></html>" + "\n")
+    def write_figures(self, figs, path_stem):
+        for categorical_combination, fig in figs.items():
+            fig.savefig(f"{path_stem}_{categorical_combination}.png")
 
-    def save_figs(self, path):
+    def save_figs(self, path_stem):
         figs = self.summarise_gp_datas()
-        self.figures_to_html(figs, path)
+        self.write_figures(figs, path_stem)
 
     def plot_linear_scaled_parameter_samples(self, cat, ax, x):
         inputs_ = np.array(self.gp_datas[cat]["inputs"])
@@ -325,7 +328,7 @@ class GEC(LGBMClassifier):
         ax.plot(
             x,
             correlation,
-            label="correlation between prediction mean and prediction variance",
+            label="corr(preds mean, preds variance)",
         )
         ax.legend(loc="lower right")
 
@@ -346,7 +349,9 @@ class GEC(LGBMClassifier):
         ax.legend(loc="upper right")
 
     def find_best_parameters(self, gp_datas):
-        sets = [list(range_[::10]) for range_ in self.linear_ranges]
+        step_sizes = [9, 3, 1]
+
+        sets = [list(range_[:: step_sizes[0]]) for range_ in self.linear_ranges]
         real_combinations = np.array(list(itertools.product(*sets)))
         initial_combinations = {
             categorical_param_comb: real_combinations
@@ -356,13 +361,13 @@ class GEC(LGBMClassifier):
             initial_combinations, gp_datas
         )
 
-        step_sizes = [20, 10, 5, 2, 1]
-
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
 
             neighbouring_combinations = self.get_neghbouring_combinations(
                 best_combinations, step_size, previous_step_size
             )
+            print(step_size)
+            print(len(list(neighbouring_combinations.values())[0]))
 
             best_combinations, best_scores = self.find_best_parameters_iter(
                 neighbouring_combinations, gp_datas
@@ -423,11 +428,6 @@ class GEC(LGBMClassifier):
         gec = GEC(**best_params_grid)
         self.__dict__.update(gec.__dict__)
 
-        if hasattr(self, "gec_iter"):
-            self.gec_iter += n_iter
-        else:
-            self.gec_iter = n_iter
-
         self.best_params_grid, self.best_score_grid = best_params_grid, best_score_grid
 
         if self.best_score is None or best_score > self.best_score:
@@ -438,7 +438,7 @@ class GEC(LGBMClassifier):
 
         super().fit(X, y)
 
-        self.n_iterations = np.sum(
+        self.gec_iter = np.sum(
             [len(value["output"]) for value in self.gp_datas.values()]
         )
 
@@ -481,7 +481,7 @@ class GEC(LGBMClassifier):
         if gp_datas is not None:
             assert np.all(
                 np.array(sorted(list(gp_datas.keys())))
-                == np.array(self.categorical_hyperparameter_combinations)
+                == np.array(sorted(self.categorical_hyperparameter_combinations))
             )
         else:
             gp_datas = {
@@ -493,7 +493,7 @@ class GEC(LGBMClassifier):
         counts = {c: 0.001 for c in self.categorical_hyperparameter_combinations}
         rewards = {c: [1] for c in self.categorical_hyperparameter_combinations}
 
-        for i in range(n_iter):
+        for i in tqdm(list(range(n_iter))):
             ucb = np.array(
                 [
                     np.mean(rewards[c]) * 10
@@ -531,10 +531,13 @@ class GEC(LGBMClassifier):
                 selected_arm.split("-"), best_predicted_combination
             )
 
+            tqdm.write(str(arguments))
+
             clf = LGBMClassifier(**arguments)
 
             try:
-                score = np.mean(cross_val_score(clf, X, Y, cv=5))
+                with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+                    score = np.mean(cross_val_score(clf, X, Y, cv=3))
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
 

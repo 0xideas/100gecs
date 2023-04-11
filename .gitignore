@@ -1,4 +1,6 @@
 .ipynb_checkpoints/
 *.pyc
 
+*.png
+*gp_datas.json
 dist/
