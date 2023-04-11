@@ -2,6 +2,7 @@ import inspect
 import itertools
 from typing import Optional, Union, Dict, Callable
 
+import warnings
 import numpy as np
 import json
 import math
@@ -189,7 +190,7 @@ class GEC(LGBMClassifier):
         self._n_classes = None
         self.set_params(**kwargs)
 
-        self.categorical_hyperparameters = [("boosting", ["gbdt"])]
+        self.categorical_hyperparameters = [("boosting", ["gbdt", "dart", "rf"])]
 
         self.categorical_hyperparameter_names, _ = zip(
             *self.categorical_hyperparameters
@@ -202,12 +203,29 @@ class GEC(LGBMClassifier):
             )
         ]
 
+        ten_to_thousand = np.concatenate(
+            [
+                np.arange(10, 100, 10),
+                np.arange(100, 200, 20),
+                np.arange(200, 500, 50),
+                np.arange(500, 1001, 100),
+            ]
+        )
         self.real_hyperparameters = [
-            ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
-            ("num_leaves", [int(x) for x in np.arange(10, 200, 1)]),
-            ("min_data_in_leaf", [int(x) for x in np.arange(2, 50, 1)]),
-            ("feature_fraction", [float(x) for x in np.arange(0.1, 1.01, 0.01)]),
+            ("num_leaves", np.arange(10, 200, 1)),
             ("learning_rate", (np.logspace(0.001, 1.5, 150)) / 100),
+            (
+                "n_estimators",
+                ten_to_thousand,
+            ),
+            ("bagging_fraction", np.arange(0.1, 1.01, 0.05)),
+            ("bagging_freq", np.arange(1, 10, 1)),
+            ("max_bin", ten_to_thousand),
+            ("max_depth", np.concatenate([np.array([-1]), ten_to_thousand[0:21:3]])),
+            ("num_iterations", ten_to_thousand[4:16]),
+            ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
+            ("min_data_in_leaf", np.arange(2, 50, 1)),
+            ("feature_fraction", np.arange(0.1, 1.01, 0.01)),
         ]
         self.real_hyperparameters_linear = [
             (name, np.arange(-1, 1, 2 / len(values)))
@@ -257,33 +275,32 @@ class GEC(LGBMClassifier):
             for k, values in gp_datas.items()
         }
 
-    def find_best_parameters(self):
+    def find_best_parameters(self, gp_datas):
         sets = [list(range_[::10]) for range_ in self.linear_ranges]
         real_combinations = np.array(list(itertools.product(*sets)))
         initial_combinations = {
             categorical_param_comb: real_combinations
             for categorical_param_comb in self.categorical_hyperparameter_combinations
         }
-        best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
-        neighbouring_combinations = self.get_neghbouring_combinations(
-            best_combinations, 3, 10
+        best_combinations, _ = self.find_best_parameters_iter(
+            initial_combinations, gp_datas
         )
 
-        best_combinations_2, _ = self.find_best_parameters_iter(
-            neighbouring_combinations
-        )
+        step_sizes = [20, 10, 5, 2, 1]
 
-        neighbouring_combinations_2 = self.get_neghbouring_combinations(
-            best_combinations_2, 1, 3
-        )
+        for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
 
-        best_combinations_3, best_scores_3 = self.find_best_parameters_iter(
-            neighbouring_combinations_2
-        )
+            neighbouring_combinations = self.get_neghbouring_combinations(
+                best_combinations, step_size, previous_step_size
+            )
 
-        max_score = np.max(list(best_scores_3.values()))
-        for categorical_combination, real_combination in best_combinations_3.items():
-            if best_scores_3[categorical_combination] == max_score:
+            best_combinations, best_scores = self.find_best_parameters_iter(
+                neighbouring_combinations, gp_datas
+            )
+
+        max_score = np.max(list(best_scores.values()))
+        for categorical_combination, real_combination in best_combinations.items():
+            if best_scores[categorical_combination] == max_score:
                 arguments = self.build_arguments(
                     categorical_combination.split("-"), real_combination
                 )
@@ -310,13 +327,13 @@ class GEC(LGBMClassifier):
             )
         return neighbouring_combinations
 
-    def find_best_parameters_iter(self, combinations):
+    def find_best_parameters_iter(self, combinations, gp_datas):
         best_combinations = {}
         best_scores = {}
         for categorical_combination, combs in combinations.items():
             self.gaussian.fit(
-                self.gp_datas[categorical_combination]["inputs"],
-                self.gp_datas[categorical_combination]["output"],
+                gp_datas[categorical_combination]["inputs"],
+                gp_datas[categorical_combination]["output"],
             )
             mean = self.gaussian.predict(combs)
             best_scores[categorical_combination] = np.max(mean)
@@ -331,7 +348,7 @@ class GEC(LGBMClassifier):
             n_iter, X, y, self.gp_datas, self.best_score, self.best_params_
         )
 
-        best_params_grid, best_score_grid = self.find_best_parameters()
+        best_params_grid, best_score_grid = self.find_best_parameters(gp_datas)
 
         gec = GEC(**best_params_grid)
         self.__dict__.update(gec.__dict__)
@@ -446,7 +463,11 @@ class GEC(LGBMClassifier):
 
             clf = LGBMClassifier(**arguments)
 
-            score = np.mean(cross_val_score(clf, X, Y, cv=5))
+            try:
+                score = np.mean(cross_val_score(clf, X, Y, cv=5))
+            except Exception as e:
+                warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
+
             if np.isnan(score):
                 score = 0
 
