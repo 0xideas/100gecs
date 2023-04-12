@@ -348,8 +348,7 @@ class GEC(LGBMClassifier):
         ax.plot(x, gp_mean_sigma, label="mean_sigma")
         ax.legend(loc="upper right")
 
-    def find_best_parameters(self, gp_datas):
-        step_sizes = [9, 3, 1]
+    def find_best_parameters(self, gp_datas, step_sizes=[16, 8, 4, 2, 1]):
 
         sets = [list(range_[:: step_sizes[0]]) for range_ in self.linear_ranges]
         real_combinations = np.array(list(itertools.product(*sets)))
@@ -538,34 +537,23 @@ class GEC(LGBMClassifier):
             try:
                 with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
                     score = np.mean(cross_val_score(clf, X, Y, cv=3))
+
+                if np.isnan(score):
+                    score = 0
+
+                if best_score is None or score > best_score:
+                    best_score = score
+                    best_params = arguments
+
+                gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
+                gp_datas[selected_arm]["output"].append(score)
+                gp_datas[selected_arm]["means"].append(mean)
+                gp_datas[selected_arm]["sigmas"].append(sigma)
+
+                rewards[selected_arm] += [score]
+
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
-
-            if np.isnan(score):
-                score = 0
-
-            if best_score is None or score > best_score:
-                best_score = score
-                best_params = arguments
-
-            gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
-            gp_datas[selected_arm]["output"].append(score)
-            gp_datas[selected_arm]["means"].append(mean)
-            gp_datas[selected_arm]["sigmas"].append(sigma)
-
-            rewards[selected_arm] += [score]
-
-            if np.sum(np.array(rewards[selected_arm]) == 0) > 1:
-                failure = selected_arm
-                print(failure)
-                counts.pop(failure)
-                rewards.pop(failure)
-                gp_datas.pop(failure)
-                self.categorical_hyperparameter_combinations = [
-                    hp
-                    for hp in self.categorical_hyperparameter_combinations
-                    if hp != failure
-                ]
 
         return ((best_params, best_score), gp_datas)
 
