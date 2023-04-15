@@ -495,8 +495,8 @@ class GEC(LGBMClassifier):
         for i in tqdm(list(range(n_iter))):
             ucb = np.array(
                 [
-                    np.mean(rewards[c]) * 10
-                    + np.sqrt(2 * np.sum(list(counts.values())) / count)
+                    np.max(rewards[c])
+                    + np.sqrt(2 * np.sum(list(counts.values())) / count) * 0.003
                     for c, count in counts.items()
                 ]
             )
