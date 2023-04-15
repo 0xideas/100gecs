@@ -230,7 +230,7 @@ class GEC(LGBMClassifier):
                 "bagging_fraction",
                 np.concatenate([np.arange(0.1, 1.00, 0.05), np.array([1.0])]),
             ),
-            ("bagging_freq", np.arange(1, 10, 1)),
+            ("bagging_freq", np.arange(0, 10, 1)),
             ("max_bin", ten_to_thousand),
             ("max_depth", np.concatenate([np.array([-1]), ten_to_thousand[0:21:3]])),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
@@ -255,6 +255,10 @@ class GEC(LGBMClassifier):
         self.real_hyperparameter_names, self.linear_ranges = zip(
             *self.real_hyperparameters_linear
         )
+        self.real_hyperparameter_name_to_index = {
+            n: i for i, n in enumerate(self.real_hyperparameter_names)
+        }
+
         self.sets_types = [np.array(s).dtype for _, s in self.real_hyperparameters]
 
         self.kernel = RBF(1.0)
@@ -388,10 +392,31 @@ class GEC(LGBMClassifier):
         ax.plot(x, gp_mean_sigma, label="mean_sigma")
         ax.legend(loc="upper right")
 
+    def filter_to_admissible_combinations(self, real_combinations):
+        bagging_freq_index = self.real_hyperparameter_name_to_index["bagging_freq"]
+        bagging_fraction_index = self.real_hyperparameter_name_to_index[
+            "bagging_fraction"
+        ]
+
+        max_fraction = np.max(self.linear_ranges[bagging_fraction_index])
+
+        bagging_fraction_one = (
+            real_combinations[:, bagging_fraction_index] == max_fraction
+        )
+        no_bagging = real_combinations[:, bagging_freq_index] == -1.0
+
+        return real_combinations[bagging_fraction_one == no_bagging, :]
+
     def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
 
-        sets = [list(range_[:: step_sizes[0]]) for range_ in self.linear_ranges]
+        sets = [
+            list(range_[:: step_sizes[0]]) + range_[-1:]
+            for range_ in self.linear_ranges
+        ]
         real_combinations = np.array(list(itertools.product(*sets)))
+
+        real_combinations = self.filter_to_admissible_combinations(real_combinations)
+
         initial_combinations = {
             categorical_param_comb: real_combinations
             for categorical_param_comb in self.categorical_hyperparameter_combinations
@@ -414,6 +439,8 @@ class GEC(LGBMClassifier):
                 arguments = self.build_arguments(
                     categorical_combination.split("-"), real_combination
                 )
+
+        print(arguments)
         return (arguments, max_score)
 
     def get_neghbouring_combinations(
@@ -451,6 +478,27 @@ class GEC(LGBMClassifier):
             best_combinations[categorical_combination] = best_combination
 
         return best_combinations, best_scores
+
+    def bagging_parameters_admissible(self, combination):
+        bagging_freq_index = self.real_hyperparameter_name_to_index["bagging_freq"]
+        no_bagging = combination[bagging_freq_index] == np.min(
+            self.linear_ranges[bagging_freq_index]
+        )
+        bagging_fraction_index = self.real_hyperparameter_name_to_index[
+            "bagging_fraction"
+        ]
+        bagging_fraction_one = combination[bagging_fraction_index] == np.max(
+            self.linear_ranges[bagging_fraction_index]
+        )
+
+        return no_bagging == bagging_fraction_one
+
+    def is_admissible(self, combination):
+
+        if self.bagging_parameters_admissible(combination):
+            return True
+        else:
+            return False
 
     def fit(self, X, y, n_iter=100):
 
@@ -539,7 +587,11 @@ class GEC(LGBMClassifier):
                 list(np.random.choice(range_, self.n_sample))
                 for range_ in self.linear_ranges
             ]
-            combinations = [np.array(comb) for comb in zip(*sets)]
+
+            combinations = [
+                np.array(comb) for comb in zip(*sets) if self.is_admissible(comb)
+            ]
+            assert len(combinations), sets
 
             mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
