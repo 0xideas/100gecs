@@ -440,7 +440,6 @@ class GEC(LGBMClassifier):
                     categorical_combination.split("-"), real_combination
                 )
 
-        print(arguments)
         return (arguments, max_score)
 
     def get_neghbouring_combinations(
@@ -472,9 +471,14 @@ class GEC(LGBMClassifier):
                 self.gp_datas[categorical_combination]["inputs"],
                 self.gp_datas[categorical_combination]["output"],
             )
-            mean = self.gaussian.predict(combs)
+            admissible_combinations = [
+                comb for comb in combs if self.is_admissible(comb)
+            ]
+            assert len(admissible_combinations), combs
+
+            mean = self.gaussian.predict(admissible_combinations)
             best_scores[categorical_combination] = np.max(mean)
-            best_combination = combs[np.argmax(mean)]
+            best_combination = admissible_combinations[np.argmax(mean)]
             best_combinations[categorical_combination] = best_combination
 
         return best_combinations, best_scores
@@ -506,6 +510,9 @@ class GEC(LGBMClassifier):
             n_iter, X, y, self.best_score, self.best_params_
         )
         best_params_grid, best_score_grid = self.find_best_parameters()
+
+        print("--best grid params")
+        print(best_params_grid)
 
         gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
         gec = GEC(**{**best_params_grid, "random_state": 101})
