@@ -403,8 +403,6 @@ class GEC(LGBMClassifier):
             neighbouring_combinations = self.get_neghbouring_combinations(
                 best_combinations, step_size, previous_step_size
             )
-            print(step_size)
-            print(len(list(neighbouring_combinations.values())[0]))
 
             best_combinations, best_scores = self.find_best_parameters_iter(
                 neighbouring_combinations
