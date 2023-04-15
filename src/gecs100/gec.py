@@ -224,13 +224,13 @@ class GEC(LGBMClassifier):
             ("learning_rate", (np.logspace(0.001, 1.5, 150)) / 100),
             (
                 "n_estimators",
-                ten_to_thousand,
+                ten_to_thousand[:10],
             ),
             (
                 "bagging_fraction",
-                np.concatenate([np.arange(0.1, 1.00, 0.05), np.array([1.0])]),
+                np.arange(0.05, 1.00, 0.05),
             ),
-            ("bagging_freq", np.arange(0, 10, 1)),
+            ("bagging_freq", np.arange(1, 11, 1)),
             ("max_bin", ten_to_thousand),
             ("max_depth", np.concatenate([np.array([-1]), ten_to_thousand[0:21:3]])),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
@@ -240,6 +240,7 @@ class GEC(LGBMClassifier):
                 np.concatenate([np.arange(0.1, 1.00, 0.01), np.array([1.0])]),
             ),
         ]
+        self.sampling_probabilities = {}
         self.real_hyperparameters_linear = [
             (name, np.arange(-1, 1, 2 / len(values)))
             for name, values in self.real_hyperparameters
@@ -395,21 +396,6 @@ class GEC(LGBMClassifier):
         ax.plot(x, gp_mean_sigma, label="mean_sigma")
         ax.legend(loc="upper right")
 
-    def filter_to_admissible_combinations(self, real_combinations):
-        bagging_freq_index = self.real_hyperparameter_name_to_index["bagging_freq"]
-        bagging_fraction_index = self.real_hyperparameter_name_to_index[
-            "bagging_fraction"
-        ]
-
-        max_fraction = np.max(self.linear_ranges[bagging_fraction_index])
-
-        bagging_fraction_one = (
-            real_combinations[:, bagging_fraction_index] == max_fraction
-        )
-        no_bagging = real_combinations[:, bagging_freq_index] == -1.0
-
-        return real_combinations[bagging_fraction_one == no_bagging, :]
-
     def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
 
         sets = [
@@ -417,8 +403,6 @@ class GEC(LGBMClassifier):
             for range_ in self.linear_ranges
         ]
         real_combinations = np.array(list(itertools.product(*sets)))
-
-        real_combinations = self.filter_to_admissible_combinations(real_combinations)
 
         arms, counts = np.unique(self.selected_arms, return_counts=True)
         selected_arm = arms[np.argmax(counts)]
@@ -488,28 +472,9 @@ class GEC(LGBMClassifier):
 
         return best_combinations, best_scores
 
-    def bagging_parameters_admissible(self, combination, selected_arm):
-        bagging_freq_index = self.real_hyperparameter_name_to_index["bagging_freq"]
-        no_bagging = combination[bagging_freq_index] == np.min(
-            self.linear_ranges[bagging_freq_index]
-        )
-        bagging_fraction_index = self.real_hyperparameter_name_to_index[
-            "bagging_fraction"
-        ]
-        bagging_fraction_one = combination[bagging_fraction_index] == np.max(
-            self.linear_ranges[bagging_fraction_index]
-        )
-
-        return (no_bagging == bagging_fraction_one) & (
-            (selected_arm != "rf") or (not no_bagging)
-        )
-
     def is_admissible(self, combination, selected_arm):
 
-        if self.bagging_parameters_admissible(combination, selected_arm):
-            return True
-        else:
-            return False
+        return True
 
     def fit(self, X, y, n_iter=100):
 
@@ -522,11 +487,13 @@ class GEC(LGBMClassifier):
         print(best_params_grid)
 
         gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
+        selected_arms = copy.deepcopy(self.selected_arms)
         gec = GEC(**{**best_params_grid, "random_state": 101})
         self.__dict__.update(gec.__dict__)
         super().fit(X, y)
 
         self.gp_datas, self.rewards = gp_datas, rewards
+        self.selected_arms = selected_arms
 
         self.best_params_grid, self.best_score_grid = best_params_grid, best_score_grid
 
@@ -599,8 +566,14 @@ class GEC(LGBMClassifier):
                 )
 
             sets = [
-                list(np.random.choice(range_, self.n_sample))
-                for range_ in self.linear_ranges
+                list(
+                    np.random.choice(
+                        range_,
+                        self.n_sample,
+                        p=self.sampling_probabilities.get(real_hyperparameter, None),
+                    )
+                )
+                for real_hyperparameter, range_ in self.real_hyperparameters_linear
             ]
 
             combinations = [
