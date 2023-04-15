@@ -262,7 +262,7 @@ class GEC(LGBMClassifier):
         self.n_sample = 1000
         self.n_iterations = 0
 
-    def export_gp_datas(self, path):
+    def serialise(self, path):
         gp_datas = {
             k: {
                 k2: [list(vv) if isinstance(vv, np.ndarray) else vv for vv in v]
@@ -270,20 +270,46 @@ class GEC(LGBMClassifier):
             }
             for k, values in self.gp_datas.items()
         }
-        with open(path, "w") as f:
-            f.write(json.dumps(gp_datas))
 
-    def load_gp_datas(self, path):
+        representation = {
+            "gp_datas": gp_datas,
+            "gec_iter": self.gec_iter,
+            "best_params_": self.best_params_,
+            "best_score": self.best_score,
+            "best_params_grid": self.best_params_grid,
+            "best_score_grid": self.best_score_grid,
+        }
+        with open(path, "w") as f:
+            f.write(json.dumps(representation))
+
+    def load_state(self, path, X=None, y=None):
         with open(path, "r") as f:
-            gp_datas = json.loads(f.read())
+            representation = json.loads(f.read())
+
+        best_params_grid = representation["best_params_grid"]
+
+        if X is not None and y is not None:
+            gec = GEC(**{**best_params_grid, "random_state": 101})
+            self.__dict__.update(gec.__dict__)
+            super().fit(X, y)
+        else:
+            warnings.warn(
+                "If X and y are not provided, the GEC model is not fitted for inference"
+            )
 
         self.gp_datas = {
             k: {
                 k2: [np.array(vv) if isinstance(vv, list) else vv for vv in v]
                 for k2, v in values.items()
             }
-            for k, values in gp_datas.items()
+            for k, values in representation["gp_datas"].items()
         }
+
+        self.gec_iter = int(representation["gec_iter"])
+        self.best_params_ = representation["best_params_"]
+        self.best_score = float(representation["best_score"])
+        self.best_params_grid = best_params_grid
+        self.best_score_grid = float(representation["best_score_grid"])
 
     def summarise_gp_datas(self):
 
@@ -424,8 +450,9 @@ class GEC(LGBMClassifier):
 
         best_params_grid, best_score_grid = self.find_best_parameters(gp_datas)
 
-        gec = GEC(**best_params_grid)
+        gec = GEC(**{**best_params_grid, "random_state": 101})
         self.__dict__.update(gec.__dict__)
+        super().fit(X, y)
 
         self.best_params_grid, self.best_score_grid = best_params_grid, best_score_grid
 
@@ -434,8 +461,6 @@ class GEC(LGBMClassifier):
             self.best_params_ = best_params
 
         self.gp_datas = gp_datas
-
-        super().fit(X, y)
 
         self.gec_iter = np.sum(
             [len(value["output"]) for value in self.gp_datas.values()]
@@ -496,7 +521,7 @@ class GEC(LGBMClassifier):
             ucb = np.array(
                 [
                     np.max(rewards[c])
-                    + np.sqrt(2 * np.sum(list(counts.values())) / count) * 0.003
+                    + np.sqrt(2 * np.sum(list(counts.values())) / count) * 0.000001
                     for c, count in counts.items()
                 ]
             )
