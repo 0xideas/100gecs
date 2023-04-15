@@ -277,6 +277,7 @@ class GEC(LGBMClassifier):
         self.rewards = {
             c: {"a": 1, "b": 1} for c in self.categorical_hyperparameter_combinations
         }
+        self.selected_arms = []
 
     def serialise(self, path):
         gp_datas = {
@@ -295,6 +296,7 @@ class GEC(LGBMClassifier):
             "best_params_grid": self.best_params_grid,
             "best_score_grid": self.best_score_grid,
             "rewards": self.rewards,
+            "selected_arms": self.selected_arms,
         }
         with open(path, "w") as f:
             f.write(json.dumps(representation))
@@ -328,6 +330,7 @@ class GEC(LGBMClassifier):
         self.best_params_grid = best_params_grid
         self.best_score_grid = float(representation["best_score_grid"])
         self.rewards = representation["rewards"]
+        self.selected_arms = representation["selected_arms"]
 
     def summarise_gp_datas(self):
 
@@ -417,10 +420,10 @@ class GEC(LGBMClassifier):
 
         real_combinations = self.filter_to_admissible_combinations(real_combinations)
 
-        initial_combinations = {
-            categorical_param_comb: real_combinations
-            for categorical_param_comb in self.categorical_hyperparameter_combinations
-        }
+        arms, counts = np.unique(self.selected_arms, return_counts=True)
+        selected_arm = arms[np.argmax(counts)]
+
+        initial_combinations = {selected_arm: real_combinations}
         best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
 
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
@@ -472,7 +475,9 @@ class GEC(LGBMClassifier):
                 self.gp_datas[categorical_combination]["output"],
             )
             admissible_combinations = [
-                comb for comb in combs if self.is_admissible(comb)
+                comb
+                for comb in combs
+                if self.is_admissible(comb, categorical_combination)
             ]
             assert len(admissible_combinations), combs
 
@@ -483,7 +488,7 @@ class GEC(LGBMClassifier):
 
         return best_combinations, best_scores
 
-    def bagging_parameters_admissible(self, combination):
+    def bagging_parameters_admissible(self, combination, selected_arm):
         bagging_freq_index = self.real_hyperparameter_name_to_index["bagging_freq"]
         no_bagging = combination[bagging_freq_index] == np.min(
             self.linear_ranges[bagging_freq_index]
@@ -495,11 +500,13 @@ class GEC(LGBMClassifier):
             self.linear_ranges[bagging_fraction_index]
         )
 
-        return no_bagging == bagging_fraction_one
+        return (no_bagging == bagging_fraction_one) & (
+            (selected_arm != "rf") or (not no_bagging)
+        )
 
-    def is_admissible(self, combination):
+    def is_admissible(self, combination, selected_arm):
 
-        if self.bagging_parameters_admissible(combination):
+        if self.bagging_parameters_admissible(combination, selected_arm):
             return True
         else:
             return False
@@ -582,6 +589,7 @@ class GEC(LGBMClassifier):
             selected_arm = self.categorical_hyperparameter_combinations[
                 selected_arm_index
             ]
+            self.selected_arms.append(selected_arm)
 
             if len(self.gp_datas[selected_arm]["inputs"]) > 0:
                 adjustment_factor = 1 / len(np.unique(Y))
@@ -596,7 +604,9 @@ class GEC(LGBMClassifier):
             ]
 
             combinations = [
-                np.array(comb) for comb in zip(*sets) if self.is_admissible(comb)
+                np.array(comb)
+                for comb in zip(*sets)
+                if self.is_admissible(comb, selected_arm)
             ]
             assert len(combinations), sets
 
@@ -632,13 +642,14 @@ class GEC(LGBMClassifier):
                 self.gp_datas[selected_arm]["sigmas"].append(sigma)
 
                 if self.last_score is not None:
-                    if score > self.last_score:
+                    score_delta = score - self.last_score
+                    if score_delta > 0:
                         self.rewards[selected_arm]["a"] = (
-                            self.rewards[selected_arm]["a"] + 1
+                            self.rewards[selected_arm]["a"] + score_delta
                         )
                     else:
                         self.rewards[selected_arm]["b"] = (
-                            self.rewards[selected_arm]["b"] + 1
+                            self.rewards[selected_arm]["b"] - score_delta
                         )
                 self.last_score = score
 
