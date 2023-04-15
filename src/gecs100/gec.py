@@ -9,9 +9,12 @@ import warnings
 import numpy as np
 import json
 import math
+import copy
+
 
 import matplotlib.pyplot as plt
 
+from scipy.stats import beta
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.utils.extmath import cartesian
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -256,11 +259,20 @@ class GEC(LGBMClassifier):
 
         self.kernel = RBF(1.0)
         self.gaussian = GaussianProcessRegressor(kernel=self.kernel)
-        self.gp_datas = None
+        self.gp_datas = {
+            c: {"inputs": [], "output": [], "means": [], "sigmas": []}
+            for c in self.categorical_hyperparameter_combinations
+        }
         self.best_score = None
         self.best_params_ = None
         self.n_sample = 1000
         self.n_iterations = 0
+
+        self.last_score = None
+        # parameters for bandit
+        self.rewards = {
+            c: {"a": 1, "b": 1} for c in self.categorical_hyperparameter_combinations
+        }
 
     def serialise(self, path):
         gp_datas = {
@@ -278,6 +290,7 @@ class GEC(LGBMClassifier):
             "best_score": self.best_score,
             "best_params_grid": self.best_params_grid,
             "best_score_grid": self.best_score_grid,
+            "rewards": self.rewards,
         }
         with open(path, "w") as f:
             f.write(json.dumps(representation))
@@ -310,6 +323,7 @@ class GEC(LGBMClassifier):
         self.best_score = float(representation["best_score"])
         self.best_params_grid = best_params_grid
         self.best_score_grid = float(representation["best_score_grid"])
+        self.rewards = representation["rewards"]
 
     def summarise_gp_datas(self):
 
@@ -374,7 +388,7 @@ class GEC(LGBMClassifier):
         ax.plot(x, gp_mean_sigma, label="mean_sigma")
         ax.legend(loc="upper right")
 
-    def find_best_parameters(self, gp_datas, step_sizes=[16, 8, 4, 2, 1]):
+    def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
 
         sets = [list(range_[:: step_sizes[0]]) for range_ in self.linear_ranges]
         real_combinations = np.array(list(itertools.product(*sets)))
@@ -382,9 +396,7 @@ class GEC(LGBMClassifier):
             categorical_param_comb: real_combinations
             for categorical_param_comb in self.categorical_hyperparameter_combinations
         }
-        best_combinations, _ = self.find_best_parameters_iter(
-            initial_combinations, gp_datas
-        )
+        best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
 
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
 
@@ -395,7 +407,7 @@ class GEC(LGBMClassifier):
             print(len(list(neighbouring_combinations.values())[0]))
 
             best_combinations, best_scores = self.find_best_parameters_iter(
-                neighbouring_combinations, gp_datas
+                neighbouring_combinations
             )
 
         max_score = np.max(list(best_scores.values()))
@@ -427,13 +439,13 @@ class GEC(LGBMClassifier):
             )
         return neighbouring_combinations
 
-    def find_best_parameters_iter(self, combinations, gp_datas):
+    def find_best_parameters_iter(self, combinations):
         best_combinations = {}
         best_scores = {}
         for categorical_combination, combs in combinations.items():
             self.gaussian.fit(
-                gp_datas[categorical_combination]["inputs"],
-                gp_datas[categorical_combination]["output"],
+                self.gp_datas[categorical_combination]["inputs"],
+                self.gp_datas[categorical_combination]["output"],
             )
             mean = self.gaussian.predict(combs)
             best_scores[categorical_combination] = np.max(mean)
@@ -444,23 +456,23 @@ class GEC(LGBMClassifier):
 
     def fit(self, X, y, n_iter=100):
 
-        (best_params, best_score), gp_datas = self.optimise_hyperparameters(
-            n_iter, X, y, self.gp_datas, self.best_score, self.best_params_
+        best_params, best_score = self.optimise_hyperparameters(
+            n_iter, X, y, self.best_score, self.best_params_
         )
+        best_params_grid, best_score_grid = self.find_best_parameters()
 
-        best_params_grid, best_score_grid = self.find_best_parameters(gp_datas)
-
+        gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
         gec = GEC(**{**best_params_grid, "random_state": 101})
         self.__dict__.update(gec.__dict__)
         super().fit(X, y)
+
+        self.gp_datas, self.rewards = gp_datas, rewards
 
         self.best_params_grid, self.best_score_grid = best_params_grid, best_score_grid
 
         if self.best_score is None or best_score > self.best_score:
             self.best_score = best_score
             self.best_params_ = best_params
-
-        self.gp_datas = gp_datas
 
         self.gec_iter = np.sum(
             [len(value["output"]) for value in self.gp_datas.values()]
@@ -495,47 +507,34 @@ class GEC(LGBMClassifier):
         n_iter,
         X,
         Y,
-        gp_datas,
         best_score,
         best_params,
         **kwargs,
     ):
 
         # parameters for gaussian process
-        if gp_datas is not None:
-            assert np.all(
-                np.array(sorted(list(gp_datas.keys())))
-                == np.array(sorted(self.categorical_hyperparameter_combinations))
-            )
-        else:
-            gp_datas = {
-                c: {"inputs": [], "output": [], "means": [], "sigmas": []}
-                for c in self.categorical_hyperparameter_combinations
-            }
-
-        # parameters for bandit
-        counts = {c: 0.001 for c in self.categorical_hyperparameter_combinations}
-        rewards = {c: [1] for c in self.categorical_hyperparameter_combinations}
+        assert np.all(
+            np.array(sorted(list(self.gp_datas.keys())))
+            == np.array(sorted(self.categorical_hyperparameter_combinations))
+        )
 
         for i in tqdm(list(range(n_iter))):
-            ucb = np.array(
+            sampled_reward = np.array(
                 [
-                    np.max(rewards[c])
-                    + np.sqrt(2 * np.sum(list(counts.values())) / count) * 0.000001
-                    for c, count in counts.items()
+                    beta.rvs(reward["a"], reward["b"])
+                    for _, reward in self.rewards.items()
                 ]
             )
-            selected_arm_index = ucb.argmax()
+            selected_arm_index = sampled_reward.argmax()
             selected_arm = self.categorical_hyperparameter_combinations[
                 selected_arm_index
             ]
-            counts[selected_arm] = int(counts[selected_arm] + 1)
 
-            if len(gp_datas[selected_arm]["inputs"]) > 0:
+            if len(self.gp_datas[selected_arm]["inputs"]) > 0:
                 adjustment_factor = 1 / len(np.unique(Y))
                 self.gaussian.fit(
-                    np.array(gp_datas[selected_arm]["inputs"]),
-                    np.array(gp_datas[selected_arm]["output"]) - adjustment_factor,
+                    np.array(self.gp_datas[selected_arm]["inputs"]),
+                    np.array(self.gp_datas[selected_arm]["output"]) - adjustment_factor,
                 )
 
             sets = [
@@ -570,17 +569,26 @@ class GEC(LGBMClassifier):
                     best_score = score
                     best_params = arguments
 
-                gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
-                gp_datas[selected_arm]["output"].append(score)
-                gp_datas[selected_arm]["means"].append(mean)
-                gp_datas[selected_arm]["sigmas"].append(sigma)
+                self.gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
+                self.gp_datas[selected_arm]["output"].append(score)
+                self.gp_datas[selected_arm]["means"].append(mean)
+                self.gp_datas[selected_arm]["sigmas"].append(sigma)
 
-                rewards[selected_arm] += [score]
+                if self.last_score is not None:
+                    if score > self.last_score:
+                        self.rewards[selected_arm]["a"] = (
+                            self.rewards[selected_arm]["a"] + 1
+                        )
+                    else:
+                        self.rewards[selected_arm]["b"] = (
+                            self.rewards[selected_arm]["b"] + 1
+                        )
+                self.last_score = score
 
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
 
-        return ((best_params, best_score), gp_datas)
+        return (best_params, best_score)
 
     def tested_parameter_combinations(self):
         real_hyperparameter_names, _ = zip(*self.real_hyperparameters_linear)
