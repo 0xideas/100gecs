@@ -453,11 +453,12 @@ class GEC(LGBMClassifier):
             best_predicted_combination_bagging = self.bagging_combinations[
                 np.argmax(mean_bagging)
             ]
-            print(set(best_predicted_combination_bagging))
 
-            arguments["bagging_freq"], arguments["bagging_fraction"] = set(
-                best_predicted_combination_bagging
-            )
+            (
+                arguments["bagging_freq"],
+                arguments["bagging_fraction"],
+            ) = best_predicted_combination_bagging
+
         del arguments["bagging"]
 
         return (arguments, max_score)
@@ -508,7 +509,12 @@ class GEC(LGBMClassifier):
         )
         best_params_grid, best_score_grid = self.find_best_parameters()
 
-        print("--best grid params")
+        print(f"best_score: {best_score}, best_score_grid: {best_score_grid}")
+
+        print("------best params-----------")
+        print(best_params)
+
+        print("------best grid params-----------")
         print(best_params_grid)
 
         gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
@@ -634,7 +640,6 @@ class GEC(LGBMClassifier):
                 best_predicted_combination_bagging = self.bagging_combinations[
                     np.argmax(predicted_rewards_bagging)
                 ]
-                print(set(best_predicted_combination_bagging))
                 (
                     arguments["bagging_freq"],
                     arguments["bagging_fraction"],
@@ -642,8 +647,6 @@ class GEC(LGBMClassifier):
 
                 assert arguments["bagging_freq"] > arguments["bagging_fraction"]
             del arguments["bagging"]
-
-            tqdm.write(str(arguments))
 
             clf = LGBMClassifier(**arguments)
 
