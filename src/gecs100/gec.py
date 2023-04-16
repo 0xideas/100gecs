@@ -207,7 +207,7 @@ class GEC(LGBMClassifier):
             *self.categorical_hyperparameters
         )
 
-        prohibited_combinations = ["rf-bagging"]
+        prohibited_combinations = ["rf-no_bagging"]
         self.categorical_hyperparameter_combinations = [
             "-".join(y)
             for y in itertools.product(
