@@ -419,10 +419,18 @@ class GEC(LGBMClassifier):
         ]
         real_combinations = np.array(list(itertools.product(*sets)))
 
-        arms, counts = np.unique(self.selected_arms, return_counts=True)
-        selected_arm = arms[np.argmax(counts)]
+        arms, counts = np.unique(
+            self.selected_arms[np.max([20, int(len(self.selected_arms) * 0.3)])],
+            return_counts=True,
+        )
 
-        initial_combinations = {selected_arm: real_combinations}
+        top_3 = arms[np.argsort(counts)][-3:]
+
+        initial_combinations = {
+            categorical_combination: real_combinations
+            for categorical_combination in top_3
+        }
+
         best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
 
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
@@ -444,8 +452,10 @@ class GEC(LGBMClassifier):
                 )
 
         if "yes_bagging" in arm_best_score:
+            bagging_data = np.array(self.bagging_datas[arm_best_score]["inputs"])
+            bagging_data[:, 0] = bagging_data[:, 0] / 10
             self.gaussian_bagging.fit(
-                np.array(self.bagging_datas[arm_best_score]["inputs"]),
+                bagging_data,
                 np.array(self.bagging_datas[arm_best_score]["output"])
                 - self.adjustment_factor,
             )
@@ -517,6 +527,10 @@ class GEC(LGBMClassifier):
         print("------best grid params-----------")
         print(best_params_grid)
 
+        if best_score_grid > best_score:
+            best_score = best_score_grid
+            best_params = best_params_grid
+
         gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
         selected_arms = copy.deepcopy(self.selected_arms)
         gec = GEC(**{**best_params_grid, "random_state": 101})
@@ -525,8 +539,6 @@ class GEC(LGBMClassifier):
 
         self.gp_datas, self.rewards = gp_datas, rewards
         self.selected_arms = selected_arms
-
-        self.best_params_grid, self.best_score_grid = best_params_grid, best_score_grid
 
         if self.best_score is None or best_score > self.best_score:
             self.best_score = best_score
@@ -647,6 +659,8 @@ class GEC(LGBMClassifier):
 
                 assert arguments["bagging_freq"] > arguments["bagging_fraction"]
             del arguments["bagging"]
+
+            arguments["verbosity"] = -1
 
             clf = LGBMClassifier(**arguments)
 
