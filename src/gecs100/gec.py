@@ -198,17 +198,22 @@ class GEC(LGBMClassifier):
         self._n_classes = None
         self.set_params(**kwargs)
 
-        self.categorical_hyperparameters = [("boosting", ["gbdt", "dart", "rf"])]
+        self.categorical_hyperparameters = [
+            ("boosting", ["gbdt", "dart", "rf"]),
+            ("bagging", ["yes_bagging", "no_bagging"]),
+        ]
 
         self.categorical_hyperparameter_names, _ = zip(
             *self.categorical_hyperparameters
         )
 
+        prohibited_combinations = ["rf-bagging"]
         self.categorical_hyperparameter_combinations = [
             "-".join(y)
             for y in itertools.product(
                 *[x[1] for x in self.categorical_hyperparameters]
             )
+            if "-".join(y) not in prohibited_combinations
         ]
 
         ten_to_thousand = np.concatenate(
@@ -226,14 +231,10 @@ class GEC(LGBMClassifier):
                 "n_estimators",
                 ten_to_thousand[:10],
             ),
-            (
-                "bagging_fraction",
-                np.arange(0.05, 1.00, 0.05),
-            ),
-            ("bagging_freq", np.arange(1, 11, 1)),
             ("max_bin", ten_to_thousand),
             ("max_depth", np.concatenate([np.array([-1]), ten_to_thousand[0:21:3]])),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
+            ("lambda_l2", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("min_data_in_leaf", np.arange(2, 50, 1)),
             (
                 "feature_fraction",
@@ -268,6 +269,18 @@ class GEC(LGBMClassifier):
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
         }
+        self.gaussian_bagging = GaussianProcessRegressor(kernel=self.kernel)
+        self.bagging_datas = {
+            c: {"inputs": [], "output": [], "means": [], "sigmas": []}
+            for c in self.categorical_hyperparameter_combinations
+        }
+        self.bagging_combinations = np.array(
+            list(
+                itertools.product(
+                    *[list(np.arange(1, 11, 1)), list(np.arange(0.05, 1.0, 0.05))]
+                )
+            )
+        )
         self.best_score = None
         self.best_params_ = None
         self.n_sample = 1000
@@ -423,9 +436,26 @@ class GEC(LGBMClassifier):
         max_score = np.max(list(best_scores.values()))
         for categorical_combination, real_combination in best_combinations.items():
             if best_scores[categorical_combination] == max_score:
+                arm_best_score = str(categorical_combination)
                 arguments = self.build_arguments(
                     categorical_combination.split("-"), real_combination
                 )
+
+        if "yes_bagging" in arm_best_score:
+            self.gaussian_bagging.fit(
+                np.array(self.bagging_datas[arm_best_score]["inputs"]),
+                np.array(self.bagging_datas[arm_best_score]["output"])
+                - self.adjustment_factor,
+            )
+            mean_bagging = self.gaussian_bagging.predict(self.bagging_combinations)
+            best_predicted_combination_bagging = self.bagging_combinations[
+                np.argmax(mean_bagging)
+            ]
+            arguments["bagging_fraction"], bagging_freq = set(
+                best_predicted_combination_bagging
+            )
+            arguments["bagging_freq"] = int(bagging_freq)
+        del arguments["bagging"]
 
         return (arguments, max_score)
 
@@ -458,25 +488,17 @@ class GEC(LGBMClassifier):
                 self.gp_datas[categorical_combination]["inputs"],
                 self.gp_datas[categorical_combination]["output"],
             )
-            admissible_combinations = [
-                comb
-                for comb in combs
-                if self.is_admissible(comb, categorical_combination)
-            ]
-            assert len(admissible_combinations), combs
 
-            mean = self.gaussian.predict(admissible_combinations)
+            mean = self.gaussian.predict(combs)
             best_scores[categorical_combination] = np.max(mean)
-            best_combination = admissible_combinations[np.argmax(mean)]
+            best_combination = combs[np.argmax(mean)]
             best_combinations[categorical_combination] = best_combination
 
         return best_combinations, best_scores
 
-    def is_admissible(self, combination, selected_arm):
-
-        return True
-
     def fit(self, X, y, n_iter=100):
+
+        self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
         best_params, best_score = self.optimise_hyperparameters(
             n_iter, X, y, self.best_score, self.best_params_
@@ -558,13 +580,6 @@ class GEC(LGBMClassifier):
             ]
             self.selected_arms.append(selected_arm)
 
-            if len(self.gp_datas[selected_arm]["inputs"]) > 0:
-                adjustment_factor = 1 / len(np.unique(Y))
-                self.gaussian.fit(
-                    np.array(self.gp_datas[selected_arm]["inputs"]),
-                    np.array(self.gp_datas[selected_arm]["output"]) - adjustment_factor,
-                )
-
             sets = [
                 list(
                     np.random.choice(
@@ -576,12 +591,15 @@ class GEC(LGBMClassifier):
                 for real_hyperparameter, range_ in self.real_hyperparameters_linear
             ]
 
-            combinations = [
-                np.array(comb)
-                for comb in zip(*sets)
-                if self.is_admissible(comb, selected_arm)
-            ]
+            combinations = [np.array(comb) for comb in zip(*sets)]
             assert len(combinations), sets
+
+            if len(self.gp_datas[selected_arm]["inputs"]) > 0:
+                self.gaussian.fit(
+                    np.array(self.gp_datas[selected_arm]["inputs"]),
+                    np.array(self.gp_datas[selected_arm]["output"])
+                    - self.adjustment_factor,
+                )
 
             mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
@@ -593,6 +611,31 @@ class GEC(LGBMClassifier):
             arguments = self.build_arguments(
                 selected_arm.split("-"), best_predicted_combination
             )
+
+            if "yes_bagging" in selected_arm:
+                if len(self.bagging_datas[selected_arm]["inputs"]) > 0:
+                    self.gaussian_bagging.fit(
+                        np.array(self.bagging_datas[selected_arm]["inputs"]),
+                        np.array(self.bagging_datas[selected_arm]["output"])
+                        - self.adjustment_factor,
+                    )
+                mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
+                    self.bagging_combinations, return_std=True
+                )
+                predicted_rewards_bagging = np.array(
+                    [
+                        m + 0.3 * np.random.normal(m, s)
+                        for m, s in zip(mean_bagging, sigma_bagging)
+                    ]
+                )
+                best_predicted_combination_bagging = self.bagging_combinations[
+                    np.argmax(predicted_rewards_bagging)
+                ]
+                arguments["bagging_fraction"], bagging_freq = set(
+                    best_predicted_combination_bagging
+                )
+                arguments["bagging_freq"] = int(bagging_freq)
+            del arguments["bagging"]
 
             tqdm.write(str(arguments))
 
@@ -613,6 +656,13 @@ class GEC(LGBMClassifier):
                 self.gp_datas[selected_arm]["output"].append(score)
                 self.gp_datas[selected_arm]["means"].append(mean)
                 self.gp_datas[selected_arm]["sigmas"].append(sigma)
+
+                self.bagging_datas[selected_arm]["inputs"].append(
+                    best_predicted_combination_bagging
+                )
+                self.bagging_datas[selected_arm]["output"].append(score)
+                self.bagging_datas[selected_arm]["means"].append(mean_bagging)
+                self.bagging_datas[selected_arm]["sigmas"].append(sigma_bagging)
 
                 if self.last_score is not None:
                     score_delta = score - self.last_score
