@@ -274,13 +274,15 @@ class GEC(LGBMClassifier):
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
         }
-        self.bagging_combinations = np.array(
-            list(
-                itertools.product(
-                    *[list(np.arange(1, 11, 1)), list(np.arange(0.05, 1.0, 0.05))]
-                )
+        self.bagging_combinations = list(
+            itertools.product(
+                *[
+                    np.arange(1, 11, 1),
+                    np.arange(0.05, 1.0, 0.05),
+                ]
             )
         )
+
         self.best_score = None
         self.best_params_ = None
         self.n_sample = 1000
@@ -451,10 +453,11 @@ class GEC(LGBMClassifier):
             best_predicted_combination_bagging = self.bagging_combinations[
                 np.argmax(mean_bagging)
             ]
-            arguments["bagging_fraction"], bagging_freq = set(
+            print(set(best_predicted_combination_bagging))
+
+            arguments["bagging_freq"], arguments["bagging_fraction"] = set(
                 best_predicted_combination_bagging
             )
-            arguments["bagging_freq"] = int(bagging_freq)
         del arguments["bagging"]
 
         return (arguments, max_score)
@@ -631,10 +634,13 @@ class GEC(LGBMClassifier):
                 best_predicted_combination_bagging = self.bagging_combinations[
                     np.argmax(predicted_rewards_bagging)
                 ]
-                arguments["bagging_fraction"], bagging_freq = set(
-                    best_predicted_combination_bagging
-                )
-                arguments["bagging_freq"] = int(bagging_freq)
+                print(set(best_predicted_combination_bagging))
+                (
+                    arguments["bagging_freq"],
+                    arguments["bagging_fraction"],
+                ) = best_predicted_combination_bagging
+
+                assert arguments["bagging_freq"] > arguments["bagging_fraction"]
             del arguments["bagging"]
 
             tqdm.write(str(arguments))
