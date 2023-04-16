@@ -494,7 +494,7 @@ class GEC(LGBMClassifier):
 
         del arguments["bagging"]
 
-        return (arguments, max_score)
+        return arguments
 
     def get_neighbouring_combinations(
         self, best_combinations, step_size, previous_step_size
@@ -538,58 +538,62 @@ class GEC(LGBMClassifier):
 
         return best_combinations, best_scores
 
+    def find_best_parameters_from_search(self, params):
+
+        if "bagging_freq" in params:
+            del params["bagging_freq"]
+            del params["bagging_fraction"]
+            bagging = "yes_bagging"
+        else:
+            bagging = "no_bagging"
+        boosting = params.pop("boosting")
+        categorical_combination = f"{boosting}-{bagging}"
+
+        best_params_linear_values = [
+            self.real_hyperparameters_map_reverse[name][params[name]]
+            for name in self.real_hyperparameter_names
+        ]
+        best_params = self.find_best_parameters_from_initial_parameters(
+            {categorical_combination: best_params_linear_values},
+            step_sizes=[4, 2, 1],
+        )
+        return best_params
+
+    def calculate_empirical_score(self, X, y, params):
+        clf = LGBMClassifier(**params)
+        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+            score = np.mean(cross_val_score(clf, X, y, cv=3))
+        return score
+
     def fit(self, X, y, n_iter=100):
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
-        best_params, best_score = self.optimise_hyperparameters(
+        self.best_scores_gec = {}
+        self.best_params_gec = {}
+        (
+            self.best_params_gec["search"],
+            self.best_scores_gec["search"],
+        ) = self.optimise_hyperparameters(
             n_iter, X, y, self.best_score, self.best_params_
         )
-        best_params_grid, best_score_grid = self.find_best_parameters()
+        self.best_params_gec["grid"] = self.find_best_parameters()
+        self.best_scores_gec["grid"] = self.calculate_empirical_score(
+            X, y, self.best_params_gec["grid"]
+        )
+        best_params_prep = copy.deepcopy(self.best_params_gec["search"])
+        self.best_params_gec[
+            "grid_from_search"
+        ] = self.find_best_parameters_from_search(best_params_prep)
 
-        best_params_prep = copy.deepcopy(best_params)
-
-        if "bagging_freq" in best_params_prep:
-            del best_params_prep["bagging_freq"]
-            del best_params_prep["bagging_fraction"]
-            bagging = "yes_bagging"
-        else:
-            bagging = "no_bagging"
-        boosting = best_params_prep.pop("boosting")
-        categorical_combination = f"{boosting}-{bagging}"
-
-        best_params_linear_values = [
-            self.real_hyperparameters_map_reverse[name][best_params_prep[name]]
-            for name in self.real_hyperparameter_names
-        ]
-        (
-            best_params_squared,
-            best_score_squared,
-        ) = self.find_best_parameters_from_initial_parameters(
-            {categorical_combination: best_params_linear_values},
-            step_sizes=[4, 2, 1],
+        self.best_scores_gec["grid_from_search"] = self.calculate_empirical_score(
+            X, y, self.best_params_gec["grid_from_search"]
         )
 
-        print(
-            f"best_score: {best_score}, best_score_squared: {best_score_squared} best_score_grid: {best_score_grid}"
-        )
-
-        print("------best params-----------")
-        print(best_params)
-
-        print("------best params squared-----------")
-        print(best_params_squared)
-
-        print("------best grid params-----------")
-        print(best_params_grid)
-
-        if best_score_grid > best_score:
-            best_score = best_score_grid
-            best_params = best_params_grid
-
-        if self.best_score is None or best_score > self.best_score:
-            self.best_score = best_score
-            self.best_params_ = best_params
+        for source, score in self.best_scores_gec.items():
+            if self.best_score is None or score > self.best_score:
+                self.best_score = score
+                self.best_params_ = self.best_params_gec[source]
 
         self.gec_iter = np.sum(
             [len(value["output"]) for value in self.gp_datas.values()]
@@ -597,7 +601,7 @@ class GEC(LGBMClassifier):
 
         # gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
         # selected_arms = copy.deepcopy(self.selected_arms)
-        gec = GEC(**{**best_params_grid, "random_state": 101})
+        gec = GEC(**{**self.best_params_, "random_state": 101})
 
         for k, v in gec.__dict__.items():
             if k not in self.__dict__ or self.__dict__[k] is None:
