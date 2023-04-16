@@ -243,12 +243,19 @@ class GEC(LGBMClassifier):
         ]
         self.sampling_probabilities = {}
         self.real_hyperparameters_linear = [
-            (name, np.arange(-1, 1, 2 / len(values)))
+            (name, np.arange(-1, 1, 2 / len(values)).astype(np.float16))
             for name, values in self.real_hyperparameters
         ]
 
         self.real_hyperparameters_map = {
             name: dict(zip(linear_values, real_values))
+            for ((name, linear_values), (_, real_values)) in zip(
+                self.real_hyperparameters_linear, self.real_hyperparameters
+            )
+        }
+
+        self.real_hyperparameters_map_reverse = {
+            name: dict(zip(real_values, linear_values))
             for ((name, linear_values), (_, real_values)) in zip(
                 self.real_hyperparameters_linear, self.real_hyperparameters
             )
@@ -414,13 +421,14 @@ class GEC(LGBMClassifier):
     def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
 
         sets = [
-            list(range_[:: step_sizes[0]]) + range_[-1:]
+            list(range_[:: step_sizes[0]]) + [range_[-1]]
             for range_ in self.linear_ranges
         ]
         real_combinations = np.array(list(itertools.product(*sets)))
 
+        n_selected_arms = int(len(self.selected_arms) * 0.3)
         arms, counts = np.unique(
-            self.selected_arms[np.max([20, int(len(self.selected_arms) * 0.3)])],
+            self.selected_arms[n_selected_arms:],
             return_counts=True,
         )
 
@@ -433,10 +441,25 @@ class GEC(LGBMClassifier):
 
         best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
 
+        return self.find_best_parameters_from_initial_parameters(
+            best_combinations, step_sizes
+        )
+
+    def find_best_parameters_from_initial_parameters(
+        self, best_combinations, step_sizes
+    ):
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
 
-            neighbouring_combinations = self.get_neghbouring_combinations(
+            neighbouring_combinations = self.get_neighbouring_combinations(
                 best_combinations, step_size, previous_step_size
+            )
+
+            new_ranges = list(
+                zip(
+                    self.real_hyperparameter_names,
+                    list(neighbouring_combinations.values())[0].min(0),
+                    list(neighbouring_combinations.values())[0].max(0),
+                )
             )
 
             best_combinations, best_scores = self.find_best_parameters_iter(
@@ -473,7 +496,7 @@ class GEC(LGBMClassifier):
 
         return (arguments, max_score)
 
-    def get_neghbouring_combinations(
+    def get_neighbouring_combinations(
         self, best_combinations, step_size, previous_step_size
     ):
         neighbouring_combinations = {}
@@ -486,12 +509,17 @@ class GEC(LGBMClassifier):
                 start_index = start_index if start_index > 0 else 0
                 end_index = min(real_value_index + previous_step_size, len(range_))
 
-                new_set = list(range_[start_index:end_index:step_size])
+                adjusted_step_size = min(int(len(range_) / 2), step_size)
+                new_set = list(range_[start_index:end_index:adjusted_step_size])
+                if np.max(new_set) < real_value:
+                    new_set.append(real_value)
+
                 new_sets.append(new_set)
 
             neighbouring_combinations[categorical_combination] = np.array(
                 list(itertools.product(*new_sets))
             )
+
         return neighbouring_combinations
 
     def find_best_parameters_iter(self, combinations):
@@ -519,10 +547,38 @@ class GEC(LGBMClassifier):
         )
         best_params_grid, best_score_grid = self.find_best_parameters()
 
-        print(f"best_score: {best_score}, best_score_grid: {best_score_grid}")
+        best_params_prep = copy.deepcopy(best_params)
+
+        if "bagging_freq" in best_params_prep:
+            del best_params_prep["bagging_freq"]
+            del best_params_prep["bagging_fraction"]
+            bagging = "yes_bagging"
+        else:
+            bagging = "no_bagging"
+        boosting = best_params_prep.pop("boosting")
+        categorical_combination = f"{boosting}-{bagging}"
+
+        best_params_linear_values = [
+            self.real_hyperparameters_map_reverse[name][best_params_prep[name]]
+            for name in self.real_hyperparameter_names
+        ]
+        (
+            best_params_squared,
+            best_score_squared,
+        ) = self.find_best_parameters_from_initial_parameters(
+            {categorical_combination: best_params_linear_values},
+            step_sizes=[4, 2, 1],
+        )
+
+        print(
+            f"best_score: {best_score}, best_score_squared: {best_score_squared} best_score_grid: {best_score_grid}"
+        )
 
         print("------best params-----------")
         print(best_params)
+
+        print("------best params squared-----------")
+        print(best_params_squared)
 
         print("------best grid params-----------")
         print(best_params_grid)
@@ -531,15 +587,6 @@ class GEC(LGBMClassifier):
             best_score = best_score_grid
             best_params = best_params_grid
 
-        gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
-        selected_arms = copy.deepcopy(self.selected_arms)
-        gec = GEC(**{**best_params_grid, "random_state": 101})
-        self.__dict__.update(gec.__dict__)
-        super().fit(X, y)
-
-        self.gp_datas, self.rewards = gp_datas, rewards
-        self.selected_arms = selected_arms
-
         if self.best_score is None or best_score > self.best_score:
             self.best_score = best_score
             self.best_params_ = best_params
@@ -547,6 +594,19 @@ class GEC(LGBMClassifier):
         self.gec_iter = np.sum(
             [len(value["output"]) for value in self.gp_datas.values()]
         )
+
+        # gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
+        # selected_arms = copy.deepcopy(self.selected_arms)
+        gec = GEC(**{**best_params_grid, "random_state": 101})
+
+        for k, v in gec.__dict__.items():
+            if k not in self.__dict__ or self.__dict__[k] is None:
+                self.__dict__[k] = v
+
+        super().fit(X, y)
+
+        # self.gp_datas, self.rewards = gp_datas, rewards
+        # self.selected_arms = selected_arms
 
         return self
 
@@ -680,12 +740,13 @@ class GEC(LGBMClassifier):
                 self.gp_datas[selected_arm]["means"].append(mean)
                 self.gp_datas[selected_arm]["sigmas"].append(sigma)
 
-                self.bagging_datas[selected_arm]["inputs"].append(
-                    best_predicted_combination_bagging
-                )
-                self.bagging_datas[selected_arm]["output"].append(score)
-                self.bagging_datas[selected_arm]["means"].append(mean_bagging)
-                self.bagging_datas[selected_arm]["sigmas"].append(sigma_bagging)
+                if "bagging_freq" in arguments:
+                    self.bagging_datas[selected_arm]["inputs"].append(
+                        best_predicted_combination_bagging
+                    )
+                    self.bagging_datas[selected_arm]["output"].append(score)
+                    self.bagging_datas[selected_arm]["means"].append(mean_bagging)
+                    self.bagging_datas[selected_arm]["sigmas"].append(sigma_bagging)
 
                 if self.last_score is not None:
                     score_delta = score - self.last_score
