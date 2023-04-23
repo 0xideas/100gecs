@@ -14,7 +14,6 @@ import copy
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from matplotlib.ticker import LinearLocator
 
 from scipy.stats import beta
 from sklearn.gaussian_process.kernels import RBF
@@ -403,7 +402,8 @@ class GEC(LGBMClassifier):
             )
         # Customize the z axis.
         ax.set_zlim(np.min(Z_range), np.max(Z_range))
-        ax.zaxis.set_major_locator(LinearLocator(10))
+        ax.set_xticks(X_range, labels=(X_range * 10).astype(int))
+        # ax.zaxis.set_major_locator(LinearLocator(10))
         # A StrMethodFormatter is used automatically
         ax.zaxis.set_major_formatter("{x:.02f}")
         # Add a color bar which maps values to colors.
