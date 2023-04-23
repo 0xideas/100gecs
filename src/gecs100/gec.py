@@ -278,10 +278,12 @@ class GEC(LGBMClassifier):
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
         }
-        self.gaussian_bagging = GaussianProcessRegressor(kernel=self.kernel)
+        self.kernel_bagging = RBF(0.1)
+        self.gaussian_bagging = GaussianProcessRegressor(kernel=self.kernel_bagging)
         self.bagging_datas = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
+            if "yes_bagging" in c
         }
         self.bagging_combinations = list(
             itertools.product(
@@ -362,13 +364,13 @@ class GEC(LGBMClassifier):
         cat,
         plot_bounds=True,
     ):
-        self.gaussian_bagging.fit(
-            self.bagging_datas[cat]["inputs"], self.bagging_datas[cat]["output"]
-        )
+        bagging_data = np.array(self.bagging_datas[cat]["inputs"])
+        bagging_data[:, 0] = bagging_data[:, 0] / 10
+        self.gaussian_bagging.fit(bagging_data, self.bagging_datas[cat]["output"])
 
-        X_range = ((np.logspace(0.00, 1, 50) - 1) / 9,)
-        Y_range = (np.arange(10, 200, 1),)
-        Z_range = (np.arange(-0.5, 1.5, 0.1),)
+        X_range = np.arange(1, 11, 1) / 10
+        Y_range = np.arange(0.05, 1.0, 0.05)
+        Z_range = np.arange(-0.5, 1.5, 0.1)
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 12))
 
@@ -426,11 +428,11 @@ class GEC(LGBMClassifier):
             )
             self.plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
 
-            figs[f"{categorical_combination}_parameters"] = fig
+            figs[f"{categorical_combination}-parameters"] = fig
 
             if "yes_bagging" in categorical_combination:
                 fig2 = self.plot_boosting_parameter_surface(categorical_combination)
-                figs[f"{categorical_combination}_bagging"] = fig2
+                figs[f"{categorical_combination}-bagging"] = fig2
 
         return figs
 
