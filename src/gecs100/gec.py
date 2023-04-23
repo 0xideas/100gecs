@@ -272,13 +272,11 @@ class GEC(LGBMClassifier):
         self.sets_types = [np.array(s).dtype for _, s in self.real_hyperparameters]
 
         self.kernel = RBF(1.0)
-        self.gaussian = GaussianProcessRegressor(kernel=self.kernel)
         self.gp_datas = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
         }
         self.kernel_bagging = RBF(0.1)
-        self.gaussian_bagging = GaussianProcessRegressor(kernel=self.kernel_bagging)
         self.bagging_datas = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
@@ -304,6 +302,24 @@ class GEC(LGBMClassifier):
             c: {"a": 1, "b": 1} for c in self.categorical_hyperparameter_combinations
         }
         self.selected_arms = []
+
+    @property
+    def kernel(self):
+        return self._kernel
+
+    @kernel.setter
+    def kernel(self, value):
+        self._kernel = value
+        self.gaussian = GaussianProcessRegressor(kernel=value)
+
+    @property
+    def kernel_bagging(self):
+        return self._kernel_bagging
+
+    @kernel_bagging.setter
+    def kernel_bagging(self, value):
+        self._kernel_bagging = value
+        self.gaussian_bagging = GaussianProcessRegressor(kernel=value)
 
     @classmethod
     def convert_gaussian_process_data_for_serialisation(cls, data_dict):
@@ -351,7 +367,6 @@ class GEC(LGBMClassifier):
             "best_score": self.best_score,
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
-            "gec_iter": self.gec_iter,
             "last_score": self.last_score,
         }
         with open(path, "w") as f:
@@ -377,7 +392,6 @@ class GEC(LGBMClassifier):
         gec.best_params_gec = representation["best_params_gec"]
         gec.best_scores_gec = representation["best_scores_gec"]
 
-        gec.gec_iter = int(representation["gec_iter"])
         gec.last_score = float(representation["last_score"])
 
         if X is not None and y is not None:
@@ -658,7 +672,11 @@ class GEC(LGBMClassifier):
             score = np.mean(cross_val_score(clf, X, y, cv=3))
         return score
 
-    def fit(self, X, y, n_iter=100):
+    @property
+    def gec_iter(self):
+        return int(np.sum([len(value["output"]) for value in self.gp_datas.values()]))
+
+    def fit(self, X, y, n_iter=100, serialisation_iter=None, serialisation_path=None):
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
@@ -668,7 +686,13 @@ class GEC(LGBMClassifier):
             self.best_params_gec["search"],
             self.best_scores_gec["search"],
         ) = self.optimise_hyperparameters(
-            n_iter, X, y, self.best_score, self.best_params_
+            n_iter,
+            X,
+            y,
+            self.best_score,
+            self.best_params_,
+            serialisation_iter,
+            serialisation_path,
         )
         self.best_params_gec["grid"] = self.find_best_parameters()
         self.best_scores_gec["grid"] = self.calculate_empirical_score(
@@ -687,10 +711,6 @@ class GEC(LGBMClassifier):
             if self.best_score is None or score > self.best_score:
                 self.best_score = score
                 self.best_params_ = self.best_params_gec[source]
-
-        self.gec_iter = int(
-            np.sum([len(value["output"]) for value in self.gp_datas.values()])
-        )
 
         # gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
         # selected_arms = copy.deepcopy(self.selected_arms)
@@ -740,6 +760,8 @@ class GEC(LGBMClassifier):
         Y,
         best_score,
         best_params,
+        serialisation_iter,
+        serialisation_path,
         **kwargs,
     ):
 
@@ -863,6 +885,9 @@ class GEC(LGBMClassifier):
 
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
+
+            if serialisation_iter is not None and (i + 1) % serialisation_iter == 0:
+                self.serialise(serialisation_path)
 
         return (best_params, best_score)
 
