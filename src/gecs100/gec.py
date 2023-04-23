@@ -13,6 +13,8 @@ import copy
 
 
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
 
 from scipy.stats import beta
 from sklearn.gaussian_process.kernels import RBF
@@ -355,12 +357,65 @@ class GEC(LGBMClassifier):
         self.rewards = representation["rewards"]
         self.selected_arms = representation["selected_arms"]
 
+    def plot_boosting_parameter_surface(
+        self,
+        cat,
+        plot_bounds=True,
+    ):
+        self.gaussian_bagging.fit(
+            self.bagging_datas[cat]["inputs"], self.bagging_datas[cat]["output"]
+        )
+
+        X_range = ((np.logspace(0.00, 1, 50) - 1) / 9,)
+        Y_range = (np.arange(10, 200, 1),)
+        Z_range = (np.arange(-0.5, 1.5, 0.1),)
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 12))
+
+        # Make data.
+        X = np.arange(
+            np.min(X_range), np.max(X_range), (np.max(X_range) - np.min(X_range)) / 100
+        )
+        Y = np.arange(
+            np.min(Y_range), np.max(Y_range), (np.max(Y_range) - np.min(Y_range)) / 100
+        )
+        Z = np.arange(
+            np.min(Z_range), np.max(Z_range), (np.max(Z_range) - np.min(Z_range)) / 100
+        )
+        R = cartesian(np.array([X, Y]))
+        X, Y = np.meshgrid(X, Y)
+        Z, sigma = self.gaussian_bagging.predict(R, return_std=True)
+        Z = Z.reshape((100, 100))
+        sigma = sigma.reshape((100, 100))
+
+        # Plot the surface.
+        surf = ax.plot_surface(
+            X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        )
+        if plot_bounds:
+            surf2 = ax.plot_surface(
+                X, Y, Z + 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
+            )
+            surf3 = ax.plot_surface(
+                X, Y, Z - 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
+            )
+        # Customize the z axis.
+        ax.set_zlim(np.min(Z_range), np.max(Z_range))
+        ax.zaxis.set_major_locator(LinearLocator(10))
+        # A StrMethodFormatter is used automatically
+        ax.zaxis.set_major_formatter("{x:.02f}")
+        # Add a color bar which maps values to colors.
+        # fig.colorbar(surf, shrink=0.5, aspect=5)
+        return fig
+
     def summarise_gp_datas(self):
 
         figs = {}
 
         for categorical_combination in self.categorical_hyperparameter_combinations:
-            fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=False)
+            fig, axes = plt.subplots(
+                nrows=2, ncols=2, sharex=True, sharey=False, figsize=(12, 12)
+            )
             ax1, ax2, ax3, ax4 = axes.flatten()
 
             x = np.arange(len(self.gp_datas[categorical_combination]["means"]))
@@ -370,13 +425,18 @@ class GEC(LGBMClassifier):
                 categorical_combination, ax3, x
             )
             self.plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
-            figs[categorical_combination] = fig
+
+            figs[f"{categorical_combination}_parameters"] = fig
+
+            if "yes_bagging" in categorical_combination:
+                fig2 = self.plot_boosting_parameter_surface(categorical_combination)
+                figs[f"{categorical_combination}_bagging"] = fig2
 
         return figs
 
     def write_figures(self, figs, path_stem):
-        for categorical_combination, fig in figs.items():
-            fig.savefig(f"{path_stem}_{categorical_combination}.png")
+        for plot_name, fig in figs.items():
+            fig.savefig(f"{path_stem}_{plot_name}.png")
 
     def save_figs(self, path_stem):
         figs = self.summarise_gp_datas()
