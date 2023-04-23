@@ -287,7 +287,7 @@ class GEC(LGBMClassifier):
         self.bagging_combinations = list(
             itertools.product(
                 *[
-                    np.arange(1, 11, 1),
+                    list(range(1, 11, 1)),
                     np.arange(0.05, 1.0, 0.05),
                 ]
             )
@@ -305,58 +305,88 @@ class GEC(LGBMClassifier):
         }
         self.selected_arms = []
 
-    def serialise(self, path):
-        gp_datas = {
-            k: {
-                k2: [list(vv) if isinstance(vv, np.ndarray) else vv for vv in v]
-                for k2, v in values.items()
-            }
-            for k, values in self.gp_datas.items()
-        }
+    @classmethod
+    def convert_gaussian_process_data_for_serialisation(cls, data_dict):
+        def process_value(key, value):
+            if not isinstance(value, np.ndarray):
+                return value
+            elif key != "inputs":
+                return list(value)
+            else:
+                return list(value.astype(np.float64))
 
+        converted_dict = {
+            k: {k2: [process_value(k2, vv) for vv in v] for k2, v in values.items()}
+            for k, values in data_dict.items()
+        }
+        return converted_dict
+
+    @classmethod
+    def convert_gaussian_process_data_for_deserialisation(cls, data_dict):
+        def process_value(key, value):
+            if not isinstance(value, list):
+                return value
+            elif key != "inputs":
+                return np.array(value)
+            else:
+                return np.array(value).astype(np.float16)
+
+        converted_dict = {
+            k: {k2: [process_value(k2, vv) for vv in v] for k2, v in values.items()}
+            for k, values in data_dict.items()
+        }
+        return converted_dict
+
+    def serialise(self, path):
+        gp_datas = self.convert_gaussian_process_data_for_serialisation(self.gp_datas)
+        bagging_datas = self.convert_gaussian_process_data_for_serialisation(
+            self.bagging_datas
+        )
         representation = {
-            "gp_datas": gp_datas,
-            "gec_iter": self.gec_iter,
-            "best_params_": self.best_params_,
-            "best_score": self.best_score,
-            "best_params_grid": self.best_params_grid,
-            "best_score_grid": self.best_score_grid,
             "rewards": self.rewards,
             "selected_arms": self.selected_arms,
+            "gp_datas": gp_datas,
+            "bagging_datas": bagging_datas,
+            "best_params_": self.best_params_,
+            "best_score": self.best_score,
+            "best_params_gec": self.best_params_gec,
+            "best_scores_gec": self.best_scores_gec,
+            "gec_iter": self.gec_iter,
+            "last_score": self.last_score,
         }
         with open(path, "w") as f:
             f.write(json.dumps(representation))
 
-    def load_state(self, path, X=None, y=None):
+    @classmethod
+    def deserialise(cls, path, X=None, y=None):
         with open(path, "r") as f:
             representation = json.loads(f.read())
 
-        best_params_grid = representation["best_params_grid"]
+        gec = cls()
+
+        gec.rewards = representation["rewards"]
+        gec.selected_arms = representation["selected_arms"]
+        gec.gp_datas = gec.convert_gaussian_process_data_for_deserialisation(
+            representation["gp_datas"]
+        )
+        gec.bagging_datas = gec.convert_gaussian_process_data_for_deserialisation(
+            representation["bagging_datas"]
+        )
+        gec.best_params_ = representation["best_params_"]
+        gec.best_score = float(representation["best_score"])
+        gec.best_params_gec = representation["best_params_gec"]
+        gec.best_scores_gec = representation["best_scores_gec"]
+
+        gec.gec_iter = int(representation["gec_iter"])
+        gec.last_score = float(representation["last_score"])
 
         if X is not None and y is not None:
-            gec = GEC(**{**best_params_grid, "random_state": 101})
-            self.__dict__.update(gec.__dict__)
-            super().fit(X, y)
+            gec.fit_best_params(X, y)
         else:
             warnings.warn(
                 "If X and y are not provided, the GEC model is not fitted for inference"
             )
-
-        self.gp_datas = {
-            k: {
-                k2: [np.array(vv) if isinstance(vv, list) else vv for vv in v]
-                for k2, v in values.items()
-            }
-            for k, values in representation["gp_datas"].items()
-        }
-
-        self.gec_iter = int(representation["gec_iter"])
-        self.best_params_ = representation["best_params_"]
-        self.best_score = float(representation["best_score"])
-        self.best_params_grid = best_params_grid
-        self.best_score_grid = float(representation["best_score_grid"])
-        self.rewards = representation["rewards"]
-        self.selected_arms = representation["selected_arms"]
+        return gec
 
     def plot_boosting_parameter_surface(
         self,
@@ -523,6 +553,7 @@ class GEC(LGBMClassifier):
                     list(neighbouring_combinations.values())[0].max(0),
                 )
             )
+            # log.info(new_ranges)
 
             best_combinations, best_scores = self.find_best_parameters_iter(
                 neighbouring_combinations
@@ -657,12 +688,21 @@ class GEC(LGBMClassifier):
                 self.best_score = score
                 self.best_params_ = self.best_params_gec[source]
 
-        self.gec_iter = np.sum(
-            [len(value["output"]) for value in self.gp_datas.values()]
+        self.gec_iter = int(
+            np.sum([len(value["output"]) for value in self.gp_datas.values()])
         )
 
         # gp_datas, rewards = copy.deepcopy(self.gp_datas), copy.deepcopy(self.rewards)
         # selected_arms = copy.deepcopy(self.selected_arms)
+
+        self.fit_best_params(X, y)
+
+        # self.gp_datas, self.rewards = gp_datas, rewards
+        # self.selected_arms = selected_arms
+
+        return self
+
+    def fit_best_params(self, X, y):
         gec = GEC(**{**self.best_params_, "random_state": 101})
 
         for k, v in gec.__dict__.items():
@@ -670,11 +710,6 @@ class GEC(LGBMClassifier):
                 self.__dict__[k] = v
 
         super().fit(X, y)
-
-        # self.gp_datas, self.rewards = gp_datas, rewards
-        # self.selected_arms = selected_arms
-
-        return self
 
     def build_arguments(self, categorical_combination, real_combination_linear):
         best_predicted_combination_converted = [
