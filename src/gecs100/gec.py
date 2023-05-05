@@ -54,6 +54,7 @@ class GEC(LGBMClassifier):
         assert str(inspect.signature(LGBMClassifier.__init__)) == str(
             inspect.signature(GEC.__init__)
         )
+
         r"""Construct a gradient boosting model.
 
         Parameters
@@ -199,6 +200,13 @@ class GEC(LGBMClassifier):
         self._n_classes = None
         self.set_params(**kwargs)
 
+        self.gec_hyperparameters = {
+            "l": 1.0,
+            "l_bagging": 0.1,
+            "gaussian_variance_weight": 0.3,
+            "bandit_greediness": 1.0,
+        }
+
         self.categorical_hyperparameters = [
             ("boosting", ["gbdt", "dart", "rf"]),
             ("bagging", ["yes_bagging", "no_bagging"]),
@@ -271,12 +279,12 @@ class GEC(LGBMClassifier):
 
         self.sets_types = [np.array(s).dtype for _, s in self.real_hyperparameters]
 
-        self.kernel = RBF(1.0)
+        self.kernel = RBF(self.gec_hyperparameters["l"])
         self.gp_datas = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
         }
-        self.kernel_bagging = RBF(0.1)
+        self.kernel_bagging = RBF(self.gec_hyperparameters["l_bagging"])
         self.bagging_datas = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in self.categorical_hyperparameter_combinations
@@ -359,6 +367,7 @@ class GEC(LGBMClassifier):
             self.bagging_datas
         )
         representation = {
+            "gec_hyperparameters": self.gec_hyperparameters,
             "rewards": self.rewards,
             "selected_arms": self.selected_arms,
             "gp_datas": gp_datas,
@@ -378,7 +387,7 @@ class GEC(LGBMClassifier):
             representation = json.loads(f.read())
 
         gec = cls()
-
+        gec.gec_hyperparameters = representation["gec_hyperparameters"]
         gec.rewards = representation["rewards"]
         gec.selected_arms = representation["selected_arms"]
         gec.gp_datas = gec.convert_gaussian_process_data_for_deserialisation(
@@ -401,6 +410,15 @@ class GEC(LGBMClassifier):
                 "If X and y are not provided, the GEC model is not fitted for inference"
             )
         return gec
+
+    def set_gec_hyperparameters(self, gec_hyperparameters):
+        assert np.all(
+            np.array(sorted(list(gec_hyperparameters.keys())))
+            == np.array(
+                ["bandit_greediness", "gaussian_variance_weight", "l", "l_bagging"]
+            )
+        )
+        self.gec_hyperparameters = gec_hyperparameters
 
     def plot_boosting_parameter_surface(
         self,
@@ -808,7 +826,12 @@ class GEC(LGBMClassifier):
             mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
             predicted_rewards = np.array(
-                [m + 0.3 * np.random.normal(m, s) for m, s in zip(mean, sigma)]
+                [
+                    m
+                    + self.gec_hyperparameters["gaussian_variance_weight"]
+                    * np.random.normal(m, s)
+                    for m, s in zip(mean, sigma)
+                ]
             )
 
             best_predicted_combination = combinations[np.argmax(predicted_rewards)]
@@ -873,14 +896,18 @@ class GEC(LGBMClassifier):
 
                 if self.last_score is not None:
                     score_delta = score - self.last_score
+                    weighted_score_delta = (
+                        score_delta * self.gec_hyperparameters["bandit_greediness"]
+                    )
                     if score_delta > 0:
                         self.rewards[selected_arm]["a"] = (
-                            self.rewards[selected_arm]["a"] + score_delta
+                            self.rewards[selected_arm]["a"] + weighted_score_delta
                         )
                     else:
                         self.rewards[selected_arm]["b"] = (
-                            self.rewards[selected_arm]["b"] - score_delta
+                            self.rewards[selected_arm]["b"] - weighted_score_delta
                         )
+
                 self.last_score = score
 
             except Exception as e:

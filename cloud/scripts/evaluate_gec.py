@@ -16,16 +16,18 @@ OUTPUT_LOCATION = "./output"
 
 N_ITER = 100
 
+
 def prepare_folder():
 
     if os.path.exists(OUTPUT_LOCATION) and os.path.isdir(OUTPUT_LOCATION):
         shutil.rmtree(OUTPUT_LOCATION)
 
-    is os.path.exists(f"{OUTPUT_LOCATION}.zip"):
+    if os.path.exists(f"{OUTPUT_LOCATION}.zip"):
         os.remove(f"{OUTPUT_LOCATION}.zip")
 
     os.makedirs(OUTPUT_LOCATION)
     os.makedirs(f"{OUTPUT_LOCATION}/figures")
+
 
 def fit_random_search(X, y, gec):
 
