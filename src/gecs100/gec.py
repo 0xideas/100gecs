@@ -377,6 +377,7 @@ class GEC(LGBMClassifier):
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
             "last_score": self.last_score,
+            "gec_iter": self.gec_iter,
         }
         with open(path, "w") as f:
             f.write(json.dumps(representation))
