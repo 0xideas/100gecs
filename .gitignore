@@ -11,3 +11,7 @@ data/
 
 
 set_env_variables.sh
+terraform.tfvars
+
+.terraform/
+*.hcl

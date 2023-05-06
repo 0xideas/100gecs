@@ -1,11 +1,3 @@
-variable "access_key" {
-        description = "Access key to AWS console"
-}
-variable "secret_key" {
-        description = "Secret key to AWS console"
-}
-
-
 variable "instance_name" {
         default = "run-evaluate-gec-inst"
 }

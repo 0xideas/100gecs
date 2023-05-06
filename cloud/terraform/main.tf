@@ -1,6 +1,7 @@
 provider "aws" {
-    shared_credentials_file = ~/.aws/credentials"
-    region = var.aws_region
+    shared_credentials_files = ["~/.aws/credentials"]
+    profile = "default"
+    region = "eu-central-1"
 }
 
 resource "aws_instance" "ec2_instance" {

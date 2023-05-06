@@ -84,7 +84,9 @@ def run(
     with open(f"{output_location}/benchmark.json", "w") as f:
         f.write(json.dumps(benchmark))
 
-    shutil.make_archive(output_location, "zip", "./")
+    shutil.make_archive(
+        output_location, "zip", "/".join(output_location.split("/")[-1])
+    )
 
 
 if __name__ == "__main__":
