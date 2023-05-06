@@ -8,3 +8,5 @@ data/
 *.json
 *.zip
 *.png
+
+set_env_variables.sh

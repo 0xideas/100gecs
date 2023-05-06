@@ -4,9 +4,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 
-def load_bank_dataset(share=0.1):
-
-    path = "/home/leon/learning/gaussian-processes/bank/bank-full.csv"
+def load_bank_dataset(path, share=0.1):
     data = pd.read_csv(path, sep=";")
     one_hot_encode = ["job", "marital", "education", "contact", "poutcome", "month"]
     binary = ["default", "housing", "loan", "y"]

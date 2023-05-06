@@ -11,22 +11,20 @@ from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-OUTPUT_LOCATION = "./output"
+
+N_ITER = 70
 
 
-N_ITER = 100
+def prepare_folder(output_location):
 
+    if os.path.exists(output_location) and os.path.isdir(output_location):
+        shutil.rmtree(output_location)
 
-def prepare_folder():
+    if os.path.exists(f"{output_location}.zip"):
+        os.remove(f"{output_location}.zip")
 
-    if os.path.exists(OUTPUT_LOCATION) and os.path.isdir(OUTPUT_LOCATION):
-        shutil.rmtree(OUTPUT_LOCATION)
-
-    if os.path.exists(f"{OUTPUT_LOCATION}.zip"):
-        os.remove(f"{OUTPUT_LOCATION}.zip")
-
-    os.makedirs(OUTPUT_LOCATION)
-    os.makedirs(f"{OUTPUT_LOCATION}/figures")
+    os.makedirs(output_location)
+    os.makedirs(f"{output_location}/figures")
 
 
 def fit_random_search(X, y, gec):
@@ -61,28 +59,32 @@ app = typer.Typer(name="run GEC benchmarking")
 
 
 @app.command()
-def run(dataset: str = "bank"):
-    prepare_folder()
+def run(
+    output_location: str = "/home/ubuntu/output",
+    data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
+    dataset: str = "bank",
+):
+    prepare_folder(output_location)
 
     gec = GEC()
 
     if dataset == "bank":
-        X, y = load_bank_dataset(0.2)
+        X, y = load_bank_dataset(data_location, 0.2)
     else:
         raise Exception(f"dataset {dataset} is not available")
 
     gec.fit(X, y, N_ITER)
 
-    gec.serialise(f"{OUTPUT_LOCATION}/gec.json")
-    gec.save_figs(f"{OUTPUT_LOCATION}/figures/fig")
+    gec.serialise(f"{output_location}/gec.json")
+    gec.save_figs(f"{output_location}/figures/fig")
 
     random_search = fit_random_search(X, y, gec)
     benchmark = benchmark_against_random_search(X, y, gec, random_search)
 
-    with open(f"{OUTPUT_LOCATION}/benchmark.json", "w") as f:
+    with open(f"{output_location}/benchmark.json", "w") as f:
         f.write(json.dumps(benchmark))
 
-    shutil.make_archive(OUTPUT_LOCATION, "zip", "./")
+    shutil.make_archive(output_location, "zip", "./")
 
 
 if __name__ == "__main__":
