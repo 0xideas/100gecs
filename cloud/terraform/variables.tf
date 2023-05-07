@@ -22,3 +22,7 @@ variable "ami_key_pair_name" {
 variable "aws_security_group" {
         description = "aws security group"
 }
+
+variable "elastic_ip" {
+        description = "elastic ip"
+}

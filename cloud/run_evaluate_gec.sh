@@ -1,9 +1,12 @@
-cd cloud/terraform
+cd terraform
 terraform apply -auto-approve
 
-cd ../..
-scp -i ~/auth/leon_ec2 cloud/config/config user@remote.host:/home/ubuntu/config
-ssh -i ~/auth/leon_ec2 ubuntu@remote.host nohup poetry run python3 100gecs/cloud/scripts/evaluate_gec.py
+sleep 1m
+cd ..
+bash ./set_env_variables.sh
+# scp -i ~/auth/leon_ec2.pem config/config ubuntu@$REMOTE_HOST:/home/ubuntu/config
+ssh -i ~/auth/leon_ec2.pem ubuntu@$REMOTE_HOST bash run.sh
 
-cd cloud/terraform
+sleep 10s
+cd terraform
 terraform destroy -auto-approve
