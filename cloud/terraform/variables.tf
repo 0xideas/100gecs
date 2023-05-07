@@ -14,12 +14,11 @@ variable "ami_id" {
         description = "The AMI to use"
 }
 
-variable "number_of_instances" {
-        description = "number of instances to be created"
-        default = 1
-}
-
 
 variable "ami_key_pair_name" {
         description = "ami key pair name"
+}
+
+variable "aws_security_group" {
+        description = "aws security group"
 }
