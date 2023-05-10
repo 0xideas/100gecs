@@ -110,7 +110,9 @@ def run(
             knn_bayes = LGBMClassifier(**gec.best_params_)
             score_bayes = np.mean(cross_val_score(knn_bayes, X, y, cv=5))
 
-            result_repr = json.dumps({**hyperparameter_dict, "cv-score": score_bayes})
+            result_repr = json.dumps(
+                {**hyperparameter_dict, "n_iter": n_iter, "cv-score": score_bayes}
+            )
 
             response = client.put_object(
                 Bucket=BUCKET,
@@ -144,6 +146,7 @@ def run(
             score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
             rs_result_repr = {
                 **dict(zip(list(hyperparameter_dict.keys()), [-1, -1, -1, -1])),
+                "n_iter": n_iter,
                 "cv-score": score_rs,
             }
             response = client.put_object(

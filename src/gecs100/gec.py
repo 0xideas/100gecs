@@ -835,6 +835,7 @@ class GEC(LGBMClassifier):
             else:
                 mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
+
             predicted_rewards = np.array(
                 [
                     m
