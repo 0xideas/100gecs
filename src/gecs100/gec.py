@@ -835,7 +835,6 @@ class GEC(LGBMClassifier):
             else:
                 mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
-
             predicted_rewards = np.array(
                 [
                     m
@@ -870,7 +869,9 @@ class GEC(LGBMClassifier):
 
                 predicted_rewards_bagging = np.array(
                     [
-                        m + 0.3 * np.random.normal(m, s)
+                        m
+                        + self.gec_hyperparameters["gaussian_variance_weight"]
+                        * np.random.normal(m, s)
                         for m, s in zip(mean_bagging, sigma_bagging)
                     ]
                 )
