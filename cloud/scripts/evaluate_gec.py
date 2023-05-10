@@ -97,15 +97,15 @@ def run(
         gec.set_gec_hyperparameters(hyperparameter_dict)
         for i, n_iter in enumerate(n_iters):
             hyperparameter_representation = (
-                "-".join(
+                "_".join(
                     [f"{k.replace('_', '')}{v}" for k, v in hyperparameter_dict.items()]
                 )
-                + f"niter{n_iter}"
+                + f"_niter{n_iter}"
             )
             if i == 0:
-                gec.fit(X, y, n_iter)
+                gec.fit(X, y, n_iter, 1, "/home/ubuntu/gec.json")
             else:
-                gec.fit(X, y, n_iter - n_iters[i - 1])
+                gec.fit(X, y, n_iter - n_iters[i - 1], 1, "/home/ubuntu/gec.json")
 
             knn_bayes = LGBMClassifier(**gec.best_params_)
             score_bayes = np.mean(cross_val_score(knn_bayes, X, y, cv=5))
