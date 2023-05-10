@@ -828,7 +828,6 @@ class GEC(LGBMClassifier):
                     np.array(self.gp_datas[selected_arm]["output"])
                     - self.adjustment_factor,
                 )
-                mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
             mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
