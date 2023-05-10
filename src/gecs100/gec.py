@@ -823,17 +823,14 @@ class GEC(LGBMClassifier):
             assert len(combinations), sets
 
             if len(self.gp_datas[selected_arm]["inputs"]) > 0:
-                try:
-                    self.gaussian.fit(
-                        np.array(self.gp_datas[selected_arm]["inputs"]),
-                        np.array(self.gp_datas[selected_arm]["output"])
-                        - self.adjustment_factor,
-                    )
-                    mean, sigma = self.gaussian.predict(combinations, return_std=True)
-                except ConvergenceWarning:
-                    continue
-            else:
+                self.gaussian.fit(
+                    np.array(self.gp_datas[selected_arm]["inputs"]),
+                    np.array(self.gp_datas[selected_arm]["output"])
+                    - self.adjustment_factor,
+                )
                 mean, sigma = self.gaussian.predict(combinations, return_std=True)
+
+            mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
             predicted_rewards = np.array(
                 [
@@ -851,21 +848,14 @@ class GEC(LGBMClassifier):
 
             if "yes_bagging" in selected_arm:
                 if len(self.bagging_datas[selected_arm]["inputs"]) > 0:
-                    try:
-                        self.gaussian_bagging.fit(
-                            np.array(self.bagging_datas[selected_arm]["inputs"]),
-                            np.array(self.bagging_datas[selected_arm]["output"])
-                            - self.adjustment_factor,
-                        )
-                        mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-                            self.bagging_combinations, return_std=True
-                        )
-                    except ConvergenceWarning:
-                        continue
-                else:
-                    mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-                        self.bagging_combinations, return_std=True
+                    self.gaussian_bagging.fit(
+                        np.array(self.bagging_datas[selected_arm]["inputs"]),
+                        np.array(self.bagging_datas[selected_arm]["output"])
+                        - self.adjustment_factor,
                     )
+                mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
+                    self.bagging_combinations, return_std=True
+                )
 
                 predicted_rewards_bagging = np.array(
                     [
