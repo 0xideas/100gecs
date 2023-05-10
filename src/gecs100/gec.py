@@ -15,6 +15,7 @@ import copy
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+from sklearn.exceptions import ConvergenceWarning
 from scipy.stats import beta
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.utils.extmath import cartesian
@@ -829,7 +830,7 @@ class GEC(LGBMClassifier):
                         - self.adjustment_factor,
                     )
                     mean, sigma = self.gaussian.predict(combinations, return_std=True)
-                except:
+                except ConvergenceWarning:
                     continue
             else:
                 mean, sigma = self.gaussian.predict(combinations, return_std=True)
@@ -859,7 +860,7 @@ class GEC(LGBMClassifier):
                         mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
                             self.bagging_combinations, return_std=True
                         )
-                    except:
+                    except ConvergenceWarning:
                         continue
                 else:
                     mean_bagging, sigma_bagging = self.gaussian_bagging.predict(

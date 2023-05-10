@@ -29,7 +29,7 @@ def load_bank_dataset(path, share=0.1):
         1,
     ).drop(one_hot_encode, 1)
     X, y = data2.values[:, :-1], data2.values[:, -1]
-    np.random.seed(101)
+    np.random.seed(102)
     ind = np.random.uniform(0, 1, X.shape[0]) < share
     X = X[ind, :]
     y = y[ind]
