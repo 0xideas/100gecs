@@ -6,7 +6,7 @@ cd ..
 
 echo "setting env variables"
 source ./set_env_variables.sh
-scp -i $KEY_PATH -o "StrictHostKeyChecking no" config/config.json ubuntu@$REMOTE_HOST:/home/ubuntu/config
+scp -i $KEY_PATH -o "StrictHostKeyChecking no" config/config.json ubuntu@$REMOTE_HOST:/home/ubuntu/config.json
 ssh -i $KEY_PATH -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST bash run.sh
 
 sleep 10s

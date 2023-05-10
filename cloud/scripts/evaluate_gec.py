@@ -3,7 +3,9 @@ import os
 import typer
 import shutil
 import contextlib
+import boto3
 
+from io import BytesIO
 import numpy as np
 from lightgbm import LGBMClassifier
 from helpers.load_dataset import load_bank_dataset
@@ -11,8 +13,11 @@ from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-
+VERSION = 1
 N_ITER = 70
+SCORE_LOCATION = f"eval/scores/v={VERSION}"
+ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
+BUCKET = "100gecs"
 
 
 def prepare_folder(output_location):
@@ -60,33 +65,86 @@ app = typer.Typer(name="run GEC benchmarking")
 
 @app.command()
 def run(
-    output_location: str = "/home/ubuntu/output",
+    config_path: str = "/home/ubuntu/config.json",
     data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
+    run_random_search: bool = False,
 ):
-    prepare_folder(output_location)
 
-    gec = GEC()
+    client = boto3.client("s3")
 
+    # load data
     if dataset == "bank":
         X, y = load_bank_dataset(data_location, 0.2)
     else:
         raise Exception(f"dataset {dataset} is not available")
 
-    gec.fit(X, y, N_ITER)
+    # load hyperparameters to evaluate
+    with open(config_path, "r") as f:
+        hyperparemeter_sets = json.loads(f.read())
 
-    gec.serialise(f"{output_location}/gec.json")
-    gec.save_figs(f"{output_location}/figures/fig")
+    for hyperparameter_dict in hyperparemeter_sets:
+        gec = GEC()
+        n_iters = hyperparameter_dict.pop("n_iters")
+        gec.set_gec_hyperparameters(hyperparameter_dict)
+        for i, n_iter in enumerate(n_iters):
+            hyperparameter_representation = (
+                "-".join(
+                    [f"{k.replace('_', '')}{v}" for k, v in hyperparameter_dict.items()]
+                )
+                + f"niter{n_iter}"
+            )
+            if i == 0:
+                gec.fit(X, y, n_iter)
+            else:
+                gec.fit(X, y, n_iter - n_iters[i - 1])
 
-    random_search = fit_random_search(X, y, gec)
-    benchmark = benchmark_against_random_search(X, y, gec, random_search)
+            knn_bayes = LGBMClassifier(**gec.best_params_)
+            score_bayes = np.mean(cross_val_score(knn_bayes, X, y, cv=5))
 
-    with open(f"{output_location}/benchmark.json", "w") as f:
-        f.write(json.dumps(benchmark))
+            result_repr = json.dumps({**hyperparameter_dict, "cv-score": score_bayes})
 
-    shutil.make_archive(
-        output_location, "zip", "/".join(output_location.split("/")[-1])
-    )
+            response = client.put_object(
+                Bucket=BUCKET,
+                Body=result_repr,
+                Key=f"{SCORE_LOCATION}/{hyperparameter_representation}.json",
+            )
+
+        gec_repr = gec.get_representation()
+        response = client.put_object(
+            Bucket=BUCKET,
+            Body=gec_repr,
+            Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}.json",
+        )
+
+        figs = gec.summarise_gp_datas()
+        for fig_name, fig in figs.items():
+            buffer = BytesIO()
+            fig.savefig(buffer, format="png")
+            buffer.seek(0)
+            response = client.put_object(
+                Bucket=BUCKET,
+                Body=buffer,
+                Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}/{fig_name}.png",
+            )
+
+    for n_iter in n_iters:
+
+        random_search = fit_random_search(X, y, gec)
+
+        clf_rs = LGBMClassifier(**random_search.best_params_)
+        score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
+        rs_result_repr = {
+            **dict(zip(list(hyperparameter_dict.keys()), [-1, -1, -1, -1])),
+            "cv-score": score_rs,
+        }
+
+        random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
+        response = client.put_object(
+            Bucket=BUCKET,
+            Body=rs_result_repr,
+            Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
+        )
 
 
 if __name__ == "__main__":

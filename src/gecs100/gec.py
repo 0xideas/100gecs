@@ -361,7 +361,7 @@ class GEC(LGBMClassifier):
         }
         return converted_dict
 
-    def serialise(self, path):
+    def get_representation(self):
         gp_datas = self.convert_gaussian_process_data_for_serialisation(self.gp_datas)
         bagging_datas = self.convert_gaussian_process_data_for_serialisation(
             self.bagging_datas
@@ -379,6 +379,11 @@ class GEC(LGBMClassifier):
             "last_score": self.last_score,
             "gec_iter": self.gec_iter,
         }
+        return representation
+
+    def serialise(self, path):
+        representation = self.get_representation()
+
         with open(path, "w") as f:
             f.write(json.dumps(representation))
 
