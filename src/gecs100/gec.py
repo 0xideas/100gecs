@@ -806,7 +806,6 @@ class GEC(LGBMClassifier):
             selected_arm = self.categorical_hyperparameter_combinations[
                 selected_arm_index
             ]
-            self.selected_arms.append(selected_arm)
 
             sets = [
                 list(
@@ -823,11 +822,14 @@ class GEC(LGBMClassifier):
             assert len(combinations), sets
 
             if len(self.gp_datas[selected_arm]["inputs"]) > 0:
-                self.gaussian.fit(
-                    np.array(self.gp_datas[selected_arm]["inputs"]),
-                    np.array(self.gp_datas[selected_arm]["output"])
-                    - self.adjustment_factor,
-                )
+                try:
+                    self.gaussian.fit(
+                        np.array(self.gp_datas[selected_arm]["inputs"]),
+                        np.array(self.gp_datas[selected_arm]["output"])
+                        - self.adjustment_factor,
+                    )
+                except:
+                    continue
 
             mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
@@ -847,11 +849,15 @@ class GEC(LGBMClassifier):
 
             if "yes_bagging" in selected_arm:
                 if len(self.bagging_datas[selected_arm]["inputs"]) > 0:
-                    self.gaussian_bagging.fit(
-                        np.array(self.bagging_datas[selected_arm]["inputs"]),
-                        np.array(self.bagging_datas[selected_arm]["output"])
-                        - self.adjustment_factor,
-                    )
+                    try:
+                        self.gaussian_bagging.fit(
+                            np.array(self.bagging_datas[selected_arm]["inputs"]),
+                            np.array(self.bagging_datas[selected_arm]["output"])
+                            - self.adjustment_factor,
+                        )
+                    except:
+                        continue
+
                 mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
                     self.bagging_combinations, return_std=True
                 )
@@ -887,6 +893,7 @@ class GEC(LGBMClassifier):
                     best_score = score
                     best_params = arguments
 
+                self.selected_arms.append(selected_arm)
                 self.gp_datas[selected_arm]["inputs"].append(best_predicted_combination)
                 self.gp_datas[selected_arm]["output"].append(score)
                 self.gp_datas[selected_arm]["means"].append(mean)
@@ -921,7 +928,6 @@ class GEC(LGBMClassifier):
 
             if serialisation_iter is not None and (i + 1) % serialisation_iter == 0:
                 self.serialise(serialisation_path)
-
         return (best_params, best_score)
 
     def tested_parameter_combinations(self):

@@ -16,4 +16,7 @@ terraform destroy -auto-approve
 ssh-keygen -f $SSH_HOST_PATH -R $REMOTE_IP
 
 
+#scp -i $KEY_PATH -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST:/home/ubuntu/gec.json gec.json
+
+
 
