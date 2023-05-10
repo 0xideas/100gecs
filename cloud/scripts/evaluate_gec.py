@@ -81,9 +81,9 @@ def run(
 
     # load hyperparameters to evaluate
     with open(config_path, "r") as f:
-        hyperparemeter_sets = json.loads(f.read())
+        hyperparameter_dicts = json.loads(f.read())
 
-    for hyperparameter_dict in hyperparemeter_sets:
+    for hyperparameter_dict in hyperparameter_dicts:
         gec = GEC()
         n_iters = hyperparameter_dict.pop("n_iters")
         gec.set_gec_hyperparameters(hyperparameter_dict)
@@ -128,23 +128,21 @@ def run(
                 Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}/{fig_name}.png",
             )
 
-    for n_iter in n_iters:
-
-        random_search = fit_random_search(X, y, gec)
-
-        clf_rs = LGBMClassifier(**random_search.best_params_)
-        score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
-        rs_result_repr = {
-            **dict(zip(list(hyperparameter_dict.keys()), [-1, -1, -1, -1])),
-            "cv-score": score_rs,
-        }
-
+    if run_random_search:
         random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
-        response = client.put_object(
-            Bucket=BUCKET,
-            Body=rs_result_repr,
-            Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
-        )
+        for n_iter in n_iters:
+            random_search = fit_random_search(X, y, gec)
+            clf_rs = LGBMClassifier(**random_search.best_params_)
+            score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
+            rs_result_repr = {
+                **dict(zip(list(hyperparameter_dict.keys()), [-1, -1, -1, -1])),
+                "cv-score": score_rs,
+            }
+            response = client.put_object(
+                Bucket=BUCKET,
+                Body=rs_result_repr,
+                Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
+            )
 
 
 if __name__ == "__main__":
