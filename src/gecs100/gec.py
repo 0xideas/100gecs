@@ -828,10 +828,11 @@ class GEC(LGBMClassifier):
                         np.array(self.gp_datas[selected_arm]["output"])
                         - self.adjustment_factor,
                     )
+                    mean, sigma = self.gaussian.predict(combinations, return_std=True)
                 except:
                     continue
-
-            mean, sigma = self.gaussian.predict(combinations, return_std=True)
+            else:
+                mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
             predicted_rewards = np.array(
                 [
@@ -855,12 +856,16 @@ class GEC(LGBMClassifier):
                             np.array(self.bagging_datas[selected_arm]["output"])
                             - self.adjustment_factor,
                         )
+                        mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
+                            self.bagging_combinations, return_std=True
+                        )
                     except:
                         continue
+                else:
+                    mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
+                        self.bagging_combinations, return_std=True
+                    )
 
-                mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-                    self.bagging_combinations, return_std=True
-                )
                 predicted_rewards_bagging = np.array(
                     [
                         m + 0.3 * np.random.normal(m, s)
