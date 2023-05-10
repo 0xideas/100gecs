@@ -65,13 +65,21 @@ app = typer.Typer(name="run GEC benchmarking")
 
 @app.command()
 def run(
+    aws_access_key_id: str,
+    aws_secret_access_key: str, 
+    aws_region: str = "eu-central-1",
     config_path: str = "/home/ubuntu/config.json",
     data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
     run_random_search: bool = False,
 ):
 
-    client = boto3.client("s3")
+    client = boto3.client(
+        "s3",
+        region_name=aws_region,
+        aws_access_key_id=,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    )
 
     # load data
     if dataset == "bank":
