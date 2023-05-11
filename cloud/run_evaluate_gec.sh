@@ -14,7 +14,7 @@ while [ $current_screens_length != 0 ]
 do
     echo -n "."
     sleep 1s
-    current_screens=$(ssh -t -i $KEY_PATH -q -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST screen -list | grep "gec")
+    current_screens=$(ssh -t -i $KEY_PATH -q -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST screen -list)
     current_screens_length=${#current_screens}
 done
 
