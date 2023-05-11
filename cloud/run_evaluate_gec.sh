@@ -11,11 +11,4 @@ ssh -t -i $KEY_PATH -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST nohup bash
 
 bash wait_and_shutdown.sh
 
-
-
-
-
 #scp -i $KEY_PATH -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST:/home/ubuntu/gec.json gec.json
-
-
-
