@@ -125,7 +125,7 @@ def run(
                 Key=f"{SCORE_LOCATION}/{hyperparameter_representation}.json",
             )
 
-        gec_repr = gec.get_representation()
+        gec_repr = json.dumps(gec.get_representation())
         response = client.put_object(
             Bucket=BUCKET,
             Body=gec_repr,
