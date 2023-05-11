@@ -11,6 +11,7 @@ data/
 
 
 set_env_variables.sh
+setup_main_instance.sh
 terraform.tfvars
 
 .terraform/
