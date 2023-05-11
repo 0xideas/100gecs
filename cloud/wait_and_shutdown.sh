@@ -1,11 +1,14 @@
 
-current_screens_length=1
-while [ $current_screens_length != 0 ]
+while [ true ]
 do
     echo -n "."
     sleep 1s
-    current_screens=$(ssh -t -i $KEY_PATH -q -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST screen -list)
-    current_screens_length=${#current_screens}
+    process_text=$(ssh -t -i $KEY_PATH -q -o "StrictHostKeyChecking no" ubuntu@$REMOTE_HOST ps -u ubuntu | grep "python3")
+    process_match_length=${#process_text}
+    if [[ process_match_length -eq "0" ]]
+    then
+        break
+    fi
 done
 
 echo "loop done, quitting in 1m"
