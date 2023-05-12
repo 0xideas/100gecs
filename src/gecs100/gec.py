@@ -438,7 +438,7 @@ class GEC(LGBMClassifier):
         )
         self.gec_hyperparameters = gec_hyperparameters
 
-    def fit(self, X, y, n_iter=100, serialisation_iter=None, serialisation_path=None):
+    def fit(self, X, y, n_iter=100):
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
@@ -448,13 +448,7 @@ class GEC(LGBMClassifier):
             self.best_params_gec["search"],
             self.best_scores_gec["search"],
         ) = self.optimise_hyperparameters(
-            n_iter,
-            X,
-            y,
-            self.best_score,
-            self.best_params_,
-            serialisation_iter,
-            serialisation_path,
+            n_iter, X, y, self.best_score, self.best_params_
         )
         self.best_params_gec["grid"] = self.find_best_parameters()
         self.best_scores_gec["grid"] = self._calculate_cv_score(
@@ -497,8 +491,6 @@ class GEC(LGBMClassifier):
         Y,
         best_score,
         best_params,
-        serialisation_iter,
-        serialisation_path,
         **kwargs,
     ):
 
@@ -631,8 +623,6 @@ class GEC(LGBMClassifier):
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
 
-            if serialisation_iter is not None and (i + 1) % serialisation_iter == 0:
-                self.serialise(serialisation_path)
         return (best_params, best_score)
 
     def build_arguments(self, categorical_combination, real_combination_linear):
