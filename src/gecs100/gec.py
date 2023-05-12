@@ -330,63 +330,18 @@ class GEC(LGBMClassifier):
         self._kernel_bagging = value
         self.gaussian_bagging = GaussianProcessRegressor(kernel=value)
 
-    @classmethod
-    def convert_gaussian_process_data_for_serialisation(cls, data_dict):
-        def process_value(key, value):
-            if not isinstance(value, np.ndarray):
-                return value
-            elif key != "inputs":
-                return list(value)
-            else:
-                return list(value.astype(np.float64))
-
-        converted_dict = {
-            k: {k2: [process_value(k2, vv) for vv in v] for k2, v in values.items()}
-            for k, values in data_dict.items()
-        }
-        return converted_dict
+    @property
+    def gec_iter(self):
+        return int(np.sum([len(value["output"]) for value in self.gp_datas.values()]))
 
     @classmethod
-    def convert_gaussian_process_data_for_deserialisation(cls, data_dict):
-        def process_value(key, value):
-            if not isinstance(value, list):
-                return value
-            elif key != "inputs":
-                return np.array(value)
-            else:
-                return np.array(value).astype(np.float16)
-
-        converted_dict = {
-            k: {k2: [process_value(k2, vv) for vv in v] for k2, v in values.items()}
-            for k, values in data_dict.items()
-        }
-        return converted_dict
-
-    def get_representation(self):
-        gp_datas = self.convert_gaussian_process_data_for_serialisation(self.gp_datas)
-        bagging_datas = self.convert_gaussian_process_data_for_serialisation(
-            self.bagging_datas
-        )
-        representation = {
-            "gec_hyperparameters": self.gec_hyperparameters,
-            "rewards": self.rewards,
-            "selected_arms": self.selected_arms,
-            "gp_datas": gp_datas,
-            "bagging_datas": bagging_datas,
-            "best_params_": self.best_params_,
-            "best_score": self.best_score,
-            "best_params_gec": self.best_params_gec,
-            "best_scores_gec": self.best_scores_gec,
-            "last_score": self.last_score,
-            "gec_iter": self.gec_iter,
-        }
-        return representation
-
-    def serialise(self, path):
-        representation = self.get_representation()
-
-        with open(path, "w") as f:
-            f.write(json.dumps(representation))
+    def cast_to_type(cls, value, type_):
+        if type_ == np.float64:
+            return float(value)
+        elif type_ == np.int64:
+            return int(value)
+        else:
+            raise Exception(f"type {type_} currently not supported")
 
     @classmethod
     def deserialise(cls, path, X=None, y=None):
@@ -418,6 +373,64 @@ class GEC(LGBMClassifier):
             )
         return gec
 
+    @classmethod
+    def convert_gaussian_process_data_for_deserialisation(cls, data_dict):
+        def process_value(key, value):
+            if not isinstance(value, list):
+                return value
+            elif key != "inputs":
+                return np.array(value)
+            else:
+                return np.array(value).astype(np.float16)
+
+        converted_dict = {
+            k: {k2: [process_value(k2, vv) for vv in v] for k2, v in values.items()}
+            for k, values in data_dict.items()
+        }
+        return converted_dict
+
+    def serialise(self, path):
+        representation = self.get_representation()
+
+        with open(path, "w") as f:
+            f.write(json.dumps(representation))
+
+    @classmethod
+    def convert_gaussian_process_data_for_serialisation(cls, data_dict):
+        def process_value(key, value):
+            if not isinstance(value, np.ndarray):
+                return value
+            elif key != "inputs":
+                return list(value)
+            else:
+                return list(value.astype(np.float64))
+
+        converted_dict = {
+            k: {k2: [process_value(k2, vv) for vv in v] for k2, v in values.items()}
+            for k, values in data_dict.items()
+        }
+        return converted_dict
+
+    def get_representation(self):
+        gp_datas = self.convert_gaussian_process_data_for_serialisation(self.gp_datas)
+        bagging_datas = self.convert_gaussian_process_data_for_serialisation(
+            self.bagging_datas
+        )
+        representation = {
+            "gec_hyperparameters": self.gec_hyperparameters,
+            "rewards": self.rewards,
+            "selected_arms": self.selected_arms,
+            "gp_datas": gp_datas,
+            "bagging_datas": bagging_datas,
+            "best_params_": self.best_params_,
+            "best_score": self.best_score,
+            "best_params_gec": self.best_params_gec,
+            "best_scores_gec": self.best_scores_gec,
+            "last_score": self.last_score,
+            "gec_iter": self.gec_iter,
+        }
+        return representation
+
     def set_gec_hyperparameters(self, gec_hyperparameters):
         assert np.all(
             np.array(sorted(list(gec_hyperparameters.keys())))
@@ -427,279 +440,11 @@ class GEC(LGBMClassifier):
         )
         self.gec_hyperparameters = gec_hyperparameters
 
-    def plot_boosting_parameter_surface(
-        self,
-        cat,
-        plot_bounds=True,
-    ):
-        bagging_data = np.array(self.bagging_datas[cat]["inputs"])
-        bagging_data[:, 0] = bagging_data[:, 0] / 10
-        self.gaussian_bagging.fit(bagging_data, self.bagging_datas[cat]["output"])
-
-        X_range = np.arange(1, 11, 1) / 10
-        Y_range = np.arange(0.05, 1.0, 0.05)
-        Z_range = np.arange(-0.5, 1.5, 0.1)
-
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 12))
-
-        # Make data.
-        X = np.arange(
-            np.min(X_range), np.max(X_range), (np.max(X_range) - np.min(X_range)) / 100
-        )
-        Y = np.arange(
-            np.min(Y_range), np.max(Y_range), (np.max(Y_range) - np.min(Y_range)) / 100
-        )
-        Z = np.arange(
-            np.min(Z_range), np.max(Z_range), (np.max(Z_range) - np.min(Z_range)) / 100
-        )
-        R = cartesian(np.array([X, Y]))
-        X, Y = np.meshgrid(X, Y)
-        Z, sigma = self.gaussian_bagging.predict(R, return_std=True)
-        Z = Z.reshape((100, 100))
-        sigma = sigma.reshape((100, 100))
-
-        # Plot the surface.
-        surf = ax.plot_surface(
-            X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
-        )
-        if plot_bounds:
-            surf2 = ax.plot_surface(
-                X, Y, Z + 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
-            )
-            surf3 = ax.plot_surface(
-                X, Y, Z - 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
-            )
-        # Customize the z axis.
-        ax.set_zlim(np.min(Z_range), np.max(Z_range))
-        ax.set_xticks(X_range, labels=(X_range * 10).astype(int))
-        # ax.zaxis.set_major_locator(LinearLocator(10))
-        # A StrMethodFormatter is used automatically
-        ax.zaxis.set_major_formatter("{x:.02f}")
-        # Add a color bar which maps values to colors.
-        # fig.colorbar(surf, shrink=0.5, aspect=5)
-        return fig
-
-    def summarise_gp_datas(self):
-
-        figs = {}
-
-        for categorical_combination in self.categorical_hyperparameter_combinations:
-            fig, axes = plt.subplots(
-                nrows=2, ncols=2, sharex=True, sharey=False, figsize=(12, 12)
-            )
-            ax1, ax2, ax3, ax4 = axes.flatten()
-
-            x = np.arange(len(self.gp_datas[categorical_combination]["means"]))
-            self.plot_mean_prediction_and_mean_variance(categorical_combination, ax1, x)
-            self.plot_prediction_std_and_variance_std(categorical_combination, ax2, x)
-            self.plot_prediction_mean_variance_correlation(
-                categorical_combination, ax3, x
-            )
-            self.plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
-
-            figs[f"{categorical_combination}-parameters"] = fig
-
-            if "yes_bagging" in categorical_combination:
-                fig2 = self.plot_boosting_parameter_surface(categorical_combination)
-                figs[f"{categorical_combination}-bagging"] = fig2
-
-        return figs
-
-    def write_figures(self, figs, path_stem):
-        for plot_name, fig in figs.items():
-            fig.savefig(f"{path_stem}_{plot_name}.png")
-
-    def save_figs(self, path_stem):
-        figs = self.summarise_gp_datas()
-        self.write_figures(figs, path_stem)
-
-    def plot_linear_scaled_parameter_samples(self, cat, ax, x):
-        inputs_ = np.array(self.gp_datas[cat]["inputs"])
-        for i in range(inputs_.shape[1]):
-            ax.plot(x, inputs_[:, i], label=self.real_hyperparameter_names[i])
-
-    def plot_prediction_mean_variance_correlation(self, cat, ax, x):
-        correlation = [
-            np.corrcoef(
-                self.gp_datas[cat]["means"][i], self.gp_datas[cat]["sigmas"][i]
-            )[0, 1]
-            for i in x
-        ]
-
-        ax.plot(
-            x,
-            correlation,
-            label="corr(preds mean, preds variance)",
-        )
-        ax.legend(loc="lower right")
-
-    def plot_prediction_std_and_variance_std(self, cat, ax, x):
-        gp_prediction_variance = [np.std(x) for x in self.gp_datas[cat]["means"]]
-        gp_sigma_variance = [np.std(x) for x in self.gp_datas[cat]["sigmas"]]
-
-        ax.plot(x, gp_prediction_variance, label="prediction_variance")
-        ax.plot(x, gp_sigma_variance, label="sigma_variance")
-        ax.legend(loc="lower right")
-
-    def plot_mean_prediction_and_mean_variance(self, cat, ax, x):
-        gp_mean_prediction = [np.mean(x) for x in self.gp_datas[cat]["means"]]
-        gp_mean_sigma = [np.mean(x) for x in self.gp_datas[cat]["sigmas"]]
-
-        ax.plot(x, gp_mean_prediction, label="mean_prediction")
-        ax.plot(x, gp_mean_sigma, label="mean_sigma")
-        ax.legend(loc="upper right")
-
-    def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
-
-        sets = [
-            list(range_[:: step_sizes[0]]) + [range_[-1]]
-            for range_ in self.linear_ranges
-        ]
-        real_combinations = np.array(list(itertools.product(*sets)))
-
-        n_selected_arms = int(len(self.selected_arms) * 0.3)
-        arms, counts = np.unique(
-            self.selected_arms[n_selected_arms:],
-            return_counts=True,
-        )
-
-        top_3 = arms[np.argsort(counts)][-3:]
-
-        initial_combinations = {
-            categorical_combination: real_combinations
-            for categorical_combination in top_3
-        }
-
-        best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
-
-        return self.find_best_parameters_from_initial_parameters(
-            best_combinations, step_sizes
-        )
-
-    def find_best_parameters_from_initial_parameters(
-        self, best_combinations, step_sizes
-    ):
-        for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
-
-            neighbouring_combinations = self.get_neighbouring_combinations(
-                best_combinations, step_size, previous_step_size
-            )
-
-            new_ranges = list(
-                zip(
-                    self.real_hyperparameter_names,
-                    list(neighbouring_combinations.values())[0].min(0),
-                    list(neighbouring_combinations.values())[0].max(0),
-                )
-            )
-            # log.info(new_ranges)
-
-            best_combinations, best_scores = self.find_best_parameters_iter(
-                neighbouring_combinations
-            )
-
-        max_score = np.max(list(best_scores.values()))
-        for categorical_combination, real_combination in best_combinations.items():
-            if best_scores[categorical_combination] == max_score:
-                arm_best_score = str(categorical_combination)
-                arguments = self.build_arguments(
-                    categorical_combination.split("-"), real_combination
-                )
-
-        if "yes_bagging" in arm_best_score:
-            bagging_data = np.array(self.bagging_datas[arm_best_score]["inputs"])
-            bagging_data[:, 0] = bagging_data[:, 0] / 10
-            self.gaussian_bagging.fit(
-                bagging_data,
-                np.array(self.bagging_datas[arm_best_score]["output"])
-                - self.adjustment_factor,
-            )
-            mean_bagging = self.gaussian_bagging.predict(self.bagging_combinations)
-            best_predicted_combination_bagging = self.bagging_combinations[
-                np.argmax(mean_bagging)
-            ]
-
-            (
-                arguments["bagging_freq"],
-                arguments["bagging_fraction"],
-            ) = best_predicted_combination_bagging
-
-        del arguments["bagging"]
-
-        return arguments
-
-    def get_neighbouring_combinations(
-        self, best_combinations, step_size, previous_step_size
-    ):
-        neighbouring_combinations = {}
-        for categorical_combination, real_combination in best_combinations.items():
-            new_sets = []
-            for real_value, range_ in zip(real_combination, self.linear_ranges):
-                real_value_index = np.argmax(range_ == real_value)
-
-                start_index = real_value_index - previous_step_size
-                start_index = start_index if start_index > 0 else 0
-                end_index = min(real_value_index + previous_step_size, len(range_))
-
-                adjusted_step_size = min(int(len(range_) / 2), step_size)
-                new_set = list(range_[start_index:end_index:adjusted_step_size])
-                if np.max(new_set) < real_value:
-                    new_set.append(real_value)
-
-                new_sets.append(new_set)
-
-            neighbouring_combinations[categorical_combination] = np.array(
-                list(itertools.product(*new_sets))
-            )
-
-        return neighbouring_combinations
-
-    def find_best_parameters_iter(self, combinations):
-        best_combinations = {}
-        best_scores = {}
-        for categorical_combination, combs in combinations.items():
-            self.gaussian.fit(
-                self.gp_datas[categorical_combination]["inputs"],
-                self.gp_datas[categorical_combination]["output"],
-            )
-
-            mean = self.gaussian.predict(combs)
-            best_scores[categorical_combination] = np.max(mean)
-            best_combination = combs[np.argmax(mean)]
-            best_combinations[categorical_combination] = best_combination
-
-        return best_combinations, best_scores
-
-    def find_best_parameters_from_search(self, params):
-
-        if "bagging_freq" in params:
-            del params["bagging_freq"]
-            del params["bagging_fraction"]
-            bagging = "yes_bagging"
-        else:
-            bagging = "no_bagging"
-        boosting = params.pop("boosting")
-        categorical_combination = f"{boosting}-{bagging}"
-
-        best_params_linear_values = [
-            self.real_hyperparameters_map_reverse[name][params[name]]
-            for name in self.real_hyperparameter_names
-        ]
-        best_params = self.find_best_parameters_from_initial_parameters(
-            {categorical_combination: best_params_linear_values},
-            step_sizes=[4, 2, 1],
-        )
-        return best_params
-
     def calculate_empirical_score(self, X, y, params):
         clf = LGBMClassifier(**params)
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             score = np.mean(cross_val_score(clf, X, y, cv=3))
         return score
-
-    @property
-    def gec_iter(self):
-        return int(np.sum([len(value["output"]) for value in self.gp_datas.values()]))
 
     def fit(self, X, y, n_iter=100, serialisation_iter=None, serialisation_path=None):
 
@@ -746,37 +491,6 @@ class GEC(LGBMClassifier):
         # self.selected_arms = selected_arms
 
         return self
-
-    def fit_best_params(self, X, y):
-        gec = GEC(**{**self.best_params_, "random_state": 101})
-
-        for k, v in gec.__dict__.items():
-            if k not in self.__dict__ or self.__dict__[k] is None:
-                self.__dict__[k] = v
-
-        super().fit(X, y)
-
-    def build_arguments(self, categorical_combination, real_combination_linear):
-        best_predicted_combination_converted = [
-            self.real_hyperparameters_map[name][value]
-            for name, value in zip(
-                self.real_hyperparameter_names,
-                real_combination_linear,
-            )
-        ]
-
-        hyperparameter_values = categorical_combination + [
-            self.cast_to_type(c, t)
-            for c, t in zip(list(best_predicted_combination_converted), self.sets_types)
-        ]
-
-        arguments = dict(
-            zip(
-                self.categorical_hyperparameter_names + self.real_hyperparameter_names,
-                hyperparameter_values,
-            )
-        )
-        return arguments
 
     def optimise_hyperparameters(
         self,
@@ -927,6 +641,179 @@ class GEC(LGBMClassifier):
                 self.serialise(serialisation_path)
         return (best_params, best_score)
 
+    def build_arguments(self, categorical_combination, real_combination_linear):
+        best_predicted_combination_converted = [
+            self.real_hyperparameters_map[name][value]
+            for name, value in zip(
+                self.real_hyperparameter_names,
+                real_combination_linear,
+            )
+        ]
+
+        hyperparameter_values = categorical_combination + [
+            self.cast_to_type(c, t)
+            for c, t in zip(list(best_predicted_combination_converted), self.sets_types)
+        ]
+
+        arguments = dict(
+            zip(
+                self.categorical_hyperparameter_names + self.real_hyperparameter_names,
+                hyperparameter_values,
+            )
+        )
+        return arguments
+
+    def fit_best_params(self, X, y):
+        gec = GEC(**{**self.best_params_, "random_state": 101})
+
+        for k, v in gec.__dict__.items():
+            if k not in self.__dict__ or self.__dict__[k] is None:
+                self.__dict__[k] = v
+
+        super().fit(X, y)
+
+    def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
+
+        sets = [
+            list(range_[:: step_sizes[0]]) + [range_[-1]]
+            for range_ in self.linear_ranges
+        ]
+        real_combinations = np.array(list(itertools.product(*sets)))
+
+        n_selected_arms = int(len(self.selected_arms) * 0.3)
+        arms, counts = np.unique(
+            self.selected_arms[n_selected_arms:],
+            return_counts=True,
+        )
+
+        top_3 = arms[np.argsort(counts)][-3:]
+
+        initial_combinations = {
+            categorical_combination: real_combinations
+            for categorical_combination in top_3
+        }
+
+        best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
+
+        return self.find_best_parameters_from_initial_parameters(
+            best_combinations, step_sizes
+        )
+
+    def find_best_parameters_from_search(self, params):
+
+        if "bagging_freq" in params:
+            del params["bagging_freq"]
+            del params["bagging_fraction"]
+            bagging = "yes_bagging"
+        else:
+            bagging = "no_bagging"
+        boosting = params.pop("boosting")
+        categorical_combination = f"{boosting}-{bagging}"
+
+        best_params_linear_values = [
+            self.real_hyperparameters_map_reverse[name][params[name]]
+            for name in self.real_hyperparameter_names
+        ]
+        best_params = self.find_best_parameters_from_initial_parameters(
+            {categorical_combination: best_params_linear_values},
+            step_sizes=[4, 2, 1],
+        )
+        return best_params
+
+    def find_best_parameters_iter(self, combinations):
+        best_combinations = {}
+        best_scores = {}
+        for categorical_combination, combs in combinations.items():
+            self.gaussian.fit(
+                self.gp_datas[categorical_combination]["inputs"],
+                self.gp_datas[categorical_combination]["output"],
+            )
+
+            mean = self.gaussian.predict(combs)
+            best_scores[categorical_combination] = np.max(mean)
+            best_combination = combs[np.argmax(mean)]
+            best_combinations[categorical_combination] = best_combination
+
+        return best_combinations, best_scores
+
+    def find_best_parameters_from_initial_parameters(
+        self, best_combinations, step_sizes
+    ):
+        for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
+
+            neighbouring_combinations = self.get_neighbouring_combinations(
+                best_combinations, step_size, previous_step_size
+            )
+
+            new_ranges = list(
+                zip(
+                    self.real_hyperparameter_names,
+                    list(neighbouring_combinations.values())[0].min(0),
+                    list(neighbouring_combinations.values())[0].max(0),
+                )
+            )
+            # log.info(new_ranges)
+
+            best_combinations, best_scores = self.find_best_parameters_iter(
+                neighbouring_combinations
+            )
+
+        max_score = np.max(list(best_scores.values()))
+        for categorical_combination, real_combination in best_combinations.items():
+            if best_scores[categorical_combination] == max_score:
+                arm_best_score = str(categorical_combination)
+                arguments = self.build_arguments(
+                    categorical_combination.split("-"), real_combination
+                )
+
+        if "yes_bagging" in arm_best_score:
+            bagging_data = np.array(self.bagging_datas[arm_best_score]["inputs"])
+            bagging_data[:, 0] = bagging_data[:, 0] / 10
+            self.gaussian_bagging.fit(
+                bagging_data,
+                np.array(self.bagging_datas[arm_best_score]["output"])
+                - self.adjustment_factor,
+            )
+            mean_bagging = self.gaussian_bagging.predict(self.bagging_combinations)
+            best_predicted_combination_bagging = self.bagging_combinations[
+                np.argmax(mean_bagging)
+            ]
+
+            (
+                arguments["bagging_freq"],
+                arguments["bagging_fraction"],
+            ) = best_predicted_combination_bagging
+
+        del arguments["bagging"]
+
+        return arguments
+
+    def get_neighbouring_combinations(
+        self, best_combinations, step_size, previous_step_size
+    ):
+        neighbouring_combinations = {}
+        for categorical_combination, real_combination in best_combinations.items():
+            new_sets = []
+            for real_value, range_ in zip(real_combination, self.linear_ranges):
+                real_value_index = np.argmax(range_ == real_value)
+
+                start_index = real_value_index - previous_step_size
+                start_index = start_index if start_index > 0 else 0
+                end_index = min(real_value_index + previous_step_size, len(range_))
+
+                adjusted_step_size = min(int(len(range_) / 2), step_size)
+                new_set = list(range_[start_index:end_index:adjusted_step_size])
+                if np.max(new_set) < real_value:
+                    new_set.append(real_value)
+
+                new_sets.append(new_set)
+
+            neighbouring_combinations[categorical_combination] = np.array(
+                list(itertools.product(*new_sets))
+            )
+
+        return neighbouring_combinations
+
     def tested_parameter_combinations(self):
         real_hyperparameter_names, _ = zip(*self.real_hyperparameters_linear)
 
@@ -949,11 +836,124 @@ class GEC(LGBMClassifier):
             )
         return gp_datas_parameters
 
-    @classmethod
-    def cast_to_type(cls, value, type_):
-        if type_ == np.float64:
-            return float(value)
-        elif type_ == np.int64:
-            return int(value)
-        else:
-            raise Exception(f"type {type_} currently not supported")
+    def save_figs(self, path_stem):
+        figs = self.summarise_gp_datas()
+        self.write_figures(figs, path_stem)
+
+    def write_figures(self, figs, path_stem):
+        for plot_name, fig in figs.items():
+            fig.savefig(f"{path_stem}_{plot_name}.png")
+
+    def summarise_gp_datas(self):
+
+        figs = {}
+
+        for categorical_combination in self.categorical_hyperparameter_combinations:
+            fig, axes = plt.subplots(
+                nrows=2, ncols=2, sharex=True, sharey=False, figsize=(12, 12)
+            )
+            ax1, ax2, ax3, ax4 = axes.flatten()
+
+            x = np.arange(len(self.gp_datas[categorical_combination]["means"]))
+            self.plot_mean_prediction_and_mean_variance(categorical_combination, ax1, x)
+            self.plot_prediction_std_and_variance_std(categorical_combination, ax2, x)
+            self.plot_prediction_mean_variance_correlation(
+                categorical_combination, ax3, x
+            )
+            self.plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
+
+            figs[f"{categorical_combination}-parameters"] = fig
+
+            if "yes_bagging" in categorical_combination:
+                fig2 = self.plot_boosting_parameter_surface(categorical_combination)
+                figs[f"{categorical_combination}-bagging"] = fig2
+
+        return figs
+
+    def plot_mean_prediction_and_mean_variance(self, cat, ax, x):
+        gp_mean_prediction = [np.mean(x) for x in self.gp_datas[cat]["means"]]
+        gp_mean_sigma = [np.mean(x) for x in self.gp_datas[cat]["sigmas"]]
+
+        ax.plot(x, gp_mean_prediction, label="mean_prediction")
+        ax.plot(x, gp_mean_sigma, label="mean_sigma")
+        ax.legend(loc="upper right")
+
+    def plot_prediction_std_and_variance_std(self, cat, ax, x):
+        gp_prediction_variance = [np.std(x) for x in self.gp_datas[cat]["means"]]
+        gp_sigma_variance = [np.std(x) for x in self.gp_datas[cat]["sigmas"]]
+
+        ax.plot(x, gp_prediction_variance, label="prediction_variance")
+        ax.plot(x, gp_sigma_variance, label="sigma_variance")
+        ax.legend(loc="lower right")
+
+    def plot_prediction_mean_variance_correlation(self, cat, ax, x):
+        correlation = [
+            np.corrcoef(
+                self.gp_datas[cat]["means"][i], self.gp_datas[cat]["sigmas"][i]
+            )[0, 1]
+            for i in x
+        ]
+
+        ax.plot(
+            x,
+            correlation,
+            label="corr(preds mean, preds variance)",
+        )
+        ax.legend(loc="lower right")
+
+    def plot_linear_scaled_parameter_samples(self, cat, ax, x):
+        inputs_ = np.array(self.gp_datas[cat]["inputs"])
+        for i in range(inputs_.shape[1]):
+            ax.plot(x, inputs_[:, i], label=self.real_hyperparameter_names[i])
+
+    def plot_boosting_parameter_surface(
+        self,
+        cat,
+        plot_bounds=True,
+    ):
+        bagging_data = np.array(self.bagging_datas[cat]["inputs"])
+        bagging_data[:, 0] = bagging_data[:, 0] / 10
+        self.gaussian_bagging.fit(bagging_data, self.bagging_datas[cat]["output"])
+
+        X_range = np.arange(1, 11, 1) / 10
+        Y_range = np.arange(0.05, 1.0, 0.05)
+        Z_range = np.arange(-0.5, 1.5, 0.1)
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 12))
+
+        # Make data.
+        X = np.arange(
+            np.min(X_range), np.max(X_range), (np.max(X_range) - np.min(X_range)) / 100
+        )
+        Y = np.arange(
+            np.min(Y_range), np.max(Y_range), (np.max(Y_range) - np.min(Y_range)) / 100
+        )
+        Z = np.arange(
+            np.min(Z_range), np.max(Z_range), (np.max(Z_range) - np.min(Z_range)) / 100
+        )
+        R = cartesian(np.array([X, Y]))
+        X, Y = np.meshgrid(X, Y)
+        Z, sigma = self.gaussian_bagging.predict(R, return_std=True)
+        Z = Z.reshape((100, 100))
+        sigma = sigma.reshape((100, 100))
+
+        # Plot the surface.
+        surf = ax.plot_surface(
+            X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        )
+        if plot_bounds:
+            surf2 = ax.plot_surface(
+                X, Y, Z + 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
+            )
+            surf3 = ax.plot_surface(
+                X, Y, Z - 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
+            )
+        # Customize the z axis.
+        ax.set_zlim(np.min(Z_range), np.max(Z_range))
+        ax.set_xticks(X_range, labels=(X_range * 10).astype(int))
+        # ax.zaxis.set_major_locator(LinearLocator(10))
+        # A StrMethodFormatter is used automatically
+        ax.zaxis.set_major_formatter("{x:.02f}")
+        # Add a color bar which maps values to colors.
+        # fig.colorbar(surf, shrink=0.5, aspect=5)
+        return fig
