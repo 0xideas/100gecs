@@ -349,13 +349,19 @@ class GEC(LGBMClassifier):
     def deserialise(cls, path, X=None, y=None):
         """Deserialise a model and fit underlying LGBMClassifier if X and y are provided
 
-        Args:
-            path (str): path to serialised GEC
-            X (np.ndarray, optional): Input feature matrix
-            y (np.ndarray, optional): Target class labels
+        Parameters
+        ----------
+            path : str
+                path to serialised GEC
+            X : np.ndarray, optional
+                Input feature matrix
+            y : np.ndarray, optional
+                Target class labels
 
-        Returns:
-            GEC: deserialised model object
+        Returns
+        -------
+            gec : GEC
+                deserialised model object
         """
         with open(path, "r") as f:
             representation = json.loads(f.read())
@@ -398,8 +404,10 @@ class GEC(LGBMClassifier):
     def serialise(self, path):
         """Serialise GEC model object
 
-        Args:
-            path (str): path to serialise GEC to
+        Parameters
+        ----------
+            path : str
+                path to serialise GEC to
         """
         representation = self._get_representation()
 
@@ -447,9 +455,11 @@ class GEC(LGBMClassifier):
     def set_gec_hyperparameters(self, gec_hyperparameters):
         """Set the hyperparameters of the GEC optimisation process
 
-        Args:
-            gec_hyperparameters (dict[str, float]): dictionary with values for "l",
-                "l_bagging", "gaussian_variance_weight" and "bandit_greediness"
+        Parameters
+        ----------
+            gec_hyperparameters : dict[str, float]
+                dictionary with values for "l", "l_bagging",
+                "gaussian_variance_weight" and "bandit_greediness"
         """
         assert np.all(
             np.array(sorted(list(gec_hyperparameters.keys())))
@@ -462,13 +472,18 @@ class GEC(LGBMClassifier):
     def fit(self, X, y, n_iter=100):
         """Fit GEC on data
 
-        Args:
-            X (np.ndarray): Input feature matrix
-            y (np.ndarray): Target class labels
-            n_iter (int, optional): number of bayesian optimisation iterations. Defaults to 100.
+        Parameters
+        ----------
+            X : np.ndarray
+                Input feature matrix
+            y : np.ndarray
+                Target class labels
+            n_iter : int, optional (default=1000)
+                number of bayesian optimisation iterations
 
-        Returns:
-            GEC: self
+        Returns
+        -------
+            self: GEC
         """
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
@@ -838,8 +853,10 @@ class GEC(LGBMClassifier):
     def save_plots(self, path_stem):
         """Create and save plots that summarise GEC trajectory
 
-        Args:
-            path_stem (str): path to folder + file name root to save plots to
+        Parameters
+        ----------
+            path_stem : str
+                path to folder + file name root to save plots to
         """
         figs = self.plot_gec()
         self._write_figures(figs, path_stem)
@@ -851,8 +868,10 @@ class GEC(LGBMClassifier):
     def plot_gec(self):
         """Create figures to summaarise GEC trajectory
 
-        Returns:
-            dict[str, fig]: a dictionary of figures
+        Returns
+        -------
+            figs : dict[str, fig]
+                a dictionary of figures
         """
 
         figs = {}
