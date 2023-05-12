@@ -866,7 +866,7 @@ class GEC(LGBMClassifier):
             fig.savefig(f"{path_stem}_{plot_name}.png")
 
     def plot_gec(self):
-        """Create figures to summaarise GEC trajectory
+        """Create figures to summarise GEC trajectory
 
         Returns
         -------
