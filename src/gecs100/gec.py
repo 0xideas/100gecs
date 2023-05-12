@@ -825,7 +825,7 @@ class GEC(LGBMClassifier):
             )
         return hyperparameter_scores_parameters
 
-    def save_figs(self, path_stem):
+    def save_plots(self, path_stem):
         figs = self.plot_gec()
         self._write_figures(figs, path_stem)
 
