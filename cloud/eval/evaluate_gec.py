@@ -71,8 +71,9 @@ def run(
             result_repr = json.dumps(
                 {
                     "model-type": "gec",
+                    "dataset": dataset,
                     **hyperparameter_dict,
-                    "n_iter": n_iter,
+                    "n-iter": n_iter,
                     "cv-score": score_bayes,
                 }
             )

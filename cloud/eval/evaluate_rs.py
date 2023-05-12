@@ -62,6 +62,7 @@ def run(
         rs_result_repr = json.dumps(
             {
                 "model-type": "random-search",
+                "dataset": dataset,
                 **dict(
                     zip(
                         [
@@ -73,7 +74,7 @@ def run(
                         [-1, -1, -1, -1],
                     )
                 ),
-                "n_iter": n_iter,
+                "n-iter": n_iter,
                 "cv-score": score_rs,
             }
         )
