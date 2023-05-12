@@ -1,6 +1,17 @@
 import pytest
+import os
+import shutil
 import numpy as np
 from gecs100.gec import GEC
+
+
+@pytest.fixture(scope="session", autouse=True)
+def output_folder():
+    os.makedirs("tests/data/outputs")
+    os.makedirs("tests/data/outputs/plots")
+
+    yield None
+    shutil.rmtree("tests/data/outputs")
 
 
 @pytest.fixture(scope="session")
@@ -30,5 +41,5 @@ def y(X, seed):
 @pytest.fixture(scope="session")
 def gec(X, y):
     gec = GEC()
-    gec.fit(X, y, 3)
+    gec.fit(X, y, 2)
     return gec

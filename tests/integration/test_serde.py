@@ -5,7 +5,7 @@ from gecs100.gec import GEC
 
 @pytest.fixture
 def serialisation_path():
-    return "tests/data/gec.json"
+    return "tests/data/outputs/gec.json"
 
 
 def test_serde(gec, serialisation_path, X, y):
