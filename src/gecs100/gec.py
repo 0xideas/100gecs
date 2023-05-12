@@ -347,6 +347,16 @@ class GEC(LGBMClassifier):
 
     @classmethod
     def deserialise(cls, path, X=None, y=None):
+        """Deserialise a model and fit underlying LGBMClassifier if X and y are provided
+
+        Args:
+            path (str): path to serialised GEC
+            X (np.ndarray, optional): Input feature matrix
+            y (np.ndarray, optional): Target class labels
+
+        Returns:
+            GEC: deserialised model object
+        """
         with open(path, "r") as f:
             representation = json.loads(f.read())
 
@@ -370,7 +380,7 @@ class GEC(LGBMClassifier):
         gec.last_score = float(representation["last_score"])
 
         if X is not None and y is not None:
-            gec.fit_best_params(X, y)
+            gec._fit_best_params(X, y)
         else:
             warnings.warn(
                 "If X and y are not provided, the GEC model is not fitted for inference"
@@ -386,6 +396,11 @@ class GEC(LGBMClassifier):
         return converted_dict
 
     def serialise(self, path):
+        """Serialise GEC model object
+
+        Args:
+            path (str): path to serialise GEC to
+        """
         representation = self._get_representation()
 
         with open(path, "w") as f:
@@ -430,6 +445,12 @@ class GEC(LGBMClassifier):
         return representation
 
     def set_gec_hyperparameters(self, gec_hyperparameters):
+        """Set the hyperparameters of the GEC optimisation process
+
+        Args:
+            gec_hyperparameters (dict[str, float]): dictionary with values for "l",
+                "l_bagging", "gaussian_variance_weight" and "bandit_greediness"
+        """
         assert np.all(
             np.array(sorted(list(gec_hyperparameters.keys())))
             == np.array(
@@ -439,6 +460,16 @@ class GEC(LGBMClassifier):
         self.gec_hyperparameters = gec_hyperparameters
 
     def fit(self, X, y, n_iter=100):
+        """Fit GEC on data
+
+        Args:
+            X (np.ndarray): Input feature matrix
+            y (np.ndarray): Target class labels
+            n_iter (int, optional): number of bayesian optimisation iterations. Defaults to 100.
+
+        Returns:
+            GEC: self
+        """
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
@@ -447,7 +478,7 @@ class GEC(LGBMClassifier):
         (
             self.best_params_gec["search"],
             self.best_scores_gec["search"],
-        ) = self.optimise_hyperparameters(
+        ) = self._optimise_hyperparameters(
             n_iter, X, y, self.best_score, self.best_params_
         )
         self.best_params_gec["grid"] = self._find_best_parameters()
@@ -471,7 +502,7 @@ class GEC(LGBMClassifier):
         # hyperparameter_scores, rewards = copy.deepcopy(self.hyperparameter_scores), copy.deepcopy(self.rewards)
         # selected_arms = copy.deepcopy(self.selected_arms)
 
-        self.fit_best_params(X, y)
+        self._fit_best_params(X, y)
 
         # self.hyperparameter_scores, self.rewards = hyperparameter_scores, rewards
         # self.selected_arms = selected_arms
@@ -484,7 +515,7 @@ class GEC(LGBMClassifier):
             score = np.mean(cross_val_score(clf, X, y, cv=3))
         return score
 
-    def optimise_hyperparameters(
+    def _optimise_hyperparameters(
         self,
         n_iter,
         X,
@@ -494,7 +525,6 @@ class GEC(LGBMClassifier):
         **kwargs,
     ):
 
-        # parameters for gaussian process
         assert np.all(
             np.array(sorted(list(self.hyperparameter_scores.keys())))
             == np.array(sorted(self._categorical_hyperparameter_combinations))
@@ -651,7 +681,8 @@ class GEC(LGBMClassifier):
         )
         return arguments
 
-    def fit_best_params(self, X, y):
+    def _fit_best_params(self, X, y):
+
         gec = GEC(**{**self.best_params_, "random_state": 101})
 
         for k, v in gec.__dict__.items():
@@ -804,28 +835,12 @@ class GEC(LGBMClassifier):
 
         return neighbouring_combinations
 
-    def tested_parameter_combinations(self):
-
-        hyperparameter_scores_parameters = {}
-
-        for categorical_hyperparameter_combination, (
-            parameter_keys,
-            reward,
-        ) in self.hyperparameter_scores.items():
-            parameters = [
-                [
-                    self._real_hyperparameters_map[name][value]
-                    for name, value in zip(self._real_hyperparameter_names, pars)
-                ]
-                for pars in parameter_keys
-            ]
-            hyperparameter_scores_parameters[categorical_hyperparameter_combination] = (
-                parameters,
-                reward,
-            )
-        return hyperparameter_scores_parameters
-
     def save_plots(self, path_stem):
+        """Create and save plots that summarise GEC trajectory
+
+        Args:
+            path_stem (str): path to folder + file name root to save plots to
+        """
         figs = self.plot_gec()
         self._write_figures(figs, path_stem)
 
@@ -834,6 +849,11 @@ class GEC(LGBMClassifier):
             fig.savefig(f"{path_stem}_{plot_name}.png")
 
     def plot_gec(self):
+        """Create figures to summaarise GEC trajectory
+
+        Returns:
+            dict[str, fig]: a dictionary of figures
+        """
 
         figs = {}
 
