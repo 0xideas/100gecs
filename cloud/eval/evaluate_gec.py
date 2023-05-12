@@ -20,18 +20,6 @@ ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"
 
 
-def prepare_folder(output_location):
-
-    if os.path.exists(output_location) and os.path.isdir(output_location):
-        shutil.rmtree(output_location)
-
-    if os.path.exists(f"{output_location}.zip"):
-        os.remove(f"{output_location}.zip")
-
-    os.makedirs(output_location)
-    os.makedirs(f"{output_location}/figures")
-
-
 def fit_random_search(X, y, gec):
 
     classifier = LGBMClassifier()
