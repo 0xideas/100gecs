@@ -16,3 +16,4 @@ echo "loop done, quitting in 1m"
 sleep 1m
 cd terraform
 terraform destroy -auto-approve
+cd ..
