@@ -450,14 +450,14 @@ class GEC(LGBMClassifier):
         ) = self.optimise_hyperparameters(
             n_iter, X, y, self.best_score, self.best_params_
         )
-        self.best_params_gec["grid"] = self.find_best_parameters()
+        self.best_params_gec["grid"] = self._find_best_parameters()
         self.best_scores_gec["grid"] = self._calculate_cv_score(
             X, y, self.best_params_gec["grid"]
         )
         best_params_prep = copy.deepcopy(self.best_params_gec["search"])
         self.best_params_gec[
             "grid_from_search"
-        ] = self.find_best_parameters_from_search(best_params_prep)
+        ] = self._find_best_parameters_from_search(best_params_prep)
 
         self.best_scores_gec["grid_from_search"] = self._calculate_cv_score(
             X, y, self.best_params_gec["grid_from_search"]
@@ -539,7 +539,7 @@ class GEC(LGBMClassifier):
             )
 
             best_predicted_combination = combinations[np.argmax(predicted_rewards)]
-            arguments = self.build_arguments(
+            arguments = self._build_arguments(
                 selected_arm.split("-"), best_predicted_combination
             )
 
@@ -625,7 +625,7 @@ class GEC(LGBMClassifier):
 
         return (best_params, best_score)
 
-    def build_arguments(self, categorical_combination, real_combination_linear):
+    def _build_arguments(self, categorical_combination, real_combination_linear):
         best_predicted_combination_converted = [
             self._real_hyperparameters_map[name][value]
             for name, value in zip(
@@ -660,7 +660,7 @@ class GEC(LGBMClassifier):
 
         super().fit(X, y)
 
-    def find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
+    def _find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
 
         sets = [
             list(range_[:: step_sizes[0]]) + [range_[-1]]
@@ -681,13 +681,13 @@ class GEC(LGBMClassifier):
             for categorical_combination in top_3
         }
 
-        best_combinations, _ = self.find_best_parameters_iter(initial_combinations)
+        best_combinations, _ = self._find_best_parameters_iter(initial_combinations)
 
-        return self.find_best_parameters_from_initial_parameters(
+        return self._find_best_parameters_from_initial_parameters(
             best_combinations, step_sizes
         )
 
-    def find_best_parameters_from_search(self, params):
+    def _find_best_parameters_from_search(self, params):
 
         if "bagging_freq" in params:
             del params["bagging_freq"]
@@ -702,13 +702,13 @@ class GEC(LGBMClassifier):
             self._real_hyperparameters_map_reverse[name][params[name]]
             for name in self._real_hyperparameter_names
         ]
-        best_params = self.find_best_parameters_from_initial_parameters(
+        best_params = self._find_best_parameters_from_initial_parameters(
             {categorical_combination: best_params_linear_values},
             step_sizes=[4, 2, 1],
         )
         return best_params
 
-    def find_best_parameters_iter(self, combinations):
+    def _find_best_parameters_iter(self, combinations):
         best_combinations = {}
         best_scores = {}
         for categorical_combination, combs in combinations.items():
@@ -724,12 +724,12 @@ class GEC(LGBMClassifier):
 
         return best_combinations, best_scores
 
-    def find_best_parameters_from_initial_parameters(
+    def _find_best_parameters_from_initial_parameters(
         self, best_combinations, step_sizes
     ):
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
 
-            neighbouring_combinations = self.get_neighbouring_combinations(
+            neighbouring_combinations = self._get_neighbouring_combinations(
                 best_combinations, step_size, previous_step_size
             )
 
@@ -742,7 +742,7 @@ class GEC(LGBMClassifier):
             )
             # log.info(new_ranges)
 
-            best_combinations, best_scores = self.find_best_parameters_iter(
+            best_combinations, best_scores = self._find_best_parameters_iter(
                 neighbouring_combinations
             )
 
@@ -750,7 +750,7 @@ class GEC(LGBMClassifier):
         for categorical_combination, real_combination in best_combinations.items():
             if best_scores[categorical_combination] == max_score:
                 arm_best_score = str(categorical_combination)
-                arguments = self.build_arguments(
+                arguments = self._build_arguments(
                     categorical_combination.split("-"), real_combination
                 )
 
@@ -776,7 +776,7 @@ class GEC(LGBMClassifier):
 
         return arguments
 
-    def get_neighbouring_combinations(
+    def _get_neighbouring_combinations(
         self, best_combinations, step_size, previous_step_size
     ):
         neighbouring_combinations = {}
@@ -826,14 +826,14 @@ class GEC(LGBMClassifier):
         return hyperparameter_scores_parameters
 
     def save_figs(self, path_stem):
-        figs = self.summarisehyperparameter_scores()
-        self.write_figures(figs, path_stem)
+        figs = self.plot_gec()
+        self._write_figures(figs, path_stem)
 
-    def write_figures(self, figs, path_stem):
+    def _write_figures(self, figs, path_stem):
         for plot_name, fig in figs.items():
             fig.savefig(f"{path_stem}_{plot_name}.png")
 
-    def summarisehyperparameter_scores(self):
+    def plot_gec(self):
 
         figs = {}
 
@@ -846,22 +846,24 @@ class GEC(LGBMClassifier):
             x = np.arange(
                 len(self.hyperparameter_scores[categorical_combination]["means"])
             )
-            self.plot_mean_prediction_and_mean_variance(categorical_combination, ax1, x)
-            self.plot_prediction_std_and_variance_std(categorical_combination, ax2, x)
-            self.plot_prediction_mean_variance_correlation(
+            self._plot_mean_prediction_and_mean_variance(
+                categorical_combination, ax1, x
+            )
+            self._plot_prediction_std_and_variance_std(categorical_combination, ax2, x)
+            self._plot_prediction_mean_variance_correlation(
                 categorical_combination, ax3, x
             )
-            self.plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
+            self._plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
 
             figs[f"{categorical_combination}-parameters"] = fig
 
             if "yes_bagging" in categorical_combination:
-                fig2 = self.plot_boosting_parameter_surface(categorical_combination)
+                fig2 = self._plot_boosting_parameter_surface(categorical_combination)
                 figs[f"{categorical_combination}-bagging"] = fig2
 
         return figs
 
-    def plot_mean_prediction_and_mean_variance(self, cat, ax, x):
+    def _plot_mean_prediction_and_mean_variance(self, cat, ax, x):
         gp_mean_prediction = [
             np.mean(x) for x in self.hyperparameter_scores[cat]["means"]
         ]
@@ -871,7 +873,7 @@ class GEC(LGBMClassifier):
         ax.plot(x, gp_mean_sigma, label="mean_sigma")
         ax.legend(loc="upper right")
 
-    def plot_prediction_std_and_variance_std(self, cat, ax, x):
+    def _plot_prediction_std_and_variance_std(self, cat, ax, x):
         gp_prediction_variance = [
             np.std(x) for x in self.hyperparameter_scores[cat]["means"]
         ]
@@ -883,7 +885,7 @@ class GEC(LGBMClassifier):
         ax.plot(x, gp_sigma_variance, label="sigma_variance")
         ax.legend(loc="lower right")
 
-    def plot_prediction_mean_variance_correlation(self, cat, ax, x):
+    def _plot_prediction_mean_variance_correlation(self, cat, ax, x):
         correlation = [
             np.corrcoef(
                 self.hyperparameter_scores[cat]["means"][i],
@@ -899,12 +901,12 @@ class GEC(LGBMClassifier):
         )
         ax.legend(loc="lower right")
 
-    def plot_linear_scaled_parameter_samples(self, cat, ax, x):
+    def _plot_linear_scaled_parameter_samples(self, cat, ax, x):
         inputs_ = np.array(self.hyperparameter_scores[cat]["inputs"])
         for i in range(inputs_.shape[1]):
             ax.plot(x, inputs_[:, i], label=self._real_hyperparameter_names[i])
 
-    def plot_boosting_parameter_surface(
+    def _plot_boosting_parameter_surface(
         self,
         cat,
         plot_bounds=True,
