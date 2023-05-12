@@ -14,38 +14,9 @@ from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
 VERSION = 1
-N_ITER = 70
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"
-
-
-def fit_random_search(X, y, gec):
-
-    classifier = LGBMClassifier()
-    hyperparams = dict(gec.categorical_hyperparameters[:1] + gec.real_hyperparameters)
-    random_search = RandomizedSearchCV(classifier, hyperparams, n_iter=N_ITER)
-    random_search.fit(X, y)
-
-    return random_search
-
-
-def benchmark_against_random_search(X_eval, y_eval, gec, random_search):
-
-    with contextlib.redirect_stdout(None):
-
-        knn_bayes = LGBMClassifier(**gec.best_params_)
-        score_bayes = np.mean(cross_val_score(knn_bayes, X_eval, y_eval, cv=5))
-        knn_gs = LGBMClassifier(**random_search.best_params_)
-        score_gs = np.mean(cross_val_score(knn_gs, X_eval, y_eval, cv=5))
-        knn_default = LGBMClassifier()
-        score_default = np.mean(cross_val_score(knn_default, X_eval, y_eval, cv=5))
-
-    return {
-        "bayesian": score_bayes,
-        "random search": score_gs,
-        "default": score_default,
-    }
 
 
 app = typer.Typer(name="run GEC benchmarking")
@@ -59,7 +30,6 @@ def run(
     config_path: str = "/home/ubuntu/config.json",
     data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
-    run_random_search: bool = False,
 ):
 
     client = boto3.client(
@@ -106,7 +76,6 @@ def run(
                     "cv-score": score_bayes,
                 }
             )
-
             response = client.put_object(
                 Bucket=BUCKET,
                 Body=result_repr,
@@ -129,24 +98,6 @@ def run(
                 Bucket=BUCKET,
                 Body=buffer,
                 Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}/{fig_name}.png",
-            )
-
-    if run_random_search:
-        random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
-        for n_iter in n_iters:
-            random_search = fit_random_search(X, y, gec)
-            clf_rs = LGBMClassifier(**random_search.best_params_)
-            score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
-            rs_result_repr = {
-                "model-type": "random-search",
-                **dict(zip(list(hyperparameter_dict.keys()), [-1, -1, -1, -1])),
-                "n_iter": n_iter,
-                "cv-score": score_rs,
-            }
-            response = client.put_object(
-                Bucket=BUCKET,
-                Body=rs_result_repr,
-                Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
             )
 
 
