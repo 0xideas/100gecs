@@ -13,7 +13,7 @@ def test_serde(gec, serialisation_path):
 
     gec2 = GEC.deserialise(serialisation_path)
 
-    for k, v in gec.get_representation().items():
+    for k, v in gec._get_representation().items():
         if not str(v) == str(getattr(gec2, k)):
             str1 = np.array(list(str(v)))
             str2 = np.array(list(str(getattr(gec2, k))))

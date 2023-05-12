@@ -337,7 +337,7 @@ class GEC(LGBMClassifier):
         )
 
     @classmethod
-    def cast_to_type(cls, value, type_):
+    def _cast_to_type(cls, value, type_):
         if type_ == np.float64:
             return float(value)
         elif type_ == np.int64:
@@ -355,11 +355,11 @@ class GEC(LGBMClassifier):
         gec.rewards = representation["rewards"]
         gec.selected_arms = representation["selected_arms"]
         gec.hyperparameter_scores = (
-            gec.convert_gaussian_process_data_for_deserialisation(
+            gec._convert_gaussian_process_data_from_deserialisation(
                 representation["hyperparameter_scores"]
             )
         )
-        gec.bagging_scores = gec.convert_gaussian_process_data_for_deserialisation(
+        gec.bagging_scores = gec._convert_gaussian_process_data_from_deserialisation(
             representation["bagging_scores"]
         )
         gec.best_params_ = representation["best_params_"]
@@ -378,7 +378,7 @@ class GEC(LGBMClassifier):
         return gec
 
     @classmethod
-    def convert_gaussian_process_data_for_deserialisation(cls, data_dict):
+    def _convert_gaussian_process_data_from_deserialisation(cls, data_dict):
         converted_dict = {
             k: {k2: list(v) for k2, v in values.items()}
             for k, values in data_dict.items()
@@ -386,13 +386,13 @@ class GEC(LGBMClassifier):
         return converted_dict
 
     def serialise(self, path):
-        representation = self.get_representation()
+        representation = self._get_representation()
 
         with open(path, "w") as f:
             f.write(json.dumps(representation))
 
     @classmethod
-    def convert_gaussian_process_data_for_serialisation(cls, data_dict):
+    def _convert_gaussian_process_data_for_serialisation(cls, data_dict):
         def process_value(key, value):
             if not isinstance(value, np.ndarray):
                 return value
@@ -407,11 +407,11 @@ class GEC(LGBMClassifier):
         }
         return converted_dict
 
-    def get_representation(self):
-        hyperparameter_scores = self.convert_gaussian_process_data_for_serialisation(
+    def _get_representation(self):
+        hyperparameter_scores = self._convert_gaussian_process_data_for_serialisation(
             self.hyperparameter_scores
         )
-        bagging_scores = self.convert_gaussian_process_data_for_serialisation(
+        bagging_scores = self._convert_gaussian_process_data_for_serialisation(
             self.bagging_scores
         )
         representation = {
@@ -438,12 +438,6 @@ class GEC(LGBMClassifier):
         )
         self.gec_hyperparameters = gec_hyperparameters
 
-    def calculate_empirical_score(self, X, y, params):
-        clf = LGBMClassifier(**params)
-        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-            score = np.mean(cross_val_score(clf, X, y, cv=3))
-        return score
-
     def fit(self, X, y, n_iter=100, serialisation_iter=None, serialisation_path=None):
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
@@ -463,7 +457,7 @@ class GEC(LGBMClassifier):
             serialisation_path,
         )
         self.best_params_gec["grid"] = self.find_best_parameters()
-        self.best_scores_gec["grid"] = self.calculate_empirical_score(
+        self.best_scores_gec["grid"] = self._calculate_cv_score(
             X, y, self.best_params_gec["grid"]
         )
         best_params_prep = copy.deepcopy(self.best_params_gec["search"])
@@ -471,7 +465,7 @@ class GEC(LGBMClassifier):
             "grid_from_search"
         ] = self.find_best_parameters_from_search(best_params_prep)
 
-        self.best_scores_gec["grid_from_search"] = self.calculate_empirical_score(
+        self.best_scores_gec["grid_from_search"] = self._calculate_cv_score(
             X, y, self.best_params_gec["grid_from_search"]
         )
 
@@ -489,6 +483,12 @@ class GEC(LGBMClassifier):
         # self.selected_arms = selected_arms
 
         return self
+
+    def _calculate_cv_score(self, X, y, params):
+        clf = LGBMClassifier(**params)
+        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+            score = np.mean(cross_val_score(clf, X, y, cv=3))
+        return score
 
     def optimise_hyperparameters(
         self,
@@ -645,7 +645,7 @@ class GEC(LGBMClassifier):
         ]
 
         hyperparameter_values = categorical_combination + [
-            self.cast_to_type(c, t)
+            self._cast_to_type(c, t)
             for c, t in zip(
                 list(best_predicted_combination_converted),
                 self._real_hypermarameter_types,
