@@ -56,9 +56,17 @@ def run(
 
     random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
     n_iters = [0, 20, 30, 40, 50, 70, 100, 150, 200]
+
+    best_score = None
+    best_params = None
     for last_n_iter, n_iter in zip(n_iters[:-1], n_iters[1:]):
         random_search = fit_random_search(X, y, gec, n_iter - last_n_iter)
-        clf_rs = LGBMClassifier(**random_search.best_params_)
+        best_params = (
+            best_params
+            if best_score > random_search.best_score_
+            else random_search.best_params_
+        )
+        clf_rs = LGBMClassifier(**best_params)
         score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
         rs_result_repr = json.dumps(
             {
