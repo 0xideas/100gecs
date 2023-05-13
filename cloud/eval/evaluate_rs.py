@@ -43,6 +43,7 @@ def run(
     config_path: str = "/home/ubuntu/config.json",
     data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
+    n_evals: int = 1,
 ):
     client = boto3.client(
         "s3",
@@ -56,49 +57,49 @@ def run(
     else:
         raise Exception(f"dataset {dataset} is not available")
 
-    np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
     gec = GEC()
+    np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
+    for _ in range(n_evals):
+        random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
+        n_iters = [0, 20, 30, 40, 50, 70, 100, 150, 200]
 
-    random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
-    n_iters = [0, 20, 30, 40, 50, 70, 100, 150, 200]
+        best_score = None
+        best_params = None
+        for last_n_iter, n_iter in zip(n_iters[:-1], n_iters[1:]):
 
-    best_score = None
-    best_params = None
-    for last_n_iter, n_iter in zip(n_iters[:-1], n_iters[1:]):
+            random_search = fit_random_search(X, y, gec, n_iter - last_n_iter)
+            print(f"{best_score = } - {random_search.best_score_ = }")
+            if best_score is None or best_score < random_search.best_score_:
+                best_score = random_search.best_score_
+                best_params = random_search.best_params_
 
-        random_search = fit_random_search(X, y, gec, n_iter - last_n_iter)
-        print(f"{best_score = } - {random_search.best_score_ = }")
-        if best_score is None or best_score < random_search.best_score_:
-            best_score = random_search.best_score_
-            best_params = random_search.best_params_
-
-        clf_rs = LGBMClassifier(**best_params)
-        score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
-        rs_result_repr = json.dumps(
-            {
-                "model_type": "random-search",
-                "dataset": dataset,
-                **dict(
-                    zip(
-                        [
-                            "l",
-                            "l_bagging",
-                            "gaussian_variance_weight",
-                            "bandit_greediness",
-                        ],
-                        [-1, -1, -1, -1],
-                    )
-                ),
-                "n_iter": n_iter,
-                "cv_score": score_rs,
-                "model_name": f"random-search-{random_id}",
-            }
-        )
-        response = client.put_object(
-            Bucket=BUCKET,
-            Body=rs_result_repr,
-            Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
-        )
+            clf_rs = LGBMClassifier(**best_params)
+            score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
+            rs_result_repr = json.dumps(
+                {
+                    "model_type": "random-search",
+                    "dataset": dataset,
+                    **dict(
+                        zip(
+                            [
+                                "l",
+                                "l_bagging",
+                                "gaussian_variance_weight",
+                                "bandit_greediness",
+                            ],
+                            [-1, -1, -1, -1],
+                        )
+                    ),
+                    "n_iter": n_iter,
+                    "cv_score": score_rs,
+                    "model_name": f"random-search-{random_id}",
+                }
+            )
+            response = client.put_object(
+                Bucket=BUCKET,
+                Body=rs_result_repr,
+                Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
+            )
 
 
 if __name__ == "__main__":
