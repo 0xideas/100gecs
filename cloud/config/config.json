@@ -1,1 +1,114 @@
-[{"l": 0.6, "l_bagging": 0.06, "gaussian_variance_weight": 0.2, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.06, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.06, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.06, "gaussian_variance_weight": 0.3, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.06, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.08, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.08, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.1, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.1, "gaussian_variance_weight": 0.3, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.1, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.12, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.12, "gaussian_variance_weight": 0.3, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.6, "l_bagging": 0.14, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.06, "gaussian_variance_weight": 0.2, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.06, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.06, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.06, "gaussian_variance_weight": 0.8, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.08, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.1, "gaussian_variance_weight": 0.2, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.1, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.12, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.12, "gaussian_variance_weight": 0.2, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.12, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.12, "gaussian_variance_weight": 0.8, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.14, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 0.8, "l_bagging": 0.14, "gaussian_variance_weight": 0.3, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.06, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.08, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.08, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.08, "gaussian_variance_weight": 0.3, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.1, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.1, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.1, "gaussian_variance_weight": 0.5, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.12, "gaussian_variance_weight": 0.3, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.14, "gaussian_variance_weight": 0.2, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.14, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.0, "l_bagging": 0.14, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.06, "gaussian_variance_weight": 0.2, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.08, "gaussian_variance_weight": 0.2, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.08, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.1, "gaussian_variance_weight": 0.2, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.1, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.1, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.12, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.14, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.14, "gaussian_variance_weight": 0.2, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.14, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.14, "gaussian_variance_weight": 0.3, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.2, "l_bagging": 0.14, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.06, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.06, "gaussian_variance_weight": 0.2, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.06, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.08, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.08, "gaussian_variance_weight": 0.5, "bandit_greediness": 2.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.1, "gaussian_variance_weight": 0.2, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.1, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.12, "gaussian_variance_weight": 0.1, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.12, "gaussian_variance_weight": 0.3, "bandit_greediness": 0.1, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.12, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.14, "gaussian_variance_weight": 0.2, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.14, "gaussian_variance_weight": 0.5, "bandit_greediness": 0.2, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.14, "gaussian_variance_weight": 0.5, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.14, "gaussian_variance_weight": 0.8, "bandit_greediness": 0.5, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}, {"l": 1.4, "l_bagging": 0.14, "gaussian_variance_weight": 0.8, "bandit_greediness": 1.0, "n_iters": [20, 30, 40, 50, 70, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}]
+[
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.4,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.5,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.52,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.55,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.6,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.7,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "acquisition_percentile": 0.8,
+        "bandit_greediness": 1.0,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    }
+]
