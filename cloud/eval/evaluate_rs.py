@@ -24,7 +24,7 @@ app = typer.Typer(name="run random search benchmark")
 def fit_random_search(X, y, gec, n_iter):
 
     classifier = LGBMClassifier()
-    hyperparams = dict(gec.categorical_hyperparameters[:1] + gec.real_hyperparameters)
+    hyperparams = dict(gec.categorical_hyperparameters[:1] + gec._real_hyperparameters)
     random_search = RandomizedSearchCV(classifier, hyperparams, n_iter=n_iter)
     random_search.fit(X, y)
 
@@ -84,3 +84,7 @@ def run(
             Body=rs_result_repr,
             Key=f"{SCORE_LOCATION}/random-search-niter{n_iter}-{random_id}.json",
         )
+
+
+if __name__ == "__main__":
+    app()
