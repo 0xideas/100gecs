@@ -90,7 +90,7 @@ def run(
             Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}.json",
         )
 
-        figs = gec.summarise_gp_datas()
+        figs = gec.plot_gec()
         for fig_name, fig in figs.items():
             buffer = BytesIO()
             fig.savefig(buffer, format="png")
