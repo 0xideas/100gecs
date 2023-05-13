@@ -22,11 +22,14 @@ app = typer.Typer(name="run random search benchmark")
 
 
 def fit_random_search(X, y, gec, n_iter):
+    with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
 
-    classifier = LGBMClassifier()
-    hyperparams = dict(gec.categorical_hyperparameters[:1] + gec._real_hyperparameters)
-    random_search = RandomizedSearchCV(classifier, hyperparams, n_iter=n_iter)
-    random_search.fit(X, y)
+        classifier = LGBMClassifier()
+        hyperparams = dict(
+            gec.categorical_hyperparameters[:1] + gec._real_hyperparameters
+        )
+        random_search = RandomizedSearchCV(classifier, hyperparams, n_iter=n_iter)
+        random_search.fit(X, y)
 
     return random_search
 
@@ -60,7 +63,9 @@ def run(
     best_score = None
     best_params = None
     for last_n_iter, n_iter in zip(n_iters[:-1], n_iters[1:]):
+
         random_search = fit_random_search(X, y, gec, n_iter - last_n_iter)
+        print(f"{best_score = } - {random_search.best_score_ = }")
         best_params = (
             best_params
             if ((best_score is not None) and (best_score > random_search.best_score_))
