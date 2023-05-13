@@ -85,6 +85,7 @@ def run(
                 ),
                 "n_iter": n_iter,
                 "cv_score": score_rs,
+                "model_name": f"random-search-{random_id}",
             }
         )
         response = client.put_object(
