@@ -61,7 +61,7 @@ def run(
         score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
         rs_result_repr = json.dumps(
             {
-                "model-type": "random-search",
+                "model_type": "random-search",
                 "dataset": dataset,
                 **dict(
                     zip(
@@ -74,8 +74,8 @@ def run(
                         [-1, -1, -1, -1],
                     )
                 ),
-                "n-iter": n_iter,
-                "cv-score": score_rs,
+                "n_iter": n_iter,
+                "cv_score": score_rs,
             }
         )
         response = client.put_object(

@@ -70,11 +70,11 @@ def run(
 
             result_repr = json.dumps(
                 {
-                    "model-type": "gec",
+                    "model_type": "gec",
                     "dataset": dataset,
                     **hyperparameter_dict,
-                    "n-iter": n_iter,
-                    "cv-score": score_bayes,
+                    "n_iter": n_iter,
+                    "cv_score": score_bayes,
                 }
             )
             response = client.put_object(
