@@ -7,6 +7,7 @@ import boto3
 
 from io import BytesIO
 import numpy as np
+from datetime import datetime
 from lightgbm import LGBMClassifier
 from helpers.load_dataset import load_bank_dataset
 from sklearn.model_selection import cross_val_score
@@ -55,6 +56,7 @@ def run(
     else:
         raise Exception(f"dataset {dataset} is not available")
 
+    np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
     gec = GEC()
 
     random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
