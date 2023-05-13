@@ -58,8 +58,8 @@ def run(
         raise Exception(f"dataset {dataset} is not available")
 
     gec = GEC()
-    np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
     for _ in range(n_evals):
+        np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
         random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
         n_iters = [0, 20, 30, 40, 50, 70, 100, 150, 200]
 

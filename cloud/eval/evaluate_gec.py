@@ -7,6 +7,7 @@ import boto3
 
 from io import BytesIO
 import numpy as np
+from datetime import datetime
 from lightgbm import LGBMClassifier
 from helpers.load_dataset import load_bank_dataset
 from sklearn.model_selection import cross_val_score
@@ -30,6 +31,7 @@ def run(
     config_path: str = "/home/ubuntu/config.json",
     data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
+    static_seed: bool = True,
 ):
 
     client = boto3.client(
@@ -48,6 +50,9 @@ def run(
     # load hyperparameters to evaluate
     with open(config_path, "r") as f:
         hyperparameter_dicts = json.loads(f.read())
+
+    if not static_seed:
+        np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
 
     for hyperparameter_dict in hyperparameter_dicts:
         gec = GEC()
