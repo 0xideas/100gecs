@@ -55,9 +55,7 @@ def run(
         gec.set_gec_hyperparameters(hyperparameter_dict)
         for i, n_iter in enumerate(n_iters):
             hyperparameter_representation = (
-                "_".join(
-                    [f"{k.replace('_', '')}{v}" for k, v in hyperparameter_dict.items()]
-                )
+                "-".join([f"{k}{v}" for k, v in hyperparameter_dict.items()])
                 + f"_niter{n_iter}"
             )
             if i == 0:
@@ -75,6 +73,9 @@ def run(
                     **hyperparameter_dict,
                     "n_iter": n_iter,
                     "cv_score": score_bayes,
+                    "model_name": "-".join(
+                        [f"{k}{v}" for k, v in hyperparameter_dict.items()]
+                    ),
                 }
             )
             response = client.put_object(
