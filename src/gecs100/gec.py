@@ -10,7 +10,7 @@ import numpy as np
 import json
 import math
 import copy
-
+import scipy
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -204,7 +204,7 @@ class GEC(LGBMClassifier):
         self.gec_hyperparameters = {
             "l": 1.0,
             "l_bagging": 0.1,
-            "gaussian_variance_weight": 0.3,
+            "acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
         }
 
@@ -459,12 +459,12 @@ class GEC(LGBMClassifier):
         ----------
             gec_hyperparameters : dict[str, float]
                 dictionary with values for "l", "l_bagging",
-                "gaussian_variance_weight" and "bandit_greediness"
+                "acquisition_percentile" and "bandit_greediness"
         """
         assert np.all(
             np.array(sorted(list(gec_hyperparameters.keys())))
             == np.array(
-                ["bandit_greediness", "gaussian_variance_weight", "l", "l_bagging"]
+                ["bandit_greediness", "acquisition_percentile", "l", "l_bagging"]
             )
         )
         self.gec_hyperparameters = gec_hyperparameters
@@ -576,9 +576,11 @@ class GEC(LGBMClassifier):
 
             predicted_rewards = np.array(
                 [
-                    m
-                    + self.gec_hyperparameters["gaussian_variance_weight"]
-                    * np.random.normal(m, s)
+                    scipy.stats.norm.ppf(
+                        self.gec_hyperparameters["acquisition_percentile"],
+                        loc=m,
+                        scale=s,
+                    )
                     for m, s in zip(mean, sigma)
                 ]
             )
@@ -601,9 +603,11 @@ class GEC(LGBMClassifier):
 
                 predicted_rewards_bagging = np.array(
                     [
-                        m
-                        + self.gec_hyperparameters["gaussian_variance_weight"]
-                        * np.random.normal(m, s)
+                        scipy.stats.norm.ppf(
+                            self.gec_hyperparameters["acquisition_percentile"],
+                            loc=m,
+                            scale=s,
+                        )
                         for m, s in zip(mean_bagging, sigma_bagging)
                     ]
                 )

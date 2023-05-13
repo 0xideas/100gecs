@@ -13,7 +13,7 @@ from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-VERSION = 1
+VERSION = 2
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 BUCKET = "100gecs"
 
@@ -55,8 +55,9 @@ def run(
     gec = GEC()
 
     random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
-    for n_iter in [20, 30, 40, 50, 70, 100, 150, 300]:
-        random_search = fit_random_search(X, y, gec, n_iter)
+    n_iters = [0, 20, 30, 40, 50, 70, 100, 150, 200]
+    for last_n_iter, n_iter in zip(n_iters[:-1], n_iters[1:]):
+        random_search = fit_random_search(X, y, gec, n_iter - last_n_iter)
         clf_rs = LGBMClassifier(**random_search.best_params_)
         score_rs = np.mean(cross_val_score(clf_rs, X, y, cv=5))
         rs_result_repr = json.dumps(
