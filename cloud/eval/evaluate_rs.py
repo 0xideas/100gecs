@@ -66,8 +66,8 @@ def run(
 
         random_search = fit_random_search(X, y, gec, n_iter - last_n_iter)
         print(f"{best_score = } - {random_search.best_score_ = }")
-        if best_score is None or best_score , random_search.best_score_:
-            best_score = best_score 
+        if best_score is None or best_score < random_search.best_score_:
+            best_score = best_score
             best_params = random_search.best_params_
 
         clf_rs = LGBMClassifier(**best_params)
