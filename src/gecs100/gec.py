@@ -565,10 +565,10 @@ class GEC(LGBMClassifier):
                 arguments = self._build_arguments(
                     selected_arm.split("-"), random_combination
                 )
+                random_combination_bagging = self._bagging_combinations[
+                    np.random.choice(range(len(self._bagging_combinations)))
+                ]
 
-                random_combination_bagging = np.random.choice(
-                    self._bagging_combinations
-                )
                 (
                     arguments["bagging_freq"],
                     arguments["bagging_fraction"],
