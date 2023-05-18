@@ -82,20 +82,20 @@ def run(
                     "model_name": "-".join(
                         [f"{k}{v}" for k, v in hyperparameter_dict.items()]
                     )
-                    + f"-{random_id}",
+                    + f"_{random_id}",
                 }
             )
             response = client.put_object(
                 Bucket=BUCKET,
                 Body=result_repr,
-                Key=f"{SCORE_LOCATION}/{hyperparameter_representation}.json",
+                Key=f"{SCORE_LOCATION}/{hyperparameter_representation}_{random_id}.json",
             )
 
         gec_repr = json.dumps(gec._get_representation())
         response = client.put_object(
             Bucket=BUCKET,
             Body=gec_repr,
-            Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}.json",
+            Key=f"{ARTEFACT_LOCATION}/{hyperparameter_representation}_{random_id}.json",
         )
 
         figs = gec.plot_gec()
