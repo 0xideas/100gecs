@@ -652,8 +652,8 @@ class GEC(LGBMClassifier):
                     self.bagging_scores["all-models"]["means"].append(mean_bagging)
                     self.bagging_scores["all-models"]["sigmas"].append(sigma_bagging)
 
-                if self.last_score is not None:
-                    score_delta = score - self.last_score
+                if self.best_score is not None:
+                    score_delta = score - self.best_score
                     weighted_score_delta = (
                         score_delta * self.gec_hyperparameters["bandit_greediness"]
                     )
@@ -665,8 +665,8 @@ class GEC(LGBMClassifier):
                         self.rewards[selected_arm]["b"] = (
                             self.rewards[selected_arm]["b"] - weighted_score_delta
                         )
-
-                self.last_score = score
+                else:
+                    self.best_score = score
 
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
