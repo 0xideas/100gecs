@@ -281,13 +281,12 @@ class GEC(LGBMClassifier):
         self.kernel = RBF(self.gec_hyperparameters["l"])
         self.hyperparameter_scores = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
-            for c in self._categorical_hyperparameter_combinations
+            for c in ["all-models"]
         }
         self.kernel_bagging = RBF(self.gec_hyperparameters["l_bagging"])
         self.bagging_scores = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
-            for c in self._categorical_hyperparameter_combinations
-            if "yes_bagging" in c
+            for c in ["all-models"]
         }
         self._bagging_combinations = list(
             itertools.product(
@@ -638,20 +637,20 @@ class GEC(LGBMClassifier):
                     best_params = arguments
 
                 self.selected_arms.append(selected_arm)
-                self.hyperparameter_scores[selected_arm]["inputs"].append(
+                self.hyperparameter_scores["all-models"]["inputs"].append(
                     [float(f) for f in best_predicted_combination]
                 )
-                self.hyperparameter_scores[selected_arm]["output"].append(score)
-                self.hyperparameter_scores[selected_arm]["means"].append(mean)
-                self.hyperparameter_scores[selected_arm]["sigmas"].append(sigma)
+                self.hyperparameter_scores["all-models"]["output"].append(score)
+                self.hyperparameter_scores["all-models"]["means"].append(mean)
+                self.hyperparameter_scores["all-models"]["sigmas"].append(sigma)
 
                 if "bagging_freq" in arguments:
-                    self.bagging_scores[selected_arm]["inputs"].append(
+                    self.bagging_scores["all-models"]["inputs"].append(
                         [float(f) for f in best_predicted_combination_bagging]
                     )
-                    self.bagging_scores[selected_arm]["output"].append(score)
-                    self.bagging_scores[selected_arm]["means"].append(mean_bagging)
-                    self.bagging_scores[selected_arm]["sigmas"].append(sigma_bagging)
+                    self.bagging_scores["all-models"]["output"].append(score)
+                    self.bagging_scores["all-models"]["means"].append(mean_bagging)
+                    self.bagging_scores["all-models"]["sigmas"].append(sigma_bagging)
 
                 if self.last_score is not None:
                     score_delta = score - self.last_score
