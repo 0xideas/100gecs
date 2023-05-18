@@ -527,7 +527,7 @@ class GEC(LGBMClassifier):
     def _calculate_cv_score(self, X, y, params):
         clf = LGBMClassifier(**params)
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-            score = np.mean(cross_val_score(clf, X, y, cv=3))
+            score = np.mean(cross_val_score(clf, X, y, cv=5))
         return score
 
     def _optimise_hyperparameters(
