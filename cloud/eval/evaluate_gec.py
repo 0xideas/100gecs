@@ -55,6 +55,7 @@ def run(
         np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
 
     for hyperparameter_dict in hyperparameter_dicts:
+        random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
         gec = GEC()
         n_iters = hyperparameter_dict.pop("n_iters")
         gec.set_gec_hyperparameters(hyperparameter_dict)
@@ -80,7 +81,8 @@ def run(
                     "cv_score": score_bayes,
                     "model_name": "-".join(
                         [f"{k}{v}" for k, v in hyperparameter_dict.items()]
-                    ),
+                    )
+                    + f"-{random_id}",
                 }
             )
             response = client.put_object(
