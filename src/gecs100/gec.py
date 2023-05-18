@@ -206,6 +206,7 @@ class GEC(LGBMClassifier):
             "l_bagging": 0.1,
             "acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
+            "n_random_exploration": 10,
         }
 
         self.categorical_hyperparameters = [
@@ -545,82 +546,104 @@ class GEC(LGBMClassifier):
         )
 
         for i in tqdm(list(range(n_iter))):
-            sampled_reward = np.array(
-                [
-                    beta.rvs(reward["a"], reward["b"])
-                    for _, reward in self.rewards.items()
-                ]
-            )
-            selected_arm_index = sampled_reward.argmax()
-            selected_arm = self._categorical_hyperparameter_combinations[
-                selected_arm_index
-            ]
-
-            sets = [
-                list(np.random.choice(range_, self.n_sample))
-                for real_hyperparameter, range_ in self._real_hyperparameters_linear
-            ]
-
-            combinations = [np.array(comb) for comb in zip(*sets)]
-            assert len(combinations), sets
-
-            if len(self.hyperparameter_scores["all-models"]["inputs"]) > 0:
-                self.gaussian.fit(
-                    np.array(self.hyperparameter_scores["all-models"]["inputs"]),
-                    np.array(self.hyperparameter_scores["all-models"]["output"])
-                    - self.adjustment_factor,
+            if (i + self.gec_iter) < self.gec_hyperparameters["n_random_exploration"]:
+                selected_arm = np.random.choice(
+                    self._categorical_hyperparameter_combinations
+                )
+                random_combination = np.array(
+                    [
+                        np.random.choice(range_)
+                        for real_hyperparameter, range_ in self._real_hyperparameters_linear
+                    ]
+                )
+                arguments = self._build_arguments(
+                    selected_arm.split("-"), random_combination
                 )
 
-            mean, sigma = self.gaussian.predict(combinations, return_std=True)
-
-            predicted_rewards = np.array(
-                [
-                    scipy.stats.norm.ppf(
-                        self.gec_hyperparameters["acquisition_percentile"],
-                        loc=m,
-                        scale=s,
-                    )
-                    for m, s in zip(mean, sigma)
+                random_combination_bagging = np.random.choice(
+                    self._bagging_combinations
+                )
+                (
+                    arguments["bagging_freq"],
+                    arguments["bagging_fraction"],
+                ) = random_combination_bagging
+            else:
+                sampled_reward = np.array(
+                    [
+                        beta.rvs(reward["a"], reward["b"])
+                        for _, reward in self.rewards.items()
+                    ]
+                )
+                selected_arm_index = sampled_reward.argmax()
+                selected_arm = self._categorical_hyperparameter_combinations[
+                    selected_arm_index
                 ]
-            )
 
-            best_predicted_combination = combinations[np.argmax(predicted_rewards)]
-            arguments = self._build_arguments(
-                selected_arm.split("-"), best_predicted_combination
-            )
+                sets = [
+                    list(np.random.choice(range_, self.n_sample))
+                    for real_hyperparameter, range_ in self._real_hyperparameters_linear
+                ]
 
-            if "yes_bagging" in selected_arm:
-                if len(self.bagging_scores["all-models"]["inputs"]) > 0:
-                    self.gaussian_bagging.fit(
-                        np.array(self.bagging_scores["all-models"]["inputs"]),
-                        np.array(self.bagging_scores["all-models"]["output"])
+                combinations = [np.array(comb) for comb in zip(*sets)]
+                assert len(combinations), sets
+
+                if len(self.hyperparameter_scores["all-models"]["inputs"]) > 0:
+                    self.gaussian.fit(
+                        np.array(self.hyperparameter_scores["all-models"]["inputs"]),
+                        np.array(self.hyperparameter_scores["all-models"]["output"])
                         - self.adjustment_factor,
                     )
-                mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-                    self._bagging_combinations, return_std=True
-                )
 
-                predicted_rewards_bagging = np.array(
+                mean, sigma = self.gaussian.predict(combinations, return_std=True)
+
+                predicted_rewards = np.array(
                     [
                         scipy.stats.norm.ppf(
                             self.gec_hyperparameters["acquisition_percentile"],
                             loc=m,
                             scale=s,
                         )
-                        for m, s in zip(mean_bagging, sigma_bagging)
+                        for m, s in zip(mean, sigma)
                     ]
                 )
-                best_predicted_combination_bagging = self._bagging_combinations[
-                    np.argmax(predicted_rewards_bagging)
-                ]
-                (
-                    arguments["bagging_freq"],
-                    arguments["bagging_fraction"],
-                ) = best_predicted_combination_bagging
 
-                assert arguments["bagging_freq"] > arguments["bagging_fraction"]
+                best_predicted_combination = combinations[np.argmax(predicted_rewards)]
+                arguments = self._build_arguments(
+                    selected_arm.split("-"), best_predicted_combination
+                )
+
+                if "yes_bagging" in selected_arm:
+                    if len(self.bagging_scores["all-models"]["inputs"]) > 0:
+                        self.gaussian_bagging.fit(
+                            np.array(self.bagging_scores["all-models"]["inputs"]),
+                            np.array(self.bagging_scores["all-models"]["output"])
+                            - self.adjustment_factor,
+                        )
+                    mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
+                        self._bagging_combinations, return_std=True
+                    )
+
+                    predicted_rewards_bagging = np.array(
+                        [
+                            scipy.stats.norm.ppf(
+                                self.gec_hyperparameters["acquisition_percentile"],
+                                loc=m,
+                                scale=s,
+                            )
+                            for m, s in zip(mean_bagging, sigma_bagging)
+                        ]
+                    )
+                    best_predicted_combination_bagging = self._bagging_combinations[
+                        np.argmax(predicted_rewards_bagging)
+                    ]
+                    (
+                        arguments["bagging_freq"],
+                        arguments["bagging_fraction"],
+                    ) = best_predicted_combination_bagging
+
+                    assert arguments["bagging_freq"] > arguments["bagging_fraction"]
+
             del arguments["bagging"]
-
             arguments["verbosity"] = -1
 
             clf = LGBMClassifier(**arguments)
