@@ -840,7 +840,9 @@ class GEC(LGBMClassifier):
                 np.array(self.bagging_scores["all-models"]["output"])
                 - self.adjustment_factor,
             )
-            mean_bagging = self.gaussian_bagging.predict(self._bagging_combinations)
+            bagging_combinations = np.array(self._bagging_combinations)
+            bagging_combinations[:, 0] = bagging_combinations[:, 0] / 10
+            mean_bagging = self.gaussian_bagging.predict(bagging_combinations)
             best_predicted_combination_bagging = self._bagging_combinations[
                 np.argmax(mean_bagging)
             ]
