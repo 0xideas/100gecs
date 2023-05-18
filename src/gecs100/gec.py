@@ -464,7 +464,13 @@ class GEC(LGBMClassifier):
         assert np.all(
             np.array(sorted(list(gec_hyperparameters.keys())))
             == np.array(
-                ["acquisition_percentile", "bandit_greediness", "l", "l_bagging"]
+                [
+                    "acquisition_percentile",
+                    "bandit_greediness",
+                    "l",
+                    "l_bagging",
+                    "n_random_exploration",
+                ]
             )
         )
         self.gec_hyperparameters = gec_hyperparameters
