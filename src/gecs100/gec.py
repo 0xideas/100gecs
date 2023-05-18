@@ -690,12 +690,14 @@ class GEC(LGBMClassifier):
                         self.rewards[selected_arm]["a"] = (
                             self.rewards[selected_arm]["a"] + weighted_score_delta
                         )
+                        self.best_params_ = arguments
                     else:
                         self.rewards[selected_arm]["b"] = (
                             self.rewards[selected_arm]["b"] - weighted_score_delta
                         )
                 else:
                     self.best_score = score
+                    self.best_params_ = arguments
 
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
