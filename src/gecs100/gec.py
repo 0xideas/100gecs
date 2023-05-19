@@ -207,6 +207,7 @@ class GEC(LGBMClassifier):
             "acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
             "n_random_exploration": 10,
+            "n_sample": 1000,
         }
 
         self.categorical_hyperparameters = [
@@ -300,7 +301,6 @@ class GEC(LGBMClassifier):
 
         self.best_score = None
         self.best_params_ = None
-        self.n_sample = 1000
         self.n_iterations = 0
 
         self.last_score = None
@@ -471,6 +471,7 @@ class GEC(LGBMClassifier):
                     "l",
                     "l_bagging",
                     "n_random_exploration",
+                    "n_sample",
                 ]
             )
         )
@@ -587,7 +588,7 @@ class GEC(LGBMClassifier):
                 ]
 
                 sets = [
-                    list(np.random.choice(range_, self.n_sample))
+                    list(np.random.choice(range_, self.gec_hypermarameters["n_sample"]))
                     for real_hyperparameter, range_ in self._real_hyperparameters_linear
                 ]
 
