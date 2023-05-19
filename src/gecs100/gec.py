@@ -304,7 +304,6 @@ class GEC(LGBMClassifier):
         self.best_params_ = None
         self.n_iterations = 0
 
-        self.last_score = None
         # parameters for bandit
         self.rewards = {
             c: {"a": 1, "b": 1} for c in self._categorical_hyperparameter_combinations
@@ -385,8 +384,6 @@ class GEC(LGBMClassifier):
         gec.best_params_gec = representation["best_params_gec"]
         gec.best_scores_gec = representation["best_scores_gec"]
 
-        gec.last_score = float(representation["last_score"])
-
         if X is not None and y is not None:
             gec._fit_best_params(X, y)
         else:
@@ -449,7 +446,6 @@ class GEC(LGBMClassifier):
             "best_score": self.best_score,
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
-            "last_score": self.last_score,
             "gec_iter": self.gec_iter,
         }
         return representation
