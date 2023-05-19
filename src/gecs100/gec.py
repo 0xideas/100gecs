@@ -204,7 +204,8 @@ class GEC(LGBMClassifier):
         self.gec_hyperparameters = {
             "l": 1.0,
             "l_bagging": 0.1,
-            "acquisition_percentile": 0.7,
+            "hyperparams_acquisition_percentile": 0.7,
+            "bagging_acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
             "n_random_exploration": 10,
             "n_sample": 1000,
@@ -466,8 +467,9 @@ class GEC(LGBMClassifier):
             np.array(sorted(list(gec_hyperparameters.keys())))
             == np.array(
                 [
-                    "acquisition_percentile",
+                    "bagging_acquisition_percentile",
                     "bandit_greediness",
+                    "hyperparams_acquisition_percentile",
                     "l",
                     "l_bagging",
                     "n_random_exploration",
@@ -607,7 +609,9 @@ class GEC(LGBMClassifier):
                 predicted_rewards = np.array(
                     [
                         scipy.stats.norm.ppf(
-                            self.gec_hyperparameters["acquisition_percentile"],
+                            self.gec_hyperparameters[
+                                "hyperparams_acquisition_percentile"
+                            ],
                             loc=m,
                             scale=s,
                         )
@@ -634,7 +638,9 @@ class GEC(LGBMClassifier):
                     predicted_rewards_bagging = np.array(
                         [
                             scipy.stats.norm.ppf(
-                                self.gec_hyperparameters["acquisition_percentile"],
+                                self.gec_hyperparameters[
+                                    "bagging_acquisition_percentile"
+                                ],
                                 loc=m,
                                 scale=s,
                             )
