@@ -1,9 +1,12 @@
 [
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.01,
+        "hyperparams_acquisition_percentile": 0.5,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -16,10 +19,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.999,
+        "hyperparams_acquisition_percentile": 0.6,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -32,10 +38,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.0001,
+        "hyperparams_acquisition_percentile": 0.7,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -48,10 +57,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.999999,
+        "hyperparams_acquisition_percentile": 0.8,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -64,10 +76,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 1e-07,
+        "hyperparams_acquisition_percentile": 0.9,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -80,10 +95,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.99,
+        "hyperparams_acquisition_percentile": 0.5,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -96,10 +114,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.1,
+        "hyperparams_acquisition_percentile": 0.6,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -112,10 +133,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.001,
+        "hyperparams_acquisition_percentile": 0.7,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -128,10 +152,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.99999,
+        "hyperparams_acquisition_percentile": 0.8,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -144,10 +171,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.9999,
+        "hyperparams_acquisition_percentile": 0.9,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -160,10 +190,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.9,
+        "hyperparams_acquisition_percentile": 0.5,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -176,10 +209,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 0.5,
+        "hyperparams_acquisition_percentile": 0.6,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -192,10 +228,13 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 1e-06,
+        "hyperparams_acquisition_percentile": 0.7,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
@@ -208,10 +247,32 @@
         ]
     },
     {
+        "n_random_exploration": 10,
         "l": 1.0,
         "l_bagging": 0.1,
-        "acquisition_percentile": 1e-05,
+        "hyperparams_acquisition_percentile": 0.8,
+        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "n_sample": 10000,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
+        ]
+    },
+    {
+        "n_random_exploration": 10,
+        "l": 1.0,
+        "l_bagging": 0.1,
+        "hyperparams_acquisition_percentile": 0.9,
+        "bagging_acquisition_percentile": 0.7,
+        "bandit_greediness": 1.0,
+        "n_sample": 10000,
         "n_iters": [
             20,
             30,
