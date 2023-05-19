@@ -932,9 +932,8 @@ class GEC(LGBMClassifier):
 
             figs[f"{categorical_combination}-parameters"] = fig
 
-            if "yes_bagging" in categorical_combination:
-                fig2 = self._plot_boosting_parameter_surface(categorical_combination)
-                figs[f"{categorical_combination}-bagging"] = fig2
+            fig2 = self._plot_boosting_parameter_surface(categorical_combination)
+            figs[f"{categorical_combination}-bagging"] = fig2
 
         return figs
 
