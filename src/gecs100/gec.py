@@ -660,12 +660,8 @@ class GEC(LGBMClassifier):
             del arguments["bagging"]
             arguments["verbosity"] = -1
 
-            clf = LGBMClassifier(**arguments)
-
             try:
-                with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-                    score = np.mean(cross_val_score(clf, X, Y, cv=3))
-
+                score = self._calculate_cv_score(X, y, arguments)
                 if np.isnan(score):
                     score = 0
 
