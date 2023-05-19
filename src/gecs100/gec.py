@@ -334,6 +334,7 @@ class GEC(LGBMClassifier):
             np.sum(
                 [len(value["output"]) for value in self.hyperparameter_scores.values()]
             )
+            + self.n_random_exploration
         )
 
     @classmethod
