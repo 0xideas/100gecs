@@ -590,7 +590,7 @@ class GEC(LGBMClassifier):
                 ]
 
                 sets = [
-                    list(np.random.choice(range_, self.gec_hypermarameters["n_sample"]))
+                    list(np.random.choice(range_, self.gec_hyperparameters["n_sample"]))
                     for real_hyperparameter, range_ in self._real_hyperparameters_linear
                 ]
 
