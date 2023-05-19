@@ -661,7 +661,7 @@ class GEC(LGBMClassifier):
             arguments["verbosity"] = -1
 
             try:
-                score = self._calculate_cv_score(X, y, arguments)
+                score = self._calculate_cv_score(X, Y, arguments)
                 if np.isnan(score):
                     score = 0
 
