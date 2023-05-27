@@ -4,7 +4,7 @@ import typer
 import shutil
 import contextlib
 import boto3
-
+from typing import Optional
 from io import BytesIO
 import numpy as np
 from datetime import datetime
@@ -31,6 +31,7 @@ def run(
     config_path: str = "/home/ubuntu/config.json",
     dataset: str = "bank",
     static_seed: bool = False,
+    dataset_path=Optional[str] = None,
 ):
 
     client = boto3.client(
@@ -40,7 +41,7 @@ def run(
         aws_secret_access_key=aws_secret_access_key,
     )
 
-    X, y = load_dataset(dataset)
+    X, y = load_dataset(dataset, dataset_path)
 
     # load hyperparameters to evaluate
     with open(config_path, "r") as f:
