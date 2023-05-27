@@ -9,7 +9,8 @@ from io import BytesIO
 import numpy as np
 from datetime import datetime
 from lightgbm import LGBMClassifier
-from helpers.load_dataset import load_bank_dataset
+from helpers.load_bank_dataset import load_bank_dataset
+from helpers.load_income_dataset import load_income_dataset
 from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
@@ -44,6 +45,8 @@ def run(
     # load data
     if dataset == "bank":
         X, y = load_bank_dataset(data_location, 0.2)
+    if dataset == "income":
+        X, y = load_income_dataset(data_location, 1.0)
     else:
         raise Exception(f"dataset {dataset} is not available")
 
