@@ -82,4 +82,4 @@ def load_cover_dataset(path, share=0.1):
         ],
         axis=0,
     )
-    return (data[:, :-1].values, data[:, -1].values)
+    return (data.values[:, :-1], data.values[:, -1])
