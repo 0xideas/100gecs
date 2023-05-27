@@ -48,6 +48,6 @@ def load_income_dataset(path, share=1.0):
     )
 
     X = pd.concat([data[real_variables], one_hot], axis=1).values
-    y = np.array([int(v == ">50K") for v in data["income-group"]])
+    y = np.array([int(v == " >50K") for v in data["income-group"]])
 
     return (X, y)
