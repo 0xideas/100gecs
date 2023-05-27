@@ -334,7 +334,6 @@ class GEC(LGBMClassifier):
             np.sum(
                 [len(value["output"]) for value in self.hyperparameter_scores.values()]
             )
-            + self.gec_hyperparameters["n_random_exploration"]
         )
 
     @classmethod
@@ -552,7 +551,9 @@ class GEC(LGBMClassifier):
         )
 
         for i in tqdm(list(range(n_iter))):
-            if (i + self.gec_iter) < self.gec_hyperparameters["n_random_exploration"]:
+            if (i + self.gec_iter) < min(
+                self.gec_hyperparameters["n_random_exploration"], int(n_iter / 2)
+            ):
                 selected_arm = np.random.choice(
                     self._categorical_hyperparameter_combinations
                 )
