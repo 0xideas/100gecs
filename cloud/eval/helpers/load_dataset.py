@@ -10,7 +10,7 @@ def load_dataset(dataset):
     elif dataset == "income":
         X, y = load_income_dataset("/home/ubuntu/data/income/income.csv", 1.0)
     elif dataset == "cover":
-        X, y = load_cover_dataset("/home/ubuntu/data/cover/cover.csv", 1.0)
+        X, y = load_cover_dataset("/home/ubuntu/data/cover/cover.csv", 0.2)
     else:
         raise Exception(f"dataset '{dataset}' is not available")
     return X, y

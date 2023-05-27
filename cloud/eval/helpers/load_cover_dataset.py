@@ -74,11 +74,11 @@ def load_cover_dataset(path, share=0.1):
             data.loc[
                 np.random.choice(
                     data.loc[data["Cover_Type"] == label, "Cover_Type"].index,
-                    size=int(label_frequency[label] * share),
-                    replace=int(share > 1),
+                    size=int(label_frequency[label] * label_share * share),
+                    replace=int((label_share * share) > 1),
                 )
             ]
-            for label, share in label_shares.items()
+            for label, label_share in label_shares.items()
         ],
         axis=0,
     )
