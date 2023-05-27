@@ -9,7 +9,7 @@ from io import BytesIO
 import numpy as np
 from datetime import datetime
 from lightgbm import LGBMClassifier
-from helpers.load_dataset import load_bank_dataset
+from helpers.load_dataset import load_dataset
 from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
@@ -51,12 +51,7 @@ def run(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
     )
-    # load data
-    if dataset == "bank":
-        X, y = load_bank_dataset(data_location, 0.2)
-    else:
-        raise Exception(f"dataset {dataset} is not available")
-
+    X, y = load_dataset(dataset)
     gec = GEC()
     for _ in range(n_evals):
         np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
