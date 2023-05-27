@@ -14,7 +14,8 @@
             50,
             70,
             100,
-            150
+            150,
+            200
         ]
     },
     {
@@ -32,7 +33,27 @@
             50,
             70,
             100,
-            150
+            150,
+            200
+        ]
+    },
+    {
+        "n_random_exploration": 20,
+        "l": 1.2,
+        "l_bagging": 0.1,
+        "hyperparams_acquisition_percentile": 0.75,
+        "bagging_acquisition_percentile": 0.7,
+        "bandit_greediness": 2.0,
+        "n_sample": 1000,
+        "n_iters": [
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200
         ]
     }
 ]

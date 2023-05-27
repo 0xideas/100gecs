@@ -21,7 +21,7 @@ def load_dataset(dataset, dataset_path=None):
     elif dataset == "income":
         X, y = load_income_dataset(dataset_path, 1.0)
     elif dataset == "cover":
-        X, y = load_cover_dataset(dataset_path, 0.02)
+        X, y = load_cover_dataset(dataset_path, 0.1)
     elif dataset == "mushroom":
         X, y = load_mushroom_dataset(dataset_path, 1.0)
     else:
