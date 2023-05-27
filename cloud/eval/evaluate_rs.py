@@ -4,7 +4,7 @@ import typer
 import shutil
 import contextlib
 import boto3
-
+from typing import Optional
 from io import BytesIO
 import numpy as np
 from datetime import datetime
@@ -40,9 +40,9 @@ def run(
     aws_access_key_id: str,
     aws_secret_access_key: str,
     aws_region: str = "eu-central-1",
-    config_path: str = "/home/ubuntu/config.json",
     dataset: str = "bank",
     n_evals: int = 1,
+    dataset_path: Optional[str] = None,
 ):
     client = boto3.client(
         "s3",
@@ -50,7 +50,7 @@ def run(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
     )
-    X, y = load_dataset(dataset)
+    X, y = load_dataset(dataset, dataset_path)
     gec = GEC()
     for _ in range(n_evals):
         np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))

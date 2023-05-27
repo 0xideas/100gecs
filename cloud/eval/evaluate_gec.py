@@ -31,7 +31,7 @@ def run(
     config_path: str = "/home/ubuntu/config.json",
     dataset: str = "bank",
     static_seed: bool = False,
-    dataset_path=Optional[str] = None,
+    dataset_path: Optional[str] = None,
 ):
 
     client = boto3.client(

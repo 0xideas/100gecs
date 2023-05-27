@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 
-def load_income_dataset(path, share=1.0):
+def load_mushroom_dataset(path, share=1.0):
     data = pd.read_csv(path, sep=",", header=None)
 
     data.columns = [
