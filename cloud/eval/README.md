@@ -1,1 +1,1 @@
- python cloud/eval/evaluate_gec.py $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY --dataset mushroom --dataset-path data/agaricus-lepiota.data --config-path cloud/config/config.json
+python cloud/eval/evaluate_gec.py $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY --dataset cover --dataset-path data/covtype.data --config-path cloud/config/config.json

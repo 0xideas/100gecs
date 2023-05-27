@@ -209,6 +209,8 @@ class GEC(LGBMClassifier):
             "bandit_greediness": 1.0,
             "n_random_exploration": 10,
             "n_sample": 1000,
+            "n_sample_initial": 10000000,
+            "best_share": 0.2,
         }
 
         self.categorical_hyperparameters = [
@@ -464,11 +466,13 @@ class GEC(LGBMClassifier):
                 [
                     "bagging_acquisition_percentile",
                     "bandit_greediness",
+                    "best_share",
                     "hyperparams_acquisition_percentile",
                     "l",
                     "l_bagging",
                     "n_random_exploration",
                     "n_sample",
+                    "n_sample_initial",
                 ]
             )
         )
@@ -566,6 +570,7 @@ class GEC(LGBMClassifier):
                 arguments = self._build_arguments(
                     selected_arm.split("-"), random_combination
                 )
+                selected_combination = random_combination
                 random_combination_bagging = self._bagging_combinations[
                     np.random.choice(range(len(self._bagging_combinations)))
                 ]
@@ -574,6 +579,9 @@ class GEC(LGBMClassifier):
                     arguments["bagging_freq"],
                     arguments["bagging_fraction"],
                 ) = random_combination_bagging
+                selected_combination_bagging = random_combination_bagging
+
+                mean, sigma, mean_bagging, sigma_bagging = 0, 0, 0, 0
             else:
                 sampled_reward = np.array(
                     [
@@ -585,13 +593,34 @@ class GEC(LGBMClassifier):
                 selected_arm = self._categorical_hyperparameter_combinations[
                     selected_arm_index
                 ]
+                n_best = max(
+                    3, int(self.gec_iter * self.gec_hyperparameters["best_share"])
+                )
+                best_interactions = np.argsort(
+                    np.array(self.hyperparameter_scores["all-models"]["output"])
+                )[::-1][:n_best]
 
-                sets = [
-                    list(np.random.choice(range_, self.gec_hyperparameters["n_sample"]))
-                    for real_hyperparameter, range_ in self._real_hyperparameters_linear
+                best_hyperparameters = np.array(
+                    self.hyperparameter_scores["all-models"]["inputs"]
+                )[best_interactions, :]
+
+                sets = np.array(
+                    [
+                        np.random.choice(
+                            range_, self.gec_hyperparameters["n_sample_initial"]
+                        )
+                        for _, range_ in self._real_hyperparameters_linear
+                    ]
+                )
+                closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
+                    :, : int(self.gec_hyperparameters["n_sample"] / n_best)
                 ]
+                selected_hyperparameter_indices = np.unique(
+                    closest_hyperparameters.flatten()
+                )
 
-                combinations = [np.array(comb) for comb in zip(*sets)]
+                combinations = list(sets[:, selected_hyperparameter_indices].T)
+
                 assert len(combinations), sets
 
                 if len(self.hyperparameter_scores["all-models"]["inputs"]) > 0:
@@ -617,6 +646,7 @@ class GEC(LGBMClassifier):
                 )
 
                 best_predicted_combination = combinations[np.argmax(predicted_rewards)]
+                selected_combination = best_predicted_combination
                 arguments = self._build_arguments(
                     selected_arm.split("-"), best_predicted_combination
                 )
@@ -647,6 +677,7 @@ class GEC(LGBMClassifier):
                     best_predicted_combination_bagging = self._bagging_combinations[
                         np.argmax(predicted_rewards_bagging)
                     ]
+                    selected_combination_bagging = best_predicted_combination_bagging
                     (
                         arguments["bagging_freq"],
                         arguments["bagging_fraction"],
@@ -668,7 +699,7 @@ class GEC(LGBMClassifier):
 
                 self.selected_arms.append(selected_arm)
                 self.hyperparameter_scores["all-models"]["inputs"].append(
-                    [float(f) for f in best_predicted_combination]
+                    [float(f) for f in selected_combination]
                 )
                 self.hyperparameter_scores["all-models"]["output"].append(score)
                 self.hyperparameter_scores["all-models"]["means"].append(mean)
@@ -676,7 +707,7 @@ class GEC(LGBMClassifier):
 
                 if "bagging_freq" in arguments:
                     self.bagging_scores["all-models"]["inputs"].append(
-                        [float(f) for f in best_predicted_combination_bagging]
+                        [float(f) for f in selected_combination_bagging]
                     )
                     self.bagging_scores["all-models"]["output"].append(score)
                     self.bagging_scores["all-models"]["means"].append(mean_bagging)

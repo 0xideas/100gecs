@@ -7,6 +7,8 @@
         "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 2.0,
         "n_sample": 1000,
+        "n_sample_initial": 100000,
+        "best_share": 0.2,
         "n_iters": [
             20,
             30,
@@ -26,6 +28,8 @@
         "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 2.0,
         "n_sample": 1000,
+        "n_sample_initial": 100000,
+        "best_share": 0.2,
         "n_iters": [
             20,
             30,
@@ -45,6 +49,8 @@
         "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 2.0,
         "n_sample": 1000,
+        "n_sample_initial": 100000,
+        "best_share": 0.2,
         "n_iters": [
             20,
             30,
