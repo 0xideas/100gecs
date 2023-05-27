@@ -11,6 +11,8 @@ from datetime import datetime
 from lightgbm import LGBMClassifier
 from helpers.load_bank_dataset import load_bank_dataset
 from helpers.load_income_dataset import load_income_dataset
+from helpers.load_cover_dataset import load_cover_dataset
+
 from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
@@ -30,7 +32,6 @@ def run(
     aws_secret_access_key: str,
     aws_region: str = "eu-central-1",
     config_path: str = "/home/ubuntu/config.json",
-    data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
     static_seed: bool = False,
 ):
@@ -44,9 +45,11 @@ def run(
 
     # load data
     if dataset == "bank":
-        X, y = load_bank_dataset(data_location, 0.2)
+        X, y = load_bank_dataset("/home/ubuntu/data/bank/bank-full.csv", 0.2)
     if dataset == "income":
-        X, y = load_income_dataset(data_location, 1.0)
+        X, y = load_income_dataset("/home/ubuntu/data/income/income.csv", 1.0)
+    if dataset == "cover":
+        X, y = load_cover_dataset("/home/ubuntu/data/cover/cover.csv", 1.0)
     else:
         raise Exception(f"dataset {dataset} is not available")
 
