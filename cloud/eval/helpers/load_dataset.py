@@ -1,6 +1,7 @@
 from helpers.load_bank_dataset import load_bank_dataset
 from helpers.load_income_dataset import load_income_dataset
 from helpers.load_cover_dataset import load_cover_dataset
+from helpers.load_mushroom_dataset import load_mushroom_dataset
 
 
 def load_dataset(dataset):
@@ -11,6 +12,8 @@ def load_dataset(dataset):
         X, y = load_income_dataset("/home/ubuntu/data/income/income.csv", 1.0)
     elif dataset == "cover":
         X, y = load_cover_dataset("/home/ubuntu/data/cover/cover.csv", 0.2)
+    elif dataset == "mushroom":
+        X, y = load_mushroom_dataset("/home/ubuntu/data/mushroom/mushroom.csv", 1.0)
     else:
         raise Exception(f"dataset '{dataset}' is not available")
     return X, y
