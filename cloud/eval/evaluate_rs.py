@@ -41,7 +41,6 @@ def run(
     aws_secret_access_key: str,
     aws_region: str = "eu-central-1",
     config_path: str = "/home/ubuntu/config.json",
-    data_location: str = "/home/ubuntu/data/bank/bank-full.csv",
     dataset: str = "bank",
     n_evals: int = 1,
 ):
