@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-VERSION = 7
+VERSION = 8
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"
@@ -55,6 +55,7 @@ def run(
         gec = GEC()
         n_iters = hyperparameter_dict.pop("n_iters")
         gec.set_gec_hyperparameters(hyperparameter_dict)
+        hyperparameters = hyperparameter_dict.pop("hyperparameters")
         for i, n_iter in enumerate(n_iters):
             hyperparameter_representation = (
                 "-".join([f"{k}{v}" for k, v in hyperparameter_dict.items()])
@@ -74,6 +75,7 @@ def run(
                     "model_type": "gec",
                     "dataset": dataset,
                     **hyperparameter_dict,
+                    "hyperparameters": "-".join(hyperparameters),
                     "n_iter": n_iter,
                     "cv_score": score_bayes,
                     "model_name": "-".join(

@@ -42,6 +42,7 @@ def run(
     aws_region: str = "eu-central-1",
     dataset: str = "bank",
     n_evals: int = 1,
+    hyperparameters: "num_leaves-learning_rate-n_estimators-max_bin-max_depth-lambda_l1-lambda_l2-min_data_in_leaf-feature_fraction",
     dataset_path: Optional[str] = None,
 ):
     client = boto3.client(
@@ -52,6 +53,9 @@ def run(
     )
     X, y = load_dataset(dataset, dataset_path)
     gec = GEC()
+    gec_hyperparameters = dict(gec.gec_hyperparameters)
+    gec_hyperparameters["hyperparameters"] = hyperparameters.split("-")
+    gec.set_gec_hyperparameters(gec_hyperparameters)
     for _ in range(n_evals):
         np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
         random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
@@ -73,17 +77,7 @@ def run(
                 {
                     "model_type": "random-search",
                     "dataset": dataset,
-                    **dict(
-                        zip(
-                            [
-                                "l",
-                                "l_bagging",
-                                "gaussian_variance_weight",
-                                "bandit_greediness",
-                            ],
-                            [-1, -1, -1, -1],
-                        )
-                    ),
+                    "gec_hyperparameters": gec_hyperparameters,
                     "n_iter": n_iter,
                     "cv_score": score_rs,
                     "model_name": f"random-search-{random_id}",
