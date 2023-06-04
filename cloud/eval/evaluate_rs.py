@@ -41,8 +41,8 @@ def run(
     aws_secret_access_key: str,
     aws_region: str = "eu-central-1",
     dataset: str = "bank",
-    n_evals: int = 1,
-    hyperparameters: "num_leaves-learning_rate-n_estimators-max_bin-max_depth-lambda_l1-lambda_l2-min_data_in_leaf-feature_fraction",
+    n_evals: int = 3,
+    hyperparameters: str = "num_leaves-learning_rate-n_estimators-max_bin-max_depth-lambda_l1-lambda_l2-min_data_in_leaf-feature_fraction",
     dataset_path: Optional[str] = None,
 ):
     client = boto3.client(
