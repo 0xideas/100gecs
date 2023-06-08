@@ -9,7 +9,7 @@ from io import BytesIO
 import numpy as np
 from datetime import datetime
 from lightgbm import LGBMClassifier
-from helpers.load_dataset import load_dataset
+from io.load_dataset import load_dataset
 from sklearn.model_selection import cross_val_score
 from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
