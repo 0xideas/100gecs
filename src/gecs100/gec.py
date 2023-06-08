@@ -479,23 +479,10 @@ class GEC(LGBMClassifier):
                 "acquisition_percentile" and "bandit_greediness"
         """
         assert np.all(
-            np.array(sorted(list(gec_hyperparameters.keys())))
-            == np.array(
-                [
-                    "bagging_acquisition_percentile",
-                    "bandit_greediness",
-                    "best_share",
-                    "hyperparameters",
-                    "hyperparams_acquisition_percentile",
-                    "l",
-                    "l_bagging",
-                    "n_random_exploration",
-                    "n_sample",
-                    "n_sample_initial",
-                ]
-            )
+            np.array([hp in self.gec_hyperparameters for hp in gec_hyperparameters.keys()])
         )
-        self.gec_hyperparameters = gec_hyperparameters
+        for hp, val in gec_hyperparameters.items():
+            self.gec_hyperparameters[hp] = val
         self._set_hyperparameter_attributes()
 
     def fit(self, X, y, n_iter=100):
