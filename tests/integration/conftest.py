@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 import numpy as np
-from gecs100.gec import GEC
+from gecs.gec import GEC
 
 
 @pytest.fixture(scope="session", autouse=True)

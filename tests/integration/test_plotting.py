@@ -1,6 +1,6 @@
 import pytest
 import os
-from gecs100.gec import GEC
+from gecs.gec import GEC
 
 
 @pytest.fixture

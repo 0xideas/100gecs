@@ -11,7 +11,7 @@ from datetime import datetime
 from lightgbm import LGBMClassifier
 from helpers.load_dataset import load_dataset
 from sklearn.model_selection import cross_val_score
-from gecs100.gec import GEC
+from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
 VERSION = 8
