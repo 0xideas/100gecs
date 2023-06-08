@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score
 from gecs100.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-VERSION = 7
+VERSION = 8
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 BUCKET = "100gecs"
 
@@ -59,7 +59,7 @@ def run(
     for _ in range(n_evals):
         np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
         random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
-        n_iters = [0, 20, 30, 40, 50, 70, 100, 150, 200]
+        n_iters = [0, 20, 30, 40, 50, 70, 100, 150]
 
         best_score = None
         best_params = None
