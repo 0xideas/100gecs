@@ -4,6 +4,7 @@ from typing import Optional, Union, Dict, Callable
 import os
 import contextlib
 from tqdm import tqdm
+from datetime import datetime
 
 import warnings
 import numpy as np
@@ -222,6 +223,7 @@ class GEC(LGBMClassifier):
                 "min_data_in_leaf",
                 "feature_fraction",
             ],
+            "randomize": True
         }
         self._set_hyperparameter_attributes()
 
@@ -481,8 +483,7 @@ class GEC(LGBMClassifier):
         assert np.all(
             np.array([hp in self.gec_hyperparameters for hp in gec_hyperparameters.keys()])
         )
-        for hp, val in gec_hyperparameters.items():
-            self.gec_hyperparameters[hp] = val
+        self.gec_hyperparameters.update(gec_hyperparameters)
         self._set_hyperparameter_attributes()
 
     def fit(self, X, y, n_iter=100):
@@ -560,6 +561,8 @@ class GEC(LGBMClassifier):
             np.array(sorted(list(self.hyperparameter_scores.keys())))
             == np.array(["all-models"])
         )
+        if self.gec_hyperparameters["randomize"]:
+            np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
 
         for i in tqdm(list(range(n_iter))):
             if (i + self.gec_iter) < min(
