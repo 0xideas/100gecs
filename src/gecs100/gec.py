@@ -211,8 +211,21 @@ class GEC(LGBMClassifier):
             "n_sample": 1000,
             "n_sample_initial": 10000000,
             "best_share": 0.2,
+            "hyperparameters": [
+                "num_leaves",
+                "learning_rate",
+                "n_estimators",
+                "max_bin",
+                "max_depth",
+                "lambda_l1",
+                "lambda_l2",
+                "min_data_in_leaf",
+                "feature_fraction",
+            ],
         }
+        self._set_hyperparameter_attributes()
 
+    def _set_hyperparameter_attributes(self):
         self.categorical_hyperparameters = [
             ("boosting", ["gbdt", "dart", "rf"]),
             ("bagging", ["yes_bagging", "no_bagging"]),
@@ -239,7 +252,7 @@ class GEC(LGBMClassifier):
                 np.arange(500, 1001, 100),
             ]
         )
-        self._real_hyperparameters = [
+        self._real_hyperparameters_all = [
             ("num_leaves", np.arange(10, 200, 1)),
             ("learning_rate", (np.logspace(0.001, 1.5, 150)) / 100),
             (
@@ -255,6 +268,11 @@ class GEC(LGBMClassifier):
                 "feature_fraction",
                 np.concatenate([np.arange(0.1, 1.00, 0.01), np.array([1.0])]),
             ),
+        ]
+        self._real_hyperparameters = [
+            (hp_name, range_)
+            for hp_name, range_ in self._real_hyperparameters_all
+            if hp_name in self.gec_hyperparameters["hyperparameters"]
         ]
         self._real_hyperparameters_linear = [
             (name, np.arange(-1, 1, 2 / len(values)).astype(np.float16))
@@ -467,6 +485,7 @@ class GEC(LGBMClassifier):
                     "bagging_acquisition_percentile",
                     "bandit_greediness",
                     "best_share",
+                    "hyperparameters",
                     "hyperparams_acquisition_percentile",
                     "l",
                     "l_bagging",
@@ -477,6 +496,7 @@ class GEC(LGBMClassifier):
             )
         )
         self.gec_hyperparameters = gec_hyperparameters
+        self._set_hyperparameter_attributes()
 
     def fit(self, X, y, n_iter=100):
         """Fit GEC on data
