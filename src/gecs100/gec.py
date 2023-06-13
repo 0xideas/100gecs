@@ -217,7 +217,6 @@ class GEC(LGBMClassifier):
                 "learning_rate",
                 "n_estimators",
                 "max_bin",
-                "max_depth",
                 "lambda_l1",
                 "lambda_l2",
                 "min_data_in_leaf",
@@ -256,20 +255,16 @@ class GEC(LGBMClassifier):
         )
         self._real_hyperparameters_all = [
             ("num_leaves", np.arange(10, 200, 1)),
-            ("learning_rate", (np.logspace(0.001, 1.5, 150)) / 100),
+            ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
             (
                 "n_estimators",
-                ten_to_thousand[:10],
+                ten_to_thousand[4:],
             ),
             ("max_bin", ten_to_thousand),
-            ("max_depth", np.concatenate([np.array([-1]), ten_to_thousand[0:21:3]])),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("lambda_l2", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("min_data_in_leaf", np.arange(2, 50, 1)),
-            (
-                "feature_fraction",
-                np.concatenate([np.arange(0.1, 1.00, 0.01), np.array([1.0])]),
-            ),
+            ("feature_fraction",np.arange(0.1, 1.01, 0.01))
         ]
         self._real_hyperparameters = [
             (hp_name, range_)
