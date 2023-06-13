@@ -213,9 +213,7 @@ class GEC(LGBMClassifier):
             "n_sample_initial": 10000000,
             "best_share": 0.2,
             "hyperparameters": [
-                "num_leaves",
                 "learning_rate",
-                "n_estimators",
                 "max_bin",
                 "lambda_l1",
                 "lambda_l2",
@@ -254,12 +252,7 @@ class GEC(LGBMClassifier):
             ]
         )
         self._real_hyperparameters_all = [
-            ("num_leaves", np.arange(10, 200, 1)),
             ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
-            (
-                "n_estimators",
-                ten_to_thousand[4:],
-            ),
             ("max_bin", ten_to_thousand),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("lambda_l2", (np.logspace(0.00, 1, 100) - 1) / 9),
@@ -481,7 +474,7 @@ class GEC(LGBMClassifier):
         self.gec_hyperparameters.update(gec_hyperparameters)
         self._set_hyperparameter_attributes()
 
-    def fit(self, X, y, n_iter=100):
+    def fit(self, X, y, n_iter=100, n_estimators=1000, num_leaves=100):
         """Fit GEC on data
 
         Parameters
@@ -497,6 +490,8 @@ class GEC(LGBMClassifier):
         -------
             self: GEC
         """
+        self.gec_num_leaves = num_leaves
+        self.gec_n_estimators = n_estimators
 
         self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
@@ -692,6 +687,8 @@ class GEC(LGBMClassifier):
 
             del arguments["bagging"]
             arguments["verbosity"] = -1
+            arguments["n_estimators"] = self.gec_n_estimators
+            arguments["num_leaves"] = self.gec_num_leaves
 
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
