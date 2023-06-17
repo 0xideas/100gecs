@@ -687,8 +687,13 @@ class GEC(LGBMClassifier):
 
             del arguments["bagging"]
             arguments["verbosity"] = -1
-            arguments["n_estimators"] = self.gec_n_estimators
-            arguments["num_leaves"] = self.gec_num_leaves
+            
+            if (i+5) >= n_iter or (i/n_iter) >= 0.9:
+                arguments["n_estimators"] = self.gec_n_estimators
+                arguments["num_leaves"] = self.gec_num_leaves
+            else:
+                arguments["n_estimators"] = 100
+                arguments["num_leaves"] = 100
 
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
@@ -735,6 +740,11 @@ class GEC(LGBMClassifier):
 
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
+
+
+        best_params["n_estimators"] = self.gec_n_estimators
+        best_params["num_leaves"] = self.gec_num_leaves
+        best_score = self._calculate_cv_score(X, Y, best_params)
 
         return (best_params, best_score)
 
@@ -797,9 +807,13 @@ class GEC(LGBMClassifier):
 
         best_combinations, _ = self._find_best_parameters_iter(initial_combinations)
 
-        return self._find_best_parameters_from_initial_parameters(
+        best_params = self._find_best_parameters_from_initial_parameters(
             best_combinations, step_sizes
         )
+        best_params["n_estimators"] = self.gec_n_estimators
+        best_params["num_leaves"] = self.gec_num_leaves
+
+        return best_params
 
     def _find_best_parameters_from_search(self, params):
 
@@ -820,6 +834,10 @@ class GEC(LGBMClassifier):
             {categorical_combination: best_params_linear_values},
             step_sizes=[4, 2, 1],
         )
+
+        best_params["n_estimators"] = self.gec_n_estimators
+        best_params["num_leaves"] = self.gec_num_leaves
+        
         return best_params
 
     def _find_best_parameters_iter(self, combinations):

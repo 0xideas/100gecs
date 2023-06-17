@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score
 from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-VERSION = 10
+VERSION = 11
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 BUCKET = "100gecs"
 
