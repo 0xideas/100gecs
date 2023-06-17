@@ -311,7 +311,7 @@ class GEC(LGBMClassifier):
             itertools.product(
                 *[
                     list(range(1, 11, 1)),
-                    np.arange(0.05, 1.0, 0.05),
+                    np.arange(0.5, 1.0, 0.01),
                 ]
             )
         )
@@ -685,8 +685,6 @@ class GEC(LGBMClassifier):
                         arguments["bagging_fraction"],
                     ) = best_predicted_combination_bagging
 
-                    assert arguments["bagging_freq"] > arguments["bagging_fraction"]
-
             del arguments["bagging"]
             arguments["verbosity"] = -1
             
@@ -819,6 +817,9 @@ class GEC(LGBMClassifier):
         best_params = self._find_best_parameters_from_initial_parameters(
             best_arm, best_combination, step_sizes
         )
+
+        best_params["n_estimators"] = self.gec_n_estimators
+        best_params["num_leaves"] = self.gec_num_leaves
 
         return best_params
 

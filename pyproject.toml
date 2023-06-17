@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gecs100"
+name = "gecs"
 version = "0.12.0"
 authors = ["Leon Luithlen <leontimnaluithlen@gmail.com>"]
 description = "LightGBM Classifier with integrated bayesian hyperparameter optimization"
