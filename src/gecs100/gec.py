@@ -688,8 +688,8 @@ class GEC(LGBMClassifier):
                 arguments["n_estimators"] = self.gec_n_estimators
                 arguments["num_leaves"] = self.gec_num_leaves
             else:
-                arguments["n_estimators"] = 100
-                arguments["num_leaves"] = 100
+                arguments["n_estimators"] = 10
+                arguments["num_leaves"] = 10
 
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
@@ -782,39 +782,37 @@ class GEC(LGBMClassifier):
 
     def _fit_gaussian(self):
         self.gaussian.fit(
-            self.hyperparameter_scores["all-models"]["inputs"],
-            self.hyperparameter_scores["all-models"]["output"] - self.adjustment_factor,
+            np.array(self.hyperparameter_scores["all-models"]["inputs"]),
+            np.array(self.hyperparameter_scores["all-models"]["output"]) - self.adjustment_factor,
         )
+
+    def _get_best_arm(self):
+        mean_reward = np.array(
+            [
+                reward["a"]/ ( reward["a"] + reward["b"])
+                for _, reward in self.rewards.items()
+            ]
+        )
+        best_arm = self._categorical_hyperparameter_combinations[mean_reward.argmax()]
+        return(best_arm)
+
 
     def _find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
 
-        n_selected_arms = int(len(self.selected_arms) * 0.3)
-        arms, counts = np.unique(
-            self.selected_arms[n_selected_arms:],
-            return_counts=True,
-        )
-
-        top_3 = arms[np.argsort(counts)][-3:]
+        best_arm = self._get_best_arm()
 
         self._fit_gaussian()
         sets = [
             list(range_[:: step_sizes[0]]) + [range_[-1]]
             for range_ in self._real_hyperparameter_ranges
         ]
-        real_combinations = np.array(list(itertools.product(*sets)))
+        initial_combinations = np.array(list(itertools.product(*sets)))
 
-        initial_combinations = {
-            categorical_combination: real_combinations
-            for categorical_combination in top_3
-        }
-
-        best_combinations, _ = self._find_best_parameters_iter(initial_combinations)
+        best_combination, _ = self._find_best_parameters_iter(initial_combinations)
 
         best_params = self._find_best_parameters_from_initial_parameters(
-            best_combinations, step_sizes
+            best_arm, best_combination, step_sizes
         )
-        best_params["n_estimators"] = self.gec_n_estimators
-        best_params["num_leaves"] = self.gec_num_leaves
 
         return best_params
 
@@ -828,14 +826,15 @@ class GEC(LGBMClassifier):
         else:
             bagging = "no_bagging"
         boosting = params.pop("boosting")
-        categorical_combination = f"{boosting}-{bagging}"
+        best_arm = f"{boosting}-{bagging}"
 
         best_params_linear_values = [
             self._real_hyperparameters_map_reverse[name][params[name]]
             for name in self._real_hyperparameter_names
         ]
         best_params = self._find_best_parameters_from_initial_parameters(
-            {categorical_combination: best_params_linear_values},
+            best_arm,
+            best_params_linear_values,
             step_sizes=[4, 2, 1],
         )
 
@@ -846,48 +845,40 @@ class GEC(LGBMClassifier):
 
     def _find_best_parameters_iter(self, combinations):
 
-        best_combinations = {}
-        best_scores = {}
-        for categorical_combination, combs in combinations.items():
+        mean = self.gaussian.predict(combinations)
+        best_score = np.max(mean)
+        best_combination = combinations[np.argmax(mean)]
 
-            mean = self.gaussian.predict(combs)
-            best_scores[categorical_combination] = np.max(mean)
-            best_combination = combs[np.argmax(mean)]
-            best_combinations[categorical_combination] = best_combination
-
-        return best_combinations, best_scores
+        return best_combination, best_score
 
     def _find_best_parameters_from_initial_parameters(
-        self, best_combinations, step_sizes
+        self, best_arm, best_combination, step_sizes
     ):
         for step_size, previous_step_size in zip(step_sizes[1:], step_sizes[:-1]):
 
             neighbouring_combinations = self._get_neighbouring_combinations(
-                best_combinations, step_size, previous_step_size
+                best_combination, step_size, previous_step_size
             )
 
-            new_ranges = list(
+            new_ranges = [
+                (name, min(r), max(r)) for name, r in
                 zip(
                     self._real_hyperparameter_names,
-                    list(neighbouring_combinations.values())[0].min(0),
-                    list(neighbouring_combinations.values())[0].max(0),
+                    neighbouring_combinations
                 )
-            )
-            # log.info(new_ranges)
+            ]
+            #log.info(new_ranges)
 
-            best_combinations, best_scores = self._find_best_parameters_iter(
+            best_combination, best_score = self._find_best_parameters_iter(
                 neighbouring_combinations
             )
 
-        max_score = np.max(list(best_scores.values()))
-        for categorical_combination, real_combination in best_combinations.items():
-            if best_scores[categorical_combination] == max_score:
-                arm_best_score = str(categorical_combination)
-                arguments = self._build_arguments(
-                    categorical_combination.split("-"), real_combination
-                )
 
-        if "yes_bagging" in arm_best_score:
+        arguments = self._build_arguments(
+            best_arm.split("-"), best_combination
+        )
+
+        if "yes_bagging" in best_arm:
             bagging_scores = np.array(self.bagging_scores["all-models"]["inputs"])
             bagging_scores[:, 0] = bagging_scores[:, 0] / 10
             self.gaussian_bagging.fit(
@@ -912,31 +903,26 @@ class GEC(LGBMClassifier):
         return arguments
 
     def _get_neighbouring_combinations(
-        self, best_combinations, step_size, previous_step_size
+        self, best_combination, step_size, previous_step_size
     ):
-        neighbouring_combinations = {}
-        for categorical_combination, real_combination in best_combinations.items():
-            new_sets = []
-            for real_value, range_ in zip(
-                real_combination, self._real_hyperparameter_ranges
-            ):
-                real_value_index = np.argmax(range_ == real_value)
+        new_sets = []
+        for real_value, range_ in zip(
+            best_combination, self._real_hyperparameter_ranges
+        ):
+            real_value_index = np.argmax(range_ == real_value)
 
-                start_index = real_value_index - previous_step_size
-                start_index = start_index if start_index > 0 else 0
-                end_index = min(real_value_index + previous_step_size, len(range_))
+            start_index = real_value_index - previous_step_size
+            start_index = max(start_index, 0)
+            end_index = min(real_value_index + previous_step_size, len(range_))
 
-                adjusted_step_size = min(int(len(range_) / 2), step_size)
-                new_set = list(range_[start_index:end_index:adjusted_step_size])
-                if np.max(new_set) < real_value:
-                    new_set.append(real_value)
+            adjusted_step_size = min(int(len(range_) / 2), step_size)
+            new_set = list(range_[start_index:end_index:adjusted_step_size])
+            if np.max(new_set) < real_value:
+                new_set.append(real_value)
 
-                new_sets.append(new_set)
-
-            neighbouring_combinations[categorical_combination] = np.array(
-                list(itertools.product(*new_sets))
-            )
-
+            new_sets.append(new_set)
+        neighbouring_combinations = np.array(list(itertools.product(*new_sets)))
+    
         return neighbouring_combinations
 
     def save_plots(self, path_stem):
