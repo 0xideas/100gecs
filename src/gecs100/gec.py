@@ -787,12 +787,6 @@ class GEC(LGBMClassifier):
         )
 
     def _find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
-        self._fit_gaussian()
-        sets = [
-            list(range_[:: step_sizes[0]]) + [range_[-1]]
-            for range_ in self._real_hyperparameter_ranges
-        ]
-        real_combinations = np.array(list(itertools.product(*sets)))
 
         n_selected_arms = int(len(self.selected_arms) * 0.3)
         arms, counts = np.unique(
@@ -801,6 +795,13 @@ class GEC(LGBMClassifier):
         )
 
         top_3 = arms[np.argsort(counts)][-3:]
+
+        self._fit_gaussian()
+        sets = [
+            list(range_[:: step_sizes[0]]) + [range_[-1]]
+            for range_ in self._real_hyperparameter_ranges
+        ]
+        real_combinations = np.array(list(itertools.product(*sets)))
 
         initial_combinations = {
             categorical_combination: real_combinations
