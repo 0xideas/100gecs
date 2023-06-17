@@ -787,7 +787,7 @@ class GEC(LGBMClassifier):
         )
 
     def _find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
-        self.fit_gaussian()
+        self._fit_gaussian()
         sets = [
             list(range_[:: step_sizes[0]]) + [range_[-1]]
             for range_ in self._real_hyperparameter_ranges
