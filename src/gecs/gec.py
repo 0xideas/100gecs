@@ -210,7 +210,7 @@ class GEC(LGBMClassifier):
             "bandit_greediness": 1.0,
             "n_random_exploration": 10,
             "n_sample": 1000,
-            "n_sample_initial": 10000000,
+            "n_sample_initial": 10000,
             "best_share": 0.2,
             "hyperparameters": [
                 "learning_rate",
