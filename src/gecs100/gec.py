@@ -220,7 +220,13 @@ class GEC(LGBMClassifier):
                 "min_data_in_leaf",
                 "feature_fraction",
             ],
-            "randomize": True
+            "randomize": True,
+            "estimators_leaves": {
+                "n_exploitation": 5,
+                "share_exploitation": 0.1,
+                "exploration_n_estimators": 100,
+                "exploration_num_leaves": 100
+            }
         }
         self._set_hyperparameter_attributes()
 
@@ -684,12 +690,12 @@ class GEC(LGBMClassifier):
             del arguments["bagging"]
             arguments["verbosity"] = -1
             
-            if (i+5) >= n_iter or (i/n_iter) >= 0.9:
+            if (i+self.gec_hyperparameters["estimators_leaves"]["n_exploitation"]) >= n_iter or (i/n_iter) >= (1- self.gec_hyperparameters["estimators_leaves"]["share_exploitation"]):
                 arguments["n_estimators"] = self.gec_n_estimators
                 arguments["num_leaves"] = self.gec_num_leaves
             else:
-                arguments["n_estimators"] = 10
-                arguments["num_leaves"] = 10
+                arguments["n_estimators"] = self.gec_hyperparameters["estimators_leaves"]["exploration_n_estimators"]
+                arguments["num_leaves"] = self.gec_hyperparameters["estimators_leaves"]["exploration_num_leaves"]
 
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
