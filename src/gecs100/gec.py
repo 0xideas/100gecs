@@ -624,11 +624,7 @@ class GEC(LGBMClassifier):
                 assert len(combinations), sets
 
                 if len(self.hyperparameter_scores["all-models"]["inputs"]) > 0:
-                    self.gaussian.fit(
-                        np.array(self.hyperparameter_scores["all-models"]["inputs"]),
-                        np.array(self.hyperparameter_scores["all-models"]["output"])
-                        - self.adjustment_factor,
-                    )
+                    self._fit_gaussian()
 
                 mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
@@ -784,8 +780,14 @@ class GEC(LGBMClassifier):
 
         super().fit(X, y)
 
-    def _find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
+    def _fit_gaussian(self):
+        self.gaussian.fit(
+            self.hyperparameter_scores["all-models"]["inputs"],
+            self.hyperparameter_scores["all-models"]["output"] - self.adjustment_factor,
+        )
 
+    def _find_best_parameters(self, step_sizes=[16, 8, 4, 2, 1]):
+        self.fit_gaussian()
         sets = [
             list(range_[:: step_sizes[0]]) + [range_[-1]]
             for range_ in self._real_hyperparameter_ranges
@@ -816,6 +818,7 @@ class GEC(LGBMClassifier):
         return best_params
 
     def _find_best_parameters_from_search(self, params):
+        self._fit_gaussian()
 
         if "bagging_freq" in params:
             del params["bagging_freq"]
@@ -841,13 +844,10 @@ class GEC(LGBMClassifier):
         return best_params
 
     def _find_best_parameters_iter(self, combinations):
+
         best_combinations = {}
         best_scores = {}
         for categorical_combination, combs in combinations.items():
-            self.gaussian.fit(
-                self.hyperparameter_scores["all-models"]["inputs"],
-                self.hyperparameter_scores["all-models"]["output"],
-            )
 
             mean = self.gaussian.predict(combs)
             best_scores[categorical_combination] = np.max(mean)
