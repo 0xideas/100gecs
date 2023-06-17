@@ -1023,6 +1023,7 @@ class GEC(LGBMClassifier):
 
     def _plot_linear_scaled_parameter_samples(self, cat, ax, x):
         inputs_ = np.array(self.hyperparameter_scores[cat]["inputs"])
+        assert (len(self._real_hyperparameter_names) == inputs_.shape[1])
         for i in range(inputs_.shape[1]):
             ax.plot(x, inputs_[:, i], label=self._real_hyperparameter_names[i])
 
