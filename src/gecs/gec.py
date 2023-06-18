@@ -251,19 +251,20 @@ class GEC(LGBMClassifier):
             if "-".join(y) not in prohibited_combinations
         ]
 
-        ten_to_thousand = np.concatenate(
+        ten_to_ten_thousand = np.concatenate(
             [
                 np.arange(10, 100, 10),
                 np.arange(100, 200, 20),
                 np.arange(200, 500, 50),
-                np.arange(500, 1001, 100),
+                np.arange(500, 100, 100),
+                np.arange(1000, 10001, 1000),
             ]
         )
         self._real_hyperparameters_all = [
             ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
-            ("num_leaves", np.arange(10, 200, 1)),
-            ("n_estimators", ten_to_thousand),
-            ("max_bin", ten_to_thousand),
+            ("num_leaves", np.arange(10, 1001, 5)),
+            ("n_estimators", ten_to_ten_thousand),
+            ("max_bin", ten_to_ten_thousand[:-9]),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("lambda_l2", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("min_data_in_leaf", np.arange(2, 50, 1)),
@@ -501,8 +502,8 @@ class GEC(LGBMClassifier):
             self: GEC
         """
 
-        assert n_estimators <= 1000, "only up to 1000 estimators are allowed"
-        assert num_leaves <=200, "only up to 200 leaves are allowed"
+        assert n_estimators <= 10000, "only up to 10000 estimators are allowed"
+        assert num_leaves <=1000, "only up to 1000 leaves are allowed"
     
         self.gec_num_leaves = num_leaves
         self.gec_n_estimators = n_estimators

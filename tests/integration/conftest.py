@@ -53,6 +53,8 @@ def gec(X, y):
         "best_share": 0.2,
         "hyperparameters": [
             "learning_rate",
+            "n_estimators",
+            "num_leaves",
             "max_bin",
             "lambda_l1",
             "lambda_l2",
