@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score
 from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 
-VERSION = 12
+VERSION = 13
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"

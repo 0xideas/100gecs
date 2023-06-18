@@ -214,6 +214,8 @@ class GEC(LGBMClassifier):
             "best_share": 0.2,
             "hyperparameters": [
                 "learning_rate",
+                "n_estimators",
+                "num_leaves",
                 "max_bin",
                 "lambda_l1",
                 "lambda_l2",
@@ -224,8 +226,8 @@ class GEC(LGBMClassifier):
             "estimators_leaves": {
                 "n_exploitation": 5,
                 "share_exploitation": 0.1,
-                "exploration_n_estimators": 100,
-                "exploration_num_leaves": 100
+                "exploration_max_n_estimators": 100,
+                "exploration_max_num_leaves": 100
             }
         }
         self._set_hyperparameter_attributes()
@@ -259,6 +261,8 @@ class GEC(LGBMClassifier):
         )
         self._real_hyperparameters_all = [
             ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
+            ("num_leaves", np.arange(10, 200, 1)),
+            ("n_estimators", ten_to_thousand),
             ("max_bin", ten_to_thousand),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("lambda_l2", (np.logspace(0.00, 1, 100) - 1) / 9),
@@ -480,7 +484,7 @@ class GEC(LGBMClassifier):
         self.gec_hyperparameters.update(gec_hyperparameters)
         self._set_hyperparameter_attributes()
 
-    def fit(self, X, y, n_iter=100, n_estimators=1000, num_leaves=100):
+    def fit(self, X, y, n_iter=100, n_estimators=100, num_leaves=32):
         """Fit GEC on data
 
         Parameters
@@ -496,6 +500,10 @@ class GEC(LGBMClassifier):
         -------
             self: GEC
         """
+
+        assert n_estimators <= 1000, "only up to 1000 estimators are allowed"
+        assert num_leaves <=200, "only up to 200 leaves are allowed"
+    
         self.gec_num_leaves = num_leaves
         self.gec_n_estimators = n_estimators
 
@@ -542,6 +550,23 @@ class GEC(LGBMClassifier):
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             score = np.mean(cross_val_score(clf, X, y, cv=5))
         return score
+
+
+    def _set_n_estimators_and_num_leaves(self, arguments, i, n_iter):
+        last_n_iterations = (i+self.gec_hyperparameters["estimators_leaves"]["n_exploitation"]) >= n_iter
+        last_share_iterations = (i/n_iter) >= (1- self.gec_hyperparameters["estimators_leaves"]["share_exploitation"])
+        n_estimators_not_optimised = "n_estimators" not in self.gec_hyperparameters["hyperparameters"]
+        if last_n_iterations or last_share_iterations or n_estimators_not_optimised:
+            arguments["n_estimators"] = self.gec_n_estimators
+        else:
+            arguments["n_estimators"] = min(arguments["n_estimators"], self.gec_hyperparameters["estimators_leaves"]["exploration_max_n_estimators"])
+            
+        num_leaves_not_optimised = "num_leaves" not in self.gec_hyperparameters["hyperparameters"]
+        if last_n_iterations or last_share_iterations or num_leaves_not_optimised:
+            arguments["num_leaves"] = self.gec_num_leaves
+        else:
+            arguments["num_leaves"] = min(arguments["num_leaves"], self.gec_hyperparameters["estimators_leaves"]["exploration_max_num_leaves"])
+        return(arguments)
 
     def _optimise_hyperparameters(
         self,
@@ -687,13 +712,9 @@ class GEC(LGBMClassifier):
 
             del arguments["bagging"]
             arguments["verbosity"] = -1
-            
-            if (i+self.gec_hyperparameters["estimators_leaves"]["n_exploitation"]) >= n_iter or (i/n_iter) >= (1- self.gec_hyperparameters["estimators_leaves"]["share_exploitation"]):
-                arguments["n_estimators"] = self.gec_n_estimators
-                arguments["num_leaves"] = self.gec_num_leaves
-            else:
-                arguments["n_estimators"] = self.gec_hyperparameters["estimators_leaves"]["exploration_n_estimators"]
-                arguments["num_leaves"] = self.gec_hyperparameters["estimators_leaves"]["exploration_num_leaves"]
+
+            arguments = self._set_n_estimators_and_num_leaves(arguments, i, n_iter)
+            print(arguments)
 
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
