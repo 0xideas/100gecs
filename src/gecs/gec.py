@@ -715,7 +715,6 @@ class GEC(LGBMClassifier):
             arguments["verbosity"] = -1
 
             arguments = self._set_n_estimators_and_num_leaves(arguments, i, n_iter)
-            print(arguments)
 
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
