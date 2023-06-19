@@ -319,7 +319,7 @@ class GEC(LGBMClassifier):
             itertools.product(
                 *[
                     list(range(1, 11, 1)),
-                    np.arange(0.5, 1.0, 0.01),
+                    np.arange(0.05, 1.0, 0.05),
                 ]
             )
         )
