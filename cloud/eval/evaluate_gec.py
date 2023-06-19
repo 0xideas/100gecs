@@ -9,10 +9,10 @@ from io import BytesIO
 import numpy as np
 from datetime import datetime
 from lightgbm import LGBMClassifier
-from io.load_dataset import load_dataset
 from sklearn.model_selection import cross_val_score
 from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
+from cloud_io.load_dataset import load_dataset
 
 VERSION = 14
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
