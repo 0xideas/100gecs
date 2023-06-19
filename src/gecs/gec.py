@@ -224,7 +224,7 @@ class GEC(LGBMClassifier):
             ],
             "randomize": True,
             "estimators_leaves": {
-                "n_exploitation": 5,
+                "n_exploitation": 1,
                 "share_exploitation": 0.1,
                 "exploration_max_n_estimators": 200,
                 "exploration_max_num_leaves": 200
