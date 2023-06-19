@@ -780,10 +780,16 @@ class GEC(LGBMClassifier):
             except Exception as e:
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
 
-
-        best_params["n_estimators"] = self.gec_n_estimators
-        best_params["num_leaves"] = self.gec_num_leaves
         best_score = self._calculate_cv_score(X, Y, best_params)
+
+        best_params2 = copy.deepcopy(best_params)
+        best_params2["n_estimators"] = self.gec_n_estimators
+        best_params2["num_leaves"] = self.gec_num_leaves
+        best_score_estimators_leaves = self._calculate_cv_score(X, Y, best_params2)
+
+        if best_score_estimators_leaves > best_score:
+            best_score = best_score_estimators_leaves
+            best_params = best_params2
 
         return (best_params, best_score)
 
