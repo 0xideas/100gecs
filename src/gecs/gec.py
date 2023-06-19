@@ -787,11 +787,11 @@ class GEC(LGBMClassifier):
         best_params2["num_leaves"] = self.gec_num_leaves
         best_score_estimators_leaves = self._calculate_cv_score(X, Y, best_params2)
 
-        #if best_score_estimators_leaves > best_score:
-        #    best_score = best_score_estimators_leaves
-        #    best_params = best_params2
+        if best_score_estimators_leaves > best_score:
+            best_score = best_score_estimators_leaves
+            best_params = best_params2
 
-        return (best_params2, best_score_estimators_leaves)
+        return (best_params, best_score)
 
     def _build_arguments(self, categorical_combination, real_combination_linear):
         best_predicted_combination_converted = [
