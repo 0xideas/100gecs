@@ -14,7 +14,7 @@ from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 from cloud_io.load_dataset import load_dataset
 
-VERSION = 17
+VERSION = 18
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 BUCKET = "100gecs"
 

@@ -226,8 +226,8 @@ class GEC(LGBMClassifier):
             "estimators_leaves": {
                 "n_exploitation": 5,
                 "share_exploitation": 0.1,
-                "exploration_max_n_estimators": 100,
-                "exploration_max_num_leaves": 100
+                "exploration_max_n_estimators": 200,
+                "exploration_max_num_leaves": 200
             }
         }
         self._set_hyperparameter_attributes()
@@ -263,7 +263,7 @@ class GEC(LGBMClassifier):
         self._real_hyperparameters_all = [
             ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
             ("num_leaves",  np.array(list(range(1, 100))+list(range(100, 1000, 5)))),
-            ("n_estimators", ten_to_ten_thousand),
+            ("n_estimators", ten_to_ten_thousand[9:]),
             ("max_bin", ten_to_ten_thousand[:-9]),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("lambda_l2", (np.logspace(0.00, 1, 100) - 1) / 9),
@@ -507,7 +507,7 @@ class GEC(LGBMClassifier):
         self.gec_hyperparameters.update(gec_hyperparameters)
         self._set_hyperparameter_attributes()
 
-    def fit(self, X, y, n_iter=100, n_estimators=100, num_leaves=32):
+    def fit(self, X, y, n_iter=100, n_estimators=1000, num_leaves=200):
         """Fit GEC on data
 
         Parameters
