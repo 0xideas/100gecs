@@ -302,7 +302,7 @@ class GEC(LGBMClassifier):
         )
 
         self._hyperparameter_to_index = dict(zip(
-            self._real_hyperparameter_names, range(len(self._real_hyperparemter_names))
+            self._real_hyperparameter_names, range(len(self._real_hyperparameter_names))
         ))
 
         self._real_hypermarameter_types = [
