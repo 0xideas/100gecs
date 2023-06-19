@@ -294,6 +294,9 @@ class GEC(LGBMClassifier):
             )
         }
 
+        self._validate_parameter_maps()
+
+
         self._real_hyperparameter_names, self._real_hyperparameter_ranges = zip(
             *self._real_hyperparameters_linear
         )
@@ -469,6 +472,21 @@ class GEC(LGBMClassifier):
             "gec_iter": self.gec_iter,
         }
         return representation
+
+
+    def _validate_parameter_maps(self):
+        real_to_linear_to_real = [
+            self._real_hyperparameters_map[hp][self._real_hyperparameters_map_reverse[hp][v]] == v
+            for hp, values in self._real_hyperparameters for v in values
+        ]
+
+        assert np.all(real_to_linear_to_real), real_to_linear_to_real
+
+        linear_to_real_to_linear = [
+            self._real_hyperparameters_map_reverse[hp][self._real_hyperparameters_map[hp][v]] == v
+            for hp, values in self._real_hyperparameters_linear for v in values
+        ]
+        assert np.all(linear_to_real_to_linear), linear_to_real_to_linear
 
     def set_gec_hyperparameters(self, gec_hyperparameters):
         """Set the hyperparameters of the GEC optimisation process
