@@ -262,7 +262,7 @@ class GEC(LGBMClassifier):
         )
         self._real_hyperparameters_all = [
             ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
-            ("num_leaves", np.arange(10, 1001, 5)),
+            ("num_leaves",  np.array(list(range(1, 100))+list(range(100, 1000, 5)))),
             ("n_estimators", ten_to_ten_thousand),
             ("max_bin", ten_to_ten_thousand[:-9]),
             ("lambda_l1", (np.logspace(0.00, 1, 100) - 1) / 9),
