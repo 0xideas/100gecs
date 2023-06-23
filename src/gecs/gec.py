@@ -202,6 +202,7 @@ class GEC(LGBMClassifier):
         self._n_classes = None
         self.set_params(**kwargs)
 
+        self.adjustment_factor = 0.0
         self.gec_hyperparameters = {
             "l": 1.0,
             "l_bagging": 0.1,
@@ -323,10 +324,14 @@ class GEC(LGBMClassifier):
             itertools.product(
                 *[
                     list(range(1, 11, 1)),
-                    np.arange(0.05, 1.0, 0.05),
+                    np.arange(0.5, 1.0, 0.01),
                 ]
             )
         )
+
+        self._rescale_bagging_combination = lambda freq, frac: (((freq/5)-1), ((frac*4)-3))
+        self._invert_rescaled_bagging_combination =  lambda freq, frac: (((freq+1)*5), ((frac+3)/4))
+        self._bagging_combinations_rescaled = [self._rescale_bagging_combination(freq, frac) for freq, frac in self._bagging_combinations]
 
         self.best_score = None
         self.best_params_ = None
@@ -410,6 +415,7 @@ class GEC(LGBMClassifier):
         gec.best_score = float(representation["best_score"])
         gec.best_params_gec = representation["best_params_gec"]
         gec.best_scores_gec = representation["best_scores_gec"]
+        gec.adjustment_factor = representation["adjustment_factor"]
 
         if X is not None and y is not None:
             gec._fit_best_params(X, y)
@@ -474,6 +480,7 @@ class GEC(LGBMClassifier):
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
             "gec_iter": self.gec_iter,
+            "adjustment_factor": self.adjustment_factor
         }
         return representation
 
@@ -709,13 +716,9 @@ class GEC(LGBMClassifier):
 
                 if "yes_bagging" in selected_arm:
                     if len(self.bagging_scores["all-models"]["inputs"]) > 0:
-                        self.gaussian_bagging.fit(
-                            np.array(self.bagging_scores["all-models"]["inputs"]),
-                            np.array(self.bagging_scores["all-models"]["output"])
-                            - self.adjustment_factor,
-                        )
+                        self._fit_gaussian_bagging()
                     mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-                        self._bagging_combinations, return_std=True
+                        self._bagging_combinations_rescaled, return_std=True
                     )
 
                     predicted_rewards_bagging = np.array(
@@ -763,7 +766,7 @@ class GEC(LGBMClassifier):
 
                 if "bagging_freq" in arguments:
                     self.bagging_scores["all-models"]["inputs"].append(
-                        [float(f) for f in selected_combination_bagging]
+                        list(self._rescale_bagging_combination(*selected_combination_bagging))
                     )
                     self.bagging_scores["all-models"]["output"].append(score)
                     self.bagging_scores["all-models"]["means"].append(mean_bagging)
@@ -843,6 +846,12 @@ class GEC(LGBMClassifier):
         self.gaussian.fit(
             np.array(self.hyperparameter_scores["all-models"]["inputs"]),
             np.array(self.hyperparameter_scores["all-models"]["output"]) - self.adjustment_factor,
+        )
+
+    def _fit_gaussian_bagging(self):
+        self.gaussian_bagging.fit(
+            np.array(self.bagging_scores["all-models"]["inputs"]),
+            np.array(self.bagging_scores["all-models"]["output"]) - self.adjustment_factor,
         )
 
     def _get_best_arm(self):
@@ -938,16 +947,8 @@ class GEC(LGBMClassifier):
         )
 
         if "yes_bagging" in best_arm:
-            bagging_scores = np.array(self.bagging_scores["all-models"]["inputs"])
-            bagging_scores[:, 0] = bagging_scores[:, 0] / 10
-            self.gaussian_bagging.fit(
-                bagging_scores,
-                np.array(self.bagging_scores["all-models"]["output"])
-                - self.adjustment_factor,
-            )
-            bagging_combinations = np.array(self._bagging_combinations)
-            bagging_combinations[:, 0] = bagging_combinations[:, 0] / 10
-            mean_bagging = self.gaussian_bagging.predict(bagging_combinations)
+            self._fit_gaussian_bagging()
+            mean_bagging = self.gaussian_bagging.predict(self._bagging_combinations_rescaled)
             best_predicted_combination_bagging = self._bagging_combinations[
                 np.argmax(mean_bagging)
             ]
@@ -1084,12 +1085,10 @@ class GEC(LGBMClassifier):
         cat,
         plot_bounds=True,
     ):
-        bagging_scores = np.array(self.bagging_scores[cat]["inputs"])
-        bagging_scores[:, 0] = bagging_scores[:, 0] / 10
-        self.gaussian_bagging.fit(bagging_scores, self.bagging_scores[cat]["output"])
+        self._fit_gaussian_bagging()
 
-        X_range = np.arange(1, 11, 1) / 10
-        Y_range = np.arange(0.05, 1.0, 0.05)
+        X_range = np.array(self._bagging_combinations_rescaled)[0,:]
+        Y_range = np.array(self._bagging_combinations_rescaled)[1,:]
         Z_range = np.arange(-0.5, 1.5, 0.1)
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 12))
