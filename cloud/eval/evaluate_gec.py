@@ -1,8 +1,6 @@
 import json
 import os
 import typer
-import shutil
-import contextlib
 import boto3
 from typing import Optional
 from io import BytesIO
@@ -11,7 +9,6 @@ from datetime import datetime
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import cross_val_score
 from gecs.gec import GEC
-from sklearn.model_selection import RandomizedSearchCV
 from cloud_io.load_dataset import load_dataset
 
 VERSION = 19
