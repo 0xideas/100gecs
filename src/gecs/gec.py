@@ -225,6 +225,8 @@ class GEC(LGBMClassifier):
             "randomize": True
         }
         self._set_gec_attributes()
+        self._set_gec_fields()
+
 
     def _set_gec_attributes(self):
         self.categorical_hyperparameters = [
@@ -306,12 +308,14 @@ class GEC(LGBMClassifier):
             np.array(s).dtype for _, s in self._real_hyperparameters
         ]
 
+    def _set_gec_fields(self):
         self.kernel = RBF(self.gec_hyperparameters["l"])
         self.hyperparameter_scores = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in ["all-models"]
         }
         self.kernel_bagging = RBF(self.gec_hyperparameters["l_bagging"])
+
         self.bagging_scores = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
             for c in ["all-models"]
