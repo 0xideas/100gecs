@@ -202,7 +202,6 @@ class GEC(LGBMClassifier):
         self._n_classes = None
         self.set_params(**kwargs)
 
-        self.adjustment_factor = 0.0
         self.gec_hyperparameters = {
             "l": 1.0,
             "l_bagging": 0.1,
@@ -415,7 +414,6 @@ class GEC(LGBMClassifier):
         gec.best_score = float(representation["best_score"])
         gec.best_params_gec = representation["best_params_gec"]
         gec.best_scores_gec = representation["best_scores_gec"]
-        gec.adjustment_factor = representation["adjustment_factor"]
 
         if X is not None and y is not None:
             gec._fit_best_params(X, y)
@@ -479,8 +477,7 @@ class GEC(LGBMClassifier):
             "best_score": self.best_score,
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
-            "gec_iter": self.gec_iter,
-            "adjustment_factor": self.adjustment_factor
+            "gec_iter": self.gec_iter
         }
         return representation
 
@@ -537,7 +534,6 @@ class GEC(LGBMClassifier):
         self.gec_num_leaves = num_leaves
         self.gec_n_estimators = n_estimators
 
-        self.adjustment_factor = 1 / len(np.unique(y))  # get mean closer to 0
 
         self.best_scores_gec = {}
         self.best_params_gec = {}
@@ -845,13 +841,13 @@ class GEC(LGBMClassifier):
     def _fit_gaussian(self):
         self.gaussian.fit(
             np.array(self.hyperparameter_scores["all-models"]["inputs"]),
-            np.array(self.hyperparameter_scores["all-models"]["output"]) - self.adjustment_factor,
+            np.array(self.hyperparameter_scores["all-models"]["output"]) - np.mean(self.hyperparameter_scores["all-models"]["output"]),
         )
 
     def _fit_gaussian_bagging(self):
         self.gaussian_bagging.fit(
             np.array(self.bagging_scores["all-models"]["inputs"]),
-            np.array(self.bagging_scores["all-models"]["output"]) - self.adjustment_factor,
+            np.array(self.bagging_scores["all-models"]["output"]) - np.mean(self.bagging_scores["all-models"]["output"]),
         )
 
     def _get_best_arm(self):
