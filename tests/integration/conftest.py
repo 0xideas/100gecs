@@ -70,5 +70,5 @@ def gec(X, y):
             "exploration_num_leaves": 10
         }
     })
-    gec.fit(X, y, 2, 10, 10)
+    gec.fit(X, y, 2)
     return gec

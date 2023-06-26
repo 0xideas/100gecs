@@ -231,9 +231,9 @@ class GEC(LGBMClassifier):
                 "exploration_max_num_leaves": 200
             }
         }
-        self._set_hyperparameter_attributes()
+        self._set_gec_attributes()
 
-    def _set_hyperparameter_attributes(self):
+    def _set_gec_attributes(self):
         self.categorical_hyperparameters = [
             ("boosting", ["gbdt", "dart", "rf"]),
             ("bagging", ["yes_bagging", "no_bagging"]),
@@ -272,6 +272,11 @@ class GEC(LGBMClassifier):
             ("min_child_samples", np.arange(2, 50, 1)),
             ("colsample_bytree",np.arange(0.1, 1.01, 0.01))
         ]
+        self._real_hyperparameters_fixed_names = [
+            name for name, _ in self._real_hyperparameters_all
+            if name not in self.gec_hyperparameters["hyperparameters"]
+        ]
+
         self._real_hyperparameters = [
             (hp_name, range_)
             for hp_name, range_ in self._real_hyperparameters_all
@@ -302,10 +307,6 @@ class GEC(LGBMClassifier):
         self._real_hyperparameter_names, self._real_hyperparameter_ranges = zip(
             *self._real_hyperparameters_linear
         )
-
-        self._hyperparameter_to_index = dict(zip(
-            self._real_hyperparameter_names, range(len(self._real_hyperparameter_names))
-        ))
 
         self._real_hypermarameter_types = [
             np.array(s).dtype for _, s in self._real_hyperparameters
@@ -511,11 +512,10 @@ class GEC(LGBMClassifier):
             np.array([hp in self.gec_hyperparameters for hp in gec_hyperparameters.keys()])
         )
         self.gec_hyperparameters.update(gec_hyperparameters)
-        self._set_hyperparameter_attributes()
+        self._set_gec_attributes()
 
 
-
-    def fit(self, X, y, n_iter=100, n_estimators=1000, num_leaves=200):
+    def fit(self, X, y, n_iter=100, fixed_hyperparameters=["n_estimators", "num_leaves"]):
         """Fit GEC on data
 
         Parameters
@@ -532,12 +532,8 @@ class GEC(LGBMClassifier):
             self: GEC
         """
 
-        assert n_estimators <= 10000, "only up to 10000 estimators are allowed"
-        assert num_leaves <=1000, "only up to 1000 leaves are allowed"
-    
-        self.gec_num_leaves = num_leaves
-        self.gec_n_estimators = n_estimators
-
+        filtered_hyperparameters = list(set(self.gec_hyperparameters["hyperparameters"]).difference(set(fixed_hyperparameters)))
+        self.set_gec_hyperparameters({"hyperparameters": filtered_hyperparameters })
 
         self.best_scores_gec = {}
         self.best_params_gec = {}
@@ -576,33 +572,16 @@ class GEC(LGBMClassifier):
         return self
 
     def _calculate_cv_score(self, X, y, params):
+        fixed_params = {
+            hyperparameter: getattr(self, hyperparameter)
+            for hyperparameter in self._real_hyperparameters_fixed_names
+        }
+        
         clf = LGBMClassifier(**params)
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             score = np.mean(cross_val_score(clf, X, y, cv=5))
         return score
 
-
-    def _set_n_estimators_and_num_leaves(self, selected_combination, arguments, i, n_iter):
-        last_n_iterations = (i+self.gec_hyperparameters["estimators_leaves"]["n_exploitation"]) >= n_iter
-        last_share_iterations = (i/n_iter) >= (1- self.gec_hyperparameters["estimators_leaves"]["share_exploitation"])
-        n_estimators_not_optimised = "n_estimators" not in self.gec_hyperparameters["hyperparameters"]
-        if last_n_iterations or last_share_iterations or n_estimators_not_optimised:
-            new_n_estimators = self.gec_n_estimators
-        else:
-            new_n_estimators = min(arguments["n_estimators"], self.gec_hyperparameters["estimators_leaves"]["exploration_max_n_estimators"])
-
-        selected_combination[self._hyperparameter_to_index["n_estimators"]] = self._real_hyperparameters_map_reverse["n_estimators"][new_n_estimators]
-        arguments["n_estimators"] = new_n_estimators
-
-        num_leaves_not_optimised = "num_leaves" not in self.gec_hyperparameters["hyperparameters"]
-        if last_n_iterations or last_share_iterations or num_leaves_not_optimised:
-            new_num_leaves = self.gec_num_leaves
-        else:
-            new_num_leaves = min(arguments["num_leaves"], self.gec_hyperparameters["estimators_leaves"]["exploration_max_num_leaves"])
-        selected_combination[self._hyperparameter_to_index["num_leaves"]] = self._real_hyperparameters_map_reverse["num_leaves"][new_num_leaves]
-        arguments["num_leaves"] = new_num_leaves
-
-        return(selected_combination, arguments)
 
     def _optimise_hyperparameters(
         self,
@@ -745,8 +724,6 @@ class GEC(LGBMClassifier):
             del arguments["bagging"]
             arguments["verbosity"] = -1
 
-            selected_combination, arguments = self._set_n_estimators_and_num_leaves(selected_combination, arguments, i, n_iter)
-
             try:
                 score = self._calculate_cv_score(X, Y, arguments)
                 if np.isnan(score):
@@ -794,15 +771,6 @@ class GEC(LGBMClassifier):
                 warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
 
         best_score = self._calculate_cv_score(X, Y, best_params)
-
-        best_params2 = copy.deepcopy(best_params)
-        best_params2["n_estimators"] = self.gec_n_estimators
-        best_params2["num_leaves"] = self.gec_num_leaves
-        best_score_estimators_leaves = self._calculate_cv_score(X, Y, best_params2)
-
-        if best_score_estimators_leaves > best_score:
-            best_score = best_score_estimators_leaves
-            best_params = best_params2
 
         return (best_params, best_score)
 
@@ -881,9 +849,6 @@ class GEC(LGBMClassifier):
         best_params = self._find_best_parameters_from_initial_parameters(
             best_arm, best_combination, step_sizes
         )
-
-        best_params["n_estimators"] = self.gec_n_estimators
-        best_params["num_leaves"] = self.gec_num_leaves
 
         return best_params
 
