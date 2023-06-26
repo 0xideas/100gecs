@@ -220,7 +220,7 @@ class GEC(LGBMClassifier):
                 "reg_alpha",
                 "reg_lambda",
                 "min_child_samples",
-                "colsample_bytree",
+                "colsample_bytree", #feature_fraction
             ],
             "randomize": True,
             "estimators_leaves": {
