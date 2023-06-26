@@ -216,7 +216,6 @@ class GEC(LGBMClassifier):
                 "learning_rate",
                 "n_estimators",
                 "num_leaves",
-                "max_bin",
                 "reg_alpha",
                 "reg_lambda",
                 "min_child_samples",
@@ -262,20 +261,21 @@ class GEC(LGBMClassifier):
             ]
         )
         self._real_hyperparameters_all = [
-            ("learning_rate", (np.logspace(0.001, 2.5, 100)) / 1000),
+            ("learning_rate", (np.concatenate([np.arange(0.001, 0.5, 0.003), np.arange(0.5, 1.01, 0.1)])**2)),
             ("num_leaves",  np.array(list(range(1, 100))+list(range(100, 1000, 5)))),
             ("n_estimators", ten_to_ten_thousand),
-            ("max_bin", ten_to_ten_thousand[:-9]),
-            ("reg_alpha", (np.logspace(0.00, 1, 100) - 1) / 9),
-            ("reg_lambda", (np.logspace(0.00, 1, 100) - 1) / 9),
-            ("min_child_weight", np.arange(0.0, 0.01, 0.0001)),
+            ("reg_alpha", (np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.01, 0.1)])**2)),
+            ("reg_lambda", (np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.01, 0.1)])**2)),
+            ("min_child_weight", list( np.concatenate([np.arange(0.0, 0.1, 0.001), np.arange(0.1, 0.5, 0.05)])**2)),
             ("min_child_samples", np.arange(2, 50, 1)),
             ("colsample_bytree",np.arange(0.1, 1.01, 0.01))
         ]
-        self._real_hyperparameters_fixed_names = [
-            name for name, _ in self._real_hyperparameters_all
-            if name not in self.gec_hyperparameters["hyperparameters"]
-        ]
+
+        self.fixed_params = {
+            hyperparameter: getattr(self, hyperparameter)
+            for hyperparameter, _ in self._real_hyperparameters_all
+            if hyperparameter not in self.gec_hyperparameters["hyperparameters"]
+        }
 
         self._real_hyperparameters = [
             (hp_name, range_)
@@ -572,11 +572,7 @@ class GEC(LGBMClassifier):
         return self
 
     def _calculate_cv_score(self, X, y, params):
-        fixed_params = {
-            hyperparameter: getattr(self, hyperparameter)
-            for hyperparameter in self._real_hyperparameters_fixed_names
-        }
-        
+        print(params)
         clf = LGBMClassifier(**params)
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             score = np.mean(cross_val_score(clf, X, y, cv=5))
@@ -798,7 +794,7 @@ class GEC(LGBMClassifier):
                 hyperparameter_values,
             )
         )
-        return arguments
+        return {**arguments, **self.fixed_params}
 
     def _fit_best_params(self, X, y):
 
