@@ -56,10 +56,11 @@ def gec(X, y):
             "n_estimators",
             "num_leaves",
             "max_bin",
-            "lambda_l1",
-            "lambda_l2",
-            "min_data_in_leaf",
-            "feature_fraction",
+            "reg_alpha",
+            "reg_lambda",
+            "min_child_samples",
+            "min_child_weight",
+            "colsample_bytree", #feature_fraction
         ],
         "randomize": True,
         "estimators_leaves": {

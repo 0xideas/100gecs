@@ -220,7 +220,8 @@ class GEC(LGBMClassifier):
                 "reg_alpha",
                 "reg_lambda",
                 "min_child_samples",
-                "colsample_bytree",
+                "min_child_weight",
+                "colsample_bytree", #feature_fraction
             ],
             "randomize": True,
             "estimators_leaves": {
@@ -267,6 +268,7 @@ class GEC(LGBMClassifier):
             ("max_bin", ten_to_ten_thousand[:-9]),
             ("reg_alpha", (np.logspace(0.00, 1, 100) - 1) / 9),
             ("reg_lambda", (np.logspace(0.00, 1, 100) - 1) / 9),
+            ("min_child_weight", np.arange(0.0, 0.01, 0.0001)),
             ("min_child_samples", np.arange(2, 50, 1)),
             ("colsample_bytree",np.arange(0.1, 1.01, 0.01))
         ]
@@ -510,6 +512,8 @@ class GEC(LGBMClassifier):
         )
         self.gec_hyperparameters.update(gec_hyperparameters)
         self._set_hyperparameter_attributes()
+
+
 
     def fit(self, X, y, n_iter=100, n_estimators=1000, num_leaves=200):
         """Fit GEC on data
