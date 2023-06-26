@@ -222,13 +222,7 @@ class GEC(LGBMClassifier):
                 "min_child_weight",
                 "colsample_bytree", #feature_fraction
             ],
-            "randomize": True,
-            "estimators_leaves": {
-                "n_exploitation": 1,
-                "share_exploitation": 0.1,
-                "exploration_max_n_estimators": 200,
-                "exploration_max_num_leaves": 200
-            }
+            "randomize": True
         }
         self._set_gec_attributes()
 
@@ -1037,7 +1031,10 @@ class GEC(LGBMClassifier):
 
     def _plot_linear_scaled_parameter_samples(self, cat, ax, x):
         inputs_ = np.array(self.hyperparameter_scores[cat]["inputs"])
-        assert (len(self._real_hyperparameter_names) == inputs_.shape[1])
+        assert (
+            (len(self._real_hyperparameter_names) == inputs_.shape[1]), 
+            f"{len(self._real_hyperparameter_names)}!={inputs_.shape[1]}"
+        )
         for i in range(inputs_.shape[1]):
             ax.plot(x, inputs_[:, i], label=self._real_hyperparameter_names[i])
 

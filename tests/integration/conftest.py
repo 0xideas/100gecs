@@ -62,13 +62,7 @@ def gec(X, y):
             "min_child_weight",
             "colsample_bytree", #feature_fraction
         ],
-        "randomize": True,
-        "estimators_leaves": {
-            "n_exploitation": 5,
-            "share_exploitation": 0.1,
-            "exploration_n_estimators": 10,
-            "exploration_num_leaves": 10
-        }
+        "randomize": True
     })
     gec.fit(X, y, 2)
     return gec

@@ -14,7 +14,7 @@ from gecs.gec import GEC
 from sklearn.model_selection import RandomizedSearchCV
 from cloud_io.load_dataset import load_dataset
 
-VERSION = 21
+VERSION = 22
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 BUCKET = "100gecs"
 
@@ -42,7 +42,7 @@ def run(
     aws_region: str = "eu-central-1",
     dataset: str = "bank",
     n_evals: int = 3,
-    hyperparameters: str = "num_leaves-learning_rate-n_estimators-max_bin-max_depth-lambda_l1-lambda_l2-min_data_in_leaf-feature_fraction",
+    hyperparameters: str = "learning_rate-max_bin-max_depth-lambda_l1-lambda_l2-min_data_in_leaf-feature_fraction",
     dataset_path: Optional[str] = None,
 ):
     client = boto3.client(
