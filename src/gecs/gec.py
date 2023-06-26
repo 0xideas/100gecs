@@ -566,7 +566,6 @@ class GEC(LGBMClassifier):
         return self
 
     def _calculate_cv_score(self, X, y, params):
-        print(params)
         clf = LGBMClassifier(**params)
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             score = np.mean(cross_val_score(clf, X, y, cv=5))
