@@ -1,6 +1,6 @@
 [
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -31,7 +31,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -62,7 +62,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -93,7 +93,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -124,7 +124,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -155,7 +155,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -186,7 +186,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -217,7 +217,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -248,7 +248,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -279,7 +279,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -310,7 +310,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -341,7 +341,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -372,7 +372,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -403,7 +403,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -434,7 +434,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -465,7 +465,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -496,7 +496,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -527,7 +527,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -558,7 +558,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -589,7 +589,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -620,7 +620,7 @@
         ]
     },
     {
-        "n_random_exploration": 20,
+        "n_random_exploration": 2,
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,

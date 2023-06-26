@@ -255,7 +255,7 @@ class GEC(LGBMClassifier):
             ]
         )
         self._real_hyperparameters_all = [
-            ("learning_rate", (np.concatenate([np.arange(0.001, 0.5, 0.003), np.arange(0.5, 1.00, 0.02)])**2)),
+            ("learning_rate", (np.concatenate([np.arange(0.001, 0.5, 0.003), np.arange(0.5, 0.95, 0.02)])**2)),
             ("num_leaves",  np.array(list(range(1, 100))+list(range(100, 1000, 5)))),
             ("n_estimators", ten_to_ten_thousand),
             ("reg_alpha", (np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.00, 0.02)])**2)),
@@ -566,7 +566,6 @@ class GEC(LGBMClassifier):
         return self
 
     def _calculate_cv_score(self, X, y, params):
-        print(params)
         clf = LGBMClassifier(**params)
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             score = np.mean(cross_val_score(clf, X, y, cv=5))
