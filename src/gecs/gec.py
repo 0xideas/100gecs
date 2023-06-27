@@ -202,6 +202,28 @@ class GEC(LGBMClassifier):
         self._n_classes = None
         self.set_params(**kwargs)
 
+        self._init_kwargs = {
+            k: v for k, v in kwargs.items()
+            if k not in ["bagging_freq", "bagging_fraction"]
+        }
+
+        non_optimized_init_args = [
+            "max_depth",
+            "subsample_for_bin",
+            "objective",
+            "class_weight",
+            "min_split_gain", 
+            "subsample",
+            "subsample_freq",
+            "random_state",
+            "n_jobs",
+            "silent",
+            "importance_type"
+        ]
+        self._init_args = {
+            arg: getattr(self, arg) for arg in non_optimized_init_args
+        }
+
         self.gec_hyperparameters = {
             "l": 1.0,
             "l_bagging": 0.1,
@@ -272,6 +294,8 @@ class GEC(LGBMClassifier):
             for hyperparameter, _ in self._real_hyperparameters_all
             if hyperparameter not in self.gec_hyperparameters["hyperparameters"]
         }
+
+
 
         self._real_hyperparameters = [
             (hp_name, range_)
@@ -791,7 +815,7 @@ class GEC(LGBMClassifier):
                 hyperparameter_values,
             )
         )
-        return {**arguments, **self.fixed_params}
+        return {**arguments, **self.fixed_params,  **self._init_args, **self._init_kwargs}
 
     def _fit_best_params(self, X, y):
 
