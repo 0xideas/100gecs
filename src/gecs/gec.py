@@ -595,8 +595,13 @@ class GEC(LGBMClassifier):
 
     def _calculate_cv_score(self, X, y, params):
         clf = LGBMClassifier(**params)
-        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-            score = np.mean(cross_val_score(clf, X, y, cv=5))
+        try:
+            with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+                cross_val_scores = cross_val_score(clf, X, y, cv=5)
+                score = np.mean(cross_val_scores)
+        except:
+            warnings.warn(f"Could not calculate cross val scores for parameters: {params}")
+            score = 0.0
         return score
 
 
