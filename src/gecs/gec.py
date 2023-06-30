@@ -336,13 +336,14 @@ class GEC(LGBMClassifier):
         self.kernel = RBF(self.gec_hyperparameters["l"])
         self.hyperparameter_scores = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
-            for c in ["all-models"]
+            for c in self._categorical_hyperparameter_combinations
         }
         self.kernel_bagging = RBF(self.gec_hyperparameters["l_bagging"])
 
         self.bagging_scores = {
             c: {"inputs": [], "output": [], "means": [], "sigmas": []}
-            for c in ["all-models"]
+            for c in self._categorical_hyperparameter_combinations
+            if "yes_bagging" in c
         }
         self._bagging_combinations = list(
             itertools.product(
@@ -615,10 +616,6 @@ class GEC(LGBMClassifier):
         **kwargs,
     ):
 
-        assert np.all(
-            np.array(sorted(list(self.hyperparameter_scores.keys())))
-            == np.array(["all-models"])
-        )
         if self.gec_hyperparameters["randomize"]:
             np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
 
@@ -651,6 +648,16 @@ class GEC(LGBMClassifier):
 
                 mean, sigma, mean_bagging, sigma_bagging = 0, 0, 0, 0
             else:
+
+                sets = np.array(
+                    [
+                        np.random.choice(
+                            range_, self.gec_hyperparameters["n_sample_initial"]
+                        )
+                        for _, range_ in self._real_hyperparameters_linear
+                    ]
+                )
+
                 sampled_reward = np.array(
                     [
                         beta.rvs(reward["a"], reward["b"])
@@ -661,38 +668,35 @@ class GEC(LGBMClassifier):
                 selected_arm = self._categorical_hyperparameter_combinations[
                     selected_arm_index
                 ]
-                n_best = max(
-                    3, int(self.gec_iter * self.gec_hyperparameters["best_share"])
-                )
-                best_interactions = np.argsort(
-                    np.array(self.hyperparameter_scores["all-models"]["output"])
-                )[::-1][:n_best]
 
-                best_hyperparameters = np.array(
-                    self.hyperparameter_scores["all-models"]["inputs"]
-                )[best_interactions, :]
+                if len(self.hyperparameter_scores[selected_arm]["output"]):
+                    n_best = max(
+                        3, int(self.gec_iter * self.gec_hyperparameters["best_share"])
+                    )
+                    best_interactions = np.argsort(
+                        np.array(self.hyperparameter_scores[selected_arm]["output"])
+                    )[::-1][:n_best]
 
-                sets = np.array(
-                    [
-                        np.random.choice(
-                            range_, self.gec_hyperparameters["n_sample_initial"]
-                        )
-                        for _, range_ in self._real_hyperparameters_linear
+                    best_hyperparameters = np.array(
+                        self.hyperparameter_scores[selected_arm]["inputs"]
+                    )[best_interactions, :]
+
+
+                    closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
+                        :, :self.gec_hyperparameters["n_sample"]
                     ]
-                )
-                closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
-                    :, : self.gec_hyperparameters["n_sample"]
-                ]
-                selected_hyperparameter_indices = np.unique(
-                    closest_hyperparameters.flatten()
-                )
+                    selected_hyperparameter_indices = np.unique(
+                        closest_hyperparameters.flatten()
+                    )
 
-                combinations = list(sets[:, selected_hyperparameter_indices].T)
+                    combinations = list(sets[:, selected_hyperparameter_indices].T)
+                else:
+                    combinations = list(sets[:, :self.gec_hyperparameters["n_sample"]].T)
 
                 assert len(combinations), sets
 
-                if len(self.hyperparameter_scores["all-models"]["inputs"]) > 0:
-                    self._fit_gaussian()
+                if len(self.hyperparameter_scores[selected_arm]["inputs"]) > 0:
+                    self._fit_gaussian(selected_arm)
 
                 mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
@@ -716,8 +720,8 @@ class GEC(LGBMClassifier):
                 )
 
                 if "yes_bagging" in selected_arm:
-                    if len(self.bagging_scores["all-models"]["inputs"]) > 0:
-                        self._fit_gaussian_bagging()
+                    if len(self.bagging_scores[selected_arm]["inputs"]) > 0:
+                        self._fit_gaussian_bagging(selected_arm)
                     mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
                         self._bagging_combinations_rescaled, return_std=True
                     )
@@ -756,20 +760,20 @@ class GEC(LGBMClassifier):
                     best_params = arguments
 
                 self.selected_arms.append(selected_arm)
-                self.hyperparameter_scores["all-models"]["inputs"].append(
+                self.hyperparameter_scores[selected_arm]["inputs"].append(
                     [float(f) for f in selected_combination]
                 )
-                self.hyperparameter_scores["all-models"]["output"].append(score)
-                self.hyperparameter_scores["all-models"]["means"].append(mean)
-                self.hyperparameter_scores["all-models"]["sigmas"].append(sigma)
+                self.hyperparameter_scores[selected_arm]["output"].append(score)
+                self.hyperparameter_scores[selected_arm]["means"].append(mean)
+                self.hyperparameter_scores[selected_arm]["sigmas"].append(sigma)
 
                 if "bagging_freq" in arguments:
-                    self.bagging_scores["all-models"]["inputs"].append(
+                    self.bagging_scores[selected_arm]["inputs"].append(
                         list(self._rescale_bagging_combination(*selected_combination_bagging))
                     )
-                    self.bagging_scores["all-models"]["output"].append(score)
-                    self.bagging_scores["all-models"]["means"].append(mean_bagging)
-                    self.bagging_scores["all-models"]["sigmas"].append(sigma_bagging)
+                    self.bagging_scores[selected_arm]["output"].append(score)
+                    self.bagging_scores[selected_arm]["means"].append(mean_bagging)
+                    self.bagging_scores[selected_arm]["sigmas"].append(sigma_bagging)
 
                 if self.best_score is not None:
                     score_delta = score - self.best_score
@@ -832,16 +836,16 @@ class GEC(LGBMClassifier):
 
         super().fit(X, y)
 
-    def _fit_gaussian(self):
+    def _fit_gaussian(self, selected_arm):
         self.gaussian.fit(
-            np.array(self.hyperparameter_scores["all-models"]["inputs"]),
-            np.array(self.hyperparameter_scores["all-models"]["output"]) - np.mean(self.hyperparameter_scores["all-models"]["output"]),
+            np.array(self.hyperparameter_scores[selected_arm]["inputs"]),
+            np.array(self.hyperparameter_scores[selected_arm]["output"]) - np.mean(self.hyperparameter_scores[selected_arm]["output"]),
         )
 
-    def _fit_gaussian_bagging(self):
+    def _fit_gaussian_bagging(self, selected_arm):
         self.gaussian_bagging.fit(
-            np.array(self.bagging_scores["all-models"]["inputs"]),
-            np.array(self.bagging_scores["all-models"]["output"]) - np.mean(self.bagging_scores["all-models"]["output"]),
+            np.array(self.bagging_scores[selected_arm]["inputs"]),
+            np.array(self.bagging_scores[selected_arm]["output"]) - np.mean(self.bagging_scores[selected_arm]["output"]),
         )
 
     def _get_best_arm(self):
@@ -859,7 +863,7 @@ class GEC(LGBMClassifier):
 
         best_arm = self._get_best_arm()
 
-        self._fit_gaussian()
+        self._fit_gaussian(best_arm)
         sets = [
             list(range_[:: step_sizes[0]]) + [range_[-1]]
             for range_ in self._real_hyperparameter_ranges
@@ -875,7 +879,6 @@ class GEC(LGBMClassifier):
         return best_params
 
     def _find_best_parameters_from_search(self, params):
-        self._fit_gaussian()
 
         if "bagging_freq" in params:
             del params["bagging_freq"]
@@ -885,6 +888,7 @@ class GEC(LGBMClassifier):
             bagging = "no_bagging"
         boosting = params.pop("boosting")
         best_arm = f"{boosting}-{bagging}"
+        self._fit_gaussian(best_arm)
 
         best_params_linear_values = [
             self._real_hyperparameters_map_reverse[name][params[name]]
@@ -934,7 +938,7 @@ class GEC(LGBMClassifier):
         )
 
         if "yes_bagging" in best_arm:
-            self._fit_gaussian_bagging()
+            self._fit_gaussian_bagging(best_arm)
             mean_bagging = self.gaussian_bagging.predict(self._bagging_combinations_rescaled)
             best_predicted_combination_bagging = self._bagging_combinations[
                 np.argmax(mean_bagging)
@@ -998,7 +1002,7 @@ class GEC(LGBMClassifier):
 
         figs = {}
 
-        for categorical_combination in ["all-models"]:
+        for categorical_combination in self._categorical_hyperparameter_combinations:
             fig, axes = plt.subplots(
                 nrows=2, ncols=2, sharex=True, sharey=False, figsize=(12, 12)
             )
@@ -1017,9 +1021,13 @@ class GEC(LGBMClassifier):
             self._plot_linear_scaled_parameter_samples(categorical_combination, ax4, x)
 
             figs[f"{categorical_combination}-parameters"] = fig
-
-            fig2 = self._plot_boosting_parameter_surface(categorical_combination)
-            figs[f"{categorical_combination}-bagging"] = fig2
+            if "yes_bagging" in categorical_combination:
+                try:
+                    fig2 = self._plot_boosting_parameter_surface(categorical_combination)
+                    figs[f"{categorical_combination}-bagging"] = fig2
+                except Exception as e:
+                    print(categorical_combination)
+                    raise e
 
         return figs
 
@@ -1075,7 +1083,7 @@ class GEC(LGBMClassifier):
         cat,
         plot_bounds=True,
     ):
-        self._fit_gaussian_bagging()
+        self._fit_gaussian_bagging(cat)
 
         X_range = np.array(self._bagging_combinations_rescaled)[0,:]
         Y_range = np.array(self._bagging_combinations_rescaled)[1,:]

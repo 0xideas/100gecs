@@ -64,5 +64,5 @@ def gec(X, y):
         ],
         "randomize": True
     })
-    gec.fit(X, y, 2)
+    gec.fit(X, y, 10)
     return gec
