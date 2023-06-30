@@ -681,7 +681,7 @@ class GEC(LGBMClassifier):
                     ]
                 )
                 closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
-                    :, : int(self.gec_hyperparameters["n_sample"] / n_best)
+                    :, : self.gec_hyperparameters["n_sample"]
                 ]
                 selected_hyperparameter_indices = np.unique(
                     closest_hyperparameters.flatten()
