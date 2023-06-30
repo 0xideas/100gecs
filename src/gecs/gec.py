@@ -770,6 +770,7 @@ class GEC(LGBMClassifier):
                             self.rewards[selected_arm]["a"] + weighted_score_delta
                         )
                         self.best_params_ = arguments
+                        self.best_score = score
                     else:
                         self.rewards[selected_arm]["b"] = (
                             self.rewards[selected_arm]["b"] - weighted_score_delta
