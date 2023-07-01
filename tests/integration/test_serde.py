@@ -9,9 +9,9 @@ def serialisation_path():
 
 
 def test_serde(gec, serialisation_path, X, y):
-    gec.serialise(serialisation_path)
+    gec.serialize(serialisation_path)
 
-    gec2 = GEC.deserialise(serialisation_path, X, y)
+    gec2 = GEC.deserialize(serialisation_path, X, y)
 
     for k, v in gec._get_representation().items():
         assert str(v) == str(getattr(gec2, k))

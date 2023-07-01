@@ -395,13 +395,13 @@ class GEC(LGBMClassifier):
             raise Exception(f"type {type_} currently not supported")
 
     @classmethod
-    def deserialise(cls, path, X=None, y=None):
-        """Deserialise a model and fit underlying LGBMClassifier if X and y are provided
+    def deserialize(cls, path, X=None, y=None):
+        """Deserialize a model and fit underlying LGBMClassifier if X and y are provided
 
         Parameters
         ----------
             path : str
-                path to serialised GEC
+                path to serialized GEC
             X : np.ndarray, optional
                 Input feature matrix
             y : np.ndarray, optional
@@ -410,7 +410,7 @@ class GEC(LGBMClassifier):
         Returns
         -------
             gec : GEC
-                deserialised model object
+                deserialized model object
         """
         with open(path, "r") as f:
             representation = json.loads(f.read())
@@ -445,13 +445,13 @@ class GEC(LGBMClassifier):
         converted_dict = {k: list(v) for k, v in data_dict.items()}
         return converted_dict
 
-    def serialise(self, path):
-        """Serialise GEC model object
+    def serialize(self, path):
+        """Serialize GEC model object
 
         Parameters
         ----------
             path : str
-                path to serialise GEC to
+                path to serialize GEC to
         """
         representation = self._get_representation()
 
@@ -514,8 +514,7 @@ class GEC(LGBMClassifier):
         Parameters
         ----------
             gec_hyperparameters : dict[str, float]
-                dictionary with values for "l", "l_bagging",
-                "acquisition_percentile" and "bandit_greediness"
+                dictionary with keys that are in self.gec_hyperparameters
         """
         assert np.all(
             np.array([hp in self.gec_hyperparameters for hp in gec_hyperparameters.keys()])
@@ -543,21 +542,18 @@ class GEC(LGBMClassifier):
             callbacks=None,
             init_model=None
         ):
-        """Fit GEC on data
+        """Docstring is inherited from the LGBMClassifier.
+        
+        Except for
 
-        Parameters
+        Parameters:
         ----------
-            X : np.ndarray
-                Input feature matrix
-            y : np.ndarray
-                Target class labels
-            n_iter : int, optional (default=1000)
-                number of bayesian optimisation iterations
-
-        Returns
-        -------
-            self: GEC
+            n_iter : int
+                number of optimization steps
+            fixed_hyperparameters : list[str]
+                list of hyperparameters that should not be optimised
         """
+
 
         self._fit_params = {
             "sample_weight": sample_weight,
