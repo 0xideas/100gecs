@@ -1,3 +1,6 @@
+![a gecko looking at the camera with bayesian math in white on a pink and green background](documentation/assets/header.png)
+
+
 # (100)gecs
 
 Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
