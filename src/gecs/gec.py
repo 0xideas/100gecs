@@ -524,7 +524,7 @@ class GEC(LGBMClassifier):
         self._set_gec_attributes()
 
 
-    def fit(self, X, y, n_iter=100, fixed_hyperparameters=["n_estimators", "num_leaves"]):
+    def fit(self, X, y, n_iter=50, fixed_hyperparameters=["n_estimators", "num_leaves"]):
         """Fit GEC on data
 
         Parameters
