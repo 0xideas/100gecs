@@ -32,7 +32,7 @@ The fit method has two new parameters: `n_iter`, which sets the number of hyperp
 
     gec.serialize(path) # stores gec data and settings, but not underlying LGBMClassifier attributes
 
-    gec2 = GEC.deserialize(path, X, y) # X and z are necessary to fit the underlying LGBMClassifier
+    gec2 = GEC.deserialize(path, X, y) # X and y are necessary to fit the underlying LGBMClassifier
 
 
 ## Contributing
