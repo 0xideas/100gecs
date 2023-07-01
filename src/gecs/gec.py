@@ -524,7 +524,25 @@ class GEC(LGBMClassifier):
         self._set_gec_attributes()
 
 
-    def fit(self, X, y, n_iter=50, fixed_hyperparameters=["n_estimators", "num_leaves"]):
+    def fit(
+            self,
+            X,
+            y,
+            n_iter=50,
+            fixed_hyperparameters=["n_estimators", "num_leaves"],
+            sample_weight=None,
+            init_score=None,
+            eval_set=None,
+            eval_names=None,
+            eval_sample_weight=None,
+            eval_class_weight=None,
+            eval_init_score=None,
+            eval_metric=None,
+            feature_name='auto',
+            categorical_feature='auto',
+            callbacks=None,
+            init_model=None
+        ):
         """Fit GEC on data
 
         Parameters
@@ -540,6 +558,21 @@ class GEC(LGBMClassifier):
         -------
             self: GEC
         """
+
+        self._fit_params = {
+            "sample_weight": sample_weight,
+            "init_score": init_score,
+            "eval_set": eval_set,
+            "eval_names": eval_names,
+            "eval_sample_weight": eval_sample_weight,
+            "eval_class_weight": eval_class_weight,
+            "eval_init_score": eval_init_score,
+            "eval_metric": eval_metric,
+            "feature_name": feature_name,
+            "categorical_feature": categorical_feature,
+            "callbacks": callbacks,
+            "init_model": init_model
+        }
 
         filtered_hyperparameters = list(set(self.gec_hyperparameters["hyperparameters"]).difference(set(fixed_hyperparameters)))
         self.set_gec_hyperparameters({"hyperparameters": filtered_hyperparameters })
@@ -584,7 +617,7 @@ class GEC(LGBMClassifier):
         clf = LGBMClassifier(**params)
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-                cross_val_scores = cross_val_score(clf, X, y, cv=5)
+                cross_val_scores = cross_val_score(clf, X, y, cv=5, fit_params=self._fit_params)
                 score = np.mean(cross_val_scores)
         except:
             warnings.warn(f"Could not calculate cross val scores for parameters: {params}")
