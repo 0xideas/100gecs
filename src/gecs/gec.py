@@ -51,11 +51,14 @@ class GEC(LGBMClassifier):
         n_jobs: int = -1,
         silent: Union[bool, str] = "warn",
         importance_type: str = "split",
+        frozen: bool = False,
         **kwargs,
     ):
-        assert str(inspect.signature(LGBMClassifier.__init__)) == str(
-            inspect.signature(GEC.__init__)
-        )
+        adapted_lgbm_params = str(inspect.signature(LGBMClassifier.__init__)).replace(
+            "importance_type: str = 'split'", "importance_type: str = 'split', frozen: bool = False"
+        ) 
+        gec_params = str( inspect.signature(GEC.__init__))
+        assert adapted_lgbm_params == gec_params, gec_params
 
         r"""Construct a gradient boosting model.
 
@@ -207,6 +210,7 @@ class GEC(LGBMClassifier):
             if k not in ["bagging_freq", "bagging_fraction"]
         }
 
+        self.frozen = frozen
         non_optimized_init_args = [
             "max_depth",
             "subsample_for_bin",
@@ -232,7 +236,7 @@ class GEC(LGBMClassifier):
             "bandit_greediness": 1.0,
             "n_random_exploration": 10,
             "n_sample": 1000,
-            "n_sample_initial": 10000,
+            "n_sample_initial": 1000,
             "best_share": 0.2,
             "hyperparameters": [
                 "learning_rate",
@@ -252,7 +256,7 @@ class GEC(LGBMClassifier):
 
     def _set_gec_attributes(self):
         self.categorical_hyperparameters = [
-            ("boosting", ["gbdt", "dart", "rf"]),
+            ("boosting_type", ["gbdt", "dart", "rf"]),
             ("bagging", ["yes_bagging", "no_bagging"]),
         ]
 
@@ -355,6 +359,7 @@ class GEC(LGBMClassifier):
 
         self.best_score = None
         self.best_params_ = None
+        self.fit_params = None
         self.n_iterations = 0
 
         # parameters for bandit
@@ -383,7 +388,7 @@ class GEC(LGBMClassifier):
 
     @property
     def gec_iter(self):
-        return len(self.hyperparameter_scores)
+        return len(self.hyperparameter_scores["output"])
 
     @classmethod
     def _cast_to_type(cls, value, type_):
@@ -431,6 +436,7 @@ class GEC(LGBMClassifier):
         gec.best_score = float(representation["best_score"])
         gec.best_params_gec = representation["best_params_gec"]
         gec.best_scores_gec = representation["best_scores_gec"]
+        gec.fit_params = representation["fit_params"]
 
         if X is not None and y is not None:
             gec._fit_best_params(X, y)
@@ -489,7 +495,8 @@ class GEC(LGBMClassifier):
             "best_score": self.best_score,
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
-            "gec_iter": self.gec_iter
+            "gec_iter": self.gec_iter,
+            "fit_params": self.fit_params
         }
         return representation
 
@@ -523,6 +530,32 @@ class GEC(LGBMClassifier):
         self._set_gec_attributes()
 
 
+    def freeze(self):
+        self.frozen = True
+        return(self)
+
+    def unfreeze(self):
+        self.frozen = False
+        return(self)
+    
+    def get_params(self, deep=True):
+        if hasattr(self, "best_params_") and self.best_params_ is not None:
+            params = copy.deepcopy(self.best_params_)
+        else:
+            params = super().get_params(deep)
+        params["frozen"] = self.frozen
+        
+        return(params)
+
+    def __sklearn_clone__(self):
+        gec = GEC()
+
+        for k, v in self.__dict__.items():
+            gec.__dict__[k] = copy.deepcopy(v)
+
+        return(gec)
+
+
     def fit(
             self,
             X,
@@ -554,8 +587,7 @@ class GEC(LGBMClassifier):
                 list of hyperparameters that should not be optimised
         """
 
-
-        self._fit_params = {
+        self.fit_params = {
             "sample_weight": sample_weight,
             "init_score": init_score,
             "eval_set": eval_set,
@@ -569,43 +601,37 @@ class GEC(LGBMClassifier):
             "callbacks": callbacks,
             "init_model": init_model
         }
+        if not self.frozen:
+            filtered_hyperparameters = list(set(self.gec_hyperparameters["hyperparameters"]).difference(set(fixed_hyperparameters)))
+            self.set_gec_hyperparameters({"hyperparameters": filtered_hyperparameters })
 
-        filtered_hyperparameters = list(set(self.gec_hyperparameters["hyperparameters"]).difference(set(fixed_hyperparameters)))
-        self.set_gec_hyperparameters({"hyperparameters": filtered_hyperparameters })
+            self.best_scores_gec = {}
+            self.best_params_gec = {}
+            (
+                self.best_params_gec["search"],
+                self.best_scores_gec["search"],
+            ) = self._optimise_hyperparameters(
+                n_iter, X, y, self.best_score, self.best_params_
+            )
+            self.best_params_gec["grid"] = self._find_best_parameters()
+            self.best_scores_gec["grid"] = self._calculate_cv_score(
+                X, y, self.best_params_gec["grid"]
+            )
+            best_params_prep = copy.deepcopy(self.best_params_gec["search"])
+            self.best_params_gec[
+                "grid_from_search"
+            ] = self._find_best_parameters_from_search(best_params_prep)
 
-        self.best_scores_gec = {}
-        self.best_params_gec = {}
-        (
-            self.best_params_gec["search"],
-            self.best_scores_gec["search"],
-        ) = self._optimise_hyperparameters(
-            n_iter, X, y, self.best_score, self.best_params_
-        )
-        self.best_params_gec["grid"] = self._find_best_parameters()
-        self.best_scores_gec["grid"] = self._calculate_cv_score(
-            X, y, self.best_params_gec["grid"]
-        )
-        best_params_prep = copy.deepcopy(self.best_params_gec["search"])
-        self.best_params_gec[
-            "grid_from_search"
-        ] = self._find_best_parameters_from_search(best_params_prep)
+            self.best_scores_gec["grid_from_search"] = self._calculate_cv_score(
+                X, y, self.best_params_gec["grid_from_search"]
+            )
 
-        self.best_scores_gec["grid_from_search"] = self._calculate_cv_score(
-            X, y, self.best_params_gec["grid_from_search"]
-        )
-
-        for source, score in self.best_scores_gec.items():
-            if self.best_score is None or score > self.best_score:
-                self.best_score = score
-                self.best_params_ = self.best_params_gec[source]
-
-        # hyperparameter_scores, rewards = copy.deepcopy(self.hyperparameter_scores), copy.deepcopy(self.rewards)
-        # selected_arms = copy.deepcopy(self.selected_arms)
+            for source, score in self.best_scores_gec.items():
+                if self.best_score is None or score > self.best_score:
+                    self.best_score = score
+                    self.best_params_ = self.best_params_gec[source]
 
         self._fit_best_params(X, y)
-
-        # self.hyperparameter_scores, self.rewards = hyperparameter_scores, rewards
-        # self.selected_arms = selected_arms
 
         return self
 
@@ -613,7 +639,7 @@ class GEC(LGBMClassifier):
         clf = LGBMClassifier(**params)
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-                cross_val_scores = cross_val_score(clf, X, y, cv=5, fit_params=self._fit_params)
+                cross_val_scores = cross_val_score(clf, X, y, cv=5, fit_params=self.fit_params)
                 score = np.mean(cross_val_scores)
         except:
             warnings.warn(f"Could not calculate cross val scores for parameters: {params}")
@@ -843,13 +869,12 @@ class GEC(LGBMClassifier):
 
     def _fit_best_params(self, X, y):
 
-        gec = GEC(**{**self.best_params_, "random_state": 101})
+        if hasattr(self, "best_params_") and self.best_params_ is not None:
+            for k, v in self.best_params_.items():
+                setattr(self, k, v)
+                setattr(self, "random_state", 101)
 
-        for k, v in gec.__dict__.items():
-            if k not in self.__dict__ or self.__dict__[k] is None:
-                self.__dict__[k] = v
-
-        super().fit(X, y)
+        super().fit(X, y, **self.fit_params)
 
     def _fit_gaussian(self):
         self.gaussian.fit(
@@ -902,7 +927,7 @@ class GEC(LGBMClassifier):
             bagging = "yes_bagging"
         else:
             bagging = "no_bagging"
-        boosting = params.pop("boosting")
+        boosting = params.pop("boosting_type")
         best_arm = f"{boosting}-{bagging}"
 
         best_params_linear_values = [
