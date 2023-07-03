@@ -27,7 +27,6 @@ from lightgbm import LGBMClassifier
 from lightgbm.basic import LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
 
-warnings.filterwarnings("ignore", message="Unknown parameter: frozen")
 
 class GEC(LGBMClassifier):
     def __init__(
@@ -538,10 +537,8 @@ class GEC(LGBMClassifier):
     
     def get_params(self, deep=True):
         if hasattr(self, "best_params_") and self.best_params_ is not None:
-            print("Getting params with best_params_")
             params = copy.deepcopy(self.best_params_)
         else:
-            print("Getting params without best_params_")
             params = super().get_params(deep)
         params["frozen"] = self.frozen
         
@@ -554,10 +551,6 @@ class GEC(LGBMClassifier):
             gec.__dict__[k] = copy.deepcopy(v)
 
         return(gec)
-
-
-
-
 
 
     def fit(
