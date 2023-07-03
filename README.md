@@ -37,7 +37,7 @@ The fit method has two new parameters: `n_iter`, which sets the number of hyperp
     yhat = gec.predict(X)
 
     gec.freeze() # freeze GEC so that it behaves like a LGBMClassifier
-    gec.unfreeze() # unfreeze to enable optimisations
+    gec.unfreeze() # unfreeze to enable GEC hyperparameter optimisation
 
 
     
