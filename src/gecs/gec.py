@@ -359,6 +359,7 @@ class GEC(LGBMClassifier):
 
         self.best_score = None
         self.best_params_ = None
+        self.fit_params = None
         self.n_iterations = 0
 
         # parameters for bandit
@@ -435,6 +436,7 @@ class GEC(LGBMClassifier):
         gec.best_score = float(representation["best_score"])
         gec.best_params_gec = representation["best_params_gec"]
         gec.best_scores_gec = representation["best_scores_gec"]
+        gec.fit_params = representation["fit_params"]
 
         if X is not None and y is not None:
             gec._fit_best_params(X, y)
@@ -493,7 +495,8 @@ class GEC(LGBMClassifier):
             "best_score": self.best_score,
             "best_params_gec": self.best_params_gec,
             "best_scores_gec": self.best_scores_gec,
-            "gec_iter": self.gec_iter
+            "gec_iter": self.gec_iter,
+            "fit_params": self.fit_params
         }
         return representation
 
@@ -584,7 +587,7 @@ class GEC(LGBMClassifier):
                 list of hyperparameters that should not be optimised
         """
 
-        self._fit_params = {
+        self.fit_params = {
             "sample_weight": sample_weight,
             "init_score": init_score,
             "eval_set": eval_set,
@@ -636,7 +639,7 @@ class GEC(LGBMClassifier):
         clf = LGBMClassifier(**params)
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-                cross_val_scores = cross_val_score(clf, X, y, cv=5, fit_params=self._fit_params)
+                cross_val_scores = cross_val_score(clf, X, y, cv=5, fit_params=self.fit_params)
                 score = np.mean(cross_val_scores)
         except:
             warnings.warn(f"Could not calculate cross val scores for parameters: {params}")
@@ -871,7 +874,7 @@ class GEC(LGBMClassifier):
                 setattr(self, k, v)
                 setattr(self, "random_state", 101)
 
-        super().fit(X, y, **self._fit_params)
+        super().fit(X, y, **self.fit_params)
 
     def _fit_gaussian(self):
         self.gaussian.fit(
