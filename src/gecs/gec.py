@@ -257,7 +257,7 @@ class GEC(LGBMClassifier):
 
     def _set_gec_attributes(self):
         self.categorical_hyperparameters = [
-            ("boosting", ["gbdt", "dart", "rf"]),
+            ("boosting_type", ["gbdt", "dart", "rf"]),
             ("bagging", ["yes_bagging", "no_bagging"]),
         ]
 
@@ -540,11 +540,10 @@ class GEC(LGBMClassifier):
         if hasattr(self, "best_params_") and self.best_params_ is not None:
             print("Getting params with best_params_")
             params = copy.deepcopy(self.best_params_)
-            params["frozen"] = self.frozen
         else:
             print("Getting params without best_params_")
             params = super().get_params(deep)
-            params["frozen"] = True
+        params["frozen"] = self.frozen
         
         return(params)
 
@@ -932,7 +931,7 @@ class GEC(LGBMClassifier):
             bagging = "yes_bagging"
         else:
             bagging = "no_bagging"
-        boosting = params.pop("boosting")
+        boosting = params.pop("boosting_type")
         best_arm = f"{boosting}-{bagging}"
 
         best_params_linear_values = [
