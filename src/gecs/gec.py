@@ -387,7 +387,7 @@ class GEC(LGBMClassifier):
 
     @property
     def gec_iter(self):
-        return len(self.hyperparameter_scores)
+        return len(self.hyperparameter_scores["output"])
 
     @classmethod
     def _cast_to_type(cls, value, type_):
