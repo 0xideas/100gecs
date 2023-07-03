@@ -538,6 +538,13 @@ class GEC(LGBMClassifier):
         self.frozen = False
         return(self)
     
+
+    def set_params(self, **kwargs):
+        if "frozen" in kwargs:
+            self["frozen"] = kwargs.pop("frozen")
+        super().set_params(**kwargs)
+
+
     def get_params(self, deep=True):
         if hasattr(self, "best_params_") and self.best_params_ is not None:
             params = copy.deepcopy(self.best_params_)
@@ -872,7 +879,7 @@ class GEC(LGBMClassifier):
         if hasattr(self, "best_params_") and self.best_params_ is not None:
             for k, v in self.best_params_.items():
                 setattr(self, k, v)
-                setattr(self, "random_state", 101)
+            setattr(self, "random_state", 101)
 
         super().fit(X, y, **self.fit_params)
 
