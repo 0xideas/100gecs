@@ -57,7 +57,7 @@ class GEC(LGBMClassifier):
         importance_type: str = "split",
         frozen: bool = False,
         **kwargs,
-    ) -> None:
+    ):
         adapted_lgbm_params = str(inspect.signature(LGBMClassifier.__init__)).replace(
             "importance_type: str = 'split'", "importance_type: str = 'split', frozen: bool = False"
         ) 
