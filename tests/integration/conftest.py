@@ -70,3 +70,13 @@ def gec(X, y):
     )
     gec.fit(X, y, 10)
     return gec
+
+
+@pytest.fixture(scope="session")
+def serialisation_path():
+    return "tests/data/outputs/gec.json"
+
+@pytest.fixture(scope="session")
+def gec_is_serialised(gec, serialisation_path):
+    gec.serialize(serialisation_path)
+

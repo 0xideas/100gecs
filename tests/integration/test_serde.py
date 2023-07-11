@@ -4,13 +4,7 @@ import pytest
 from gecs.gec import GEC
 
 
-@pytest.fixture
-def serialisation_path():
-    return "tests/data/outputs/gec.json"
-
-
-def test_serde(gec, serialisation_path, X, y):
-    gec.serialize(serialisation_path)
+def test_serde(gec, gec_is_serialised, serialisation_path, X, y):
 
     gec2 = GEC.deserialize(serialisation_path, X, y)
 
