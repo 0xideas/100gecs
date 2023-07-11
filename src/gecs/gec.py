@@ -1205,7 +1205,7 @@ class GEC(LGBMClassifier):
         self._plot_mean_prediction_and_mean_variance(ax1, x)
         self._plot_prediction_std_and_variance_std(ax2, x)
         self._plot_prediction_mean_variance_correlation(ax3, x)
-        self._plot_linear_scaled_parameter_samples(ax4, x)
+        self._plot_linear_scaled_parameter_samples(ax4)
 
         figs["parameters"] = fig
 
@@ -1248,8 +1248,9 @@ class GEC(LGBMClassifier):
         )
         ax.legend(loc="lower right")
 
-    def _plot_linear_scaled_parameter_samples(self, ax: Axes, x: ndarray) -> None:
+    def _plot_linear_scaled_parameter_samples(self, ax: Axes) -> None:
         inputs_ = np.array(self.hyperparameter_scores["inputs"])
+        x = np.arange(inputs_.shape[0])
         assert (
             (len(self._real_hyperparameter_names) == inputs_.shape[1]),
             f"{len(self._real_hyperparameter_names)}!={inputs_.shape[1]}",
