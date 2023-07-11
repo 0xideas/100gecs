@@ -1,18 +1,19 @@
+import contextlib
 import json
 import os
-import typer
 import shutil
-import contextlib
-import boto3
-from typing import Optional
-from io import BytesIO
-import numpy as np
 from datetime import datetime
-from lightgbm import LGBMClassifier
-from sklearn.model_selection import cross_val_score
-from gecs.gec import GEC
-from sklearn.model_selection import RandomizedSearchCV
+from io import BytesIO
+from typing import Optional
+
+import boto3
+import numpy as np
+import typer
 from cloud_io.load_dataset import load_dataset
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import RandomizedSearchCV, cross_val_score
+
+from gecs.gec import GEC
 
 VERSION = 29
 SCORE_LOCATION = f"eval/scores/v={VERSION}"

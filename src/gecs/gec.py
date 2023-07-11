@@ -1,35 +1,32 @@
+import contextlib
+import copy
 import inspect
 import itertools
-from typing import Any, List, Tuple, Optional, Union, Dict, Callable
-import os
-import contextlib
-from tqdm import tqdm
-from datetime import datetime
-
-import warnings
-import numpy as np
 import json
 import math
-import copy
-import scipy
+import os
+import warnings
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
-from matplotlib import cm
-
-from sklearn.exceptions import ConvergenceWarning
-from scipy.stats import beta
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.utils.extmath import cartesian
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.model_selection import cross_val_score
-
+import numpy as np
+import scipy
 from lightgbm import LGBMClassifier
 from lightgbm.basic import LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
+from matplotlib import cm
 from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
-from numpy import str_, float16, float64, ndarray
+from numpy import float16, float64, ndarray, str_
 from numpy.random.mtrand import RandomState
+from scipy.stats import beta
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.model_selection import cross_val_score
+from sklearn.utils.extmath import cartesian
+from tqdm import tqdm
 
 
 class GEC(LGBMClassifier):

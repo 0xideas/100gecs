@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator
 from sklearn.utils.extmath import cartesian
-import numpy as np
 
 
 def visualise_1D_gaussian_process(gaussian):
