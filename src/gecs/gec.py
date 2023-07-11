@@ -679,14 +679,13 @@ class GEC(LGBMClassifier):
 
                 mean, sigma, mean_bagging, sigma_bagging = 0, 0, 0, 0
             else:
-
                 selected_arm, selected_combination, mean, sigma = self._select_parameters()
                 arguments = self._build_arguments(
                     selected_arm.split("-"), selected_combination
                 )
 
                 if "yes_bagging" in selected_arm:
-                    selected_combination_bagging = self._select_bagging_parameters()
+                    selected_combination_bagging, mean_bagging, sigma_bagging = self._select_bagging_parameters()
 
                     (
                         arguments["bagging_freq"],
@@ -698,10 +697,22 @@ class GEC(LGBMClassifier):
 
             score = self._calculate_cv_score(X, Y, arguments)
 
-            self._update_gec_fields(score, arguments, selected_arm, selected_combination, mean, sigma, selected_combination_bagging, mean_bagging, sigma_bagging)
+            self._update_gec_fields(score, arguments, selected_arm, selected_combination, mean, sigma)
+
+            if "bagging_freq" in arguments:
+                self._update_gec_fields_bagging(score, selected_combination_bagging, mean_bagging, sigma_bagging)
 
         return (self.best_params_, self.best_score)
     
+    def _update_gec_fields_bagging(self, score, selected_combination_bagging, mean_bagging, sigma_bagging ):
+        self.bagging_scores["inputs"].append(
+            list(self._rescale_bagging_combination(*selected_combination_bagging))
+        )
+        self.bagging_scores["output"].append(score)
+        self.bagging_scores["means"].append(mean_bagging)
+        self.bagging_scores["sigmas"].append(sigma_bagging)
+
+
     def _get_random_hyperparameter_configuration(self):
 
         selected_arm = np.random.choice(
@@ -826,9 +837,9 @@ class GEC(LGBMClassifier):
         best_predicted_combination_bagging = self._bagging_combinations[
             np.argmax(predicted_rewards_bagging)
         ]
-        return(best_predicted_combination_bagging)
+        return(best_predicted_combination_bagging, mean_bagging, sigma_bagging)
 
-    def _update_gec_fields(self, score, arguments, selected_arm, selected_combination, mean, sigma, selected_combination_bagging, mean_bagging, sigma_bagging): 
+    def _update_gec_fields(self, score, arguments, selected_arm, selected_combination, mean, sigma): 
         
         self.selected_arms.append(selected_arm)
         self.hyperparameter_scores["inputs"].append(
@@ -837,14 +848,6 @@ class GEC(LGBMClassifier):
         self.hyperparameter_scores["output"].append(score)
         self.hyperparameter_scores["means"].append(mean)
         self.hyperparameter_scores["sigmas"].append(sigma)
-
-        if "bagging_freq" in arguments:
-            self.bagging_scores["inputs"].append(
-                list(self._rescale_bagging_combination(*selected_combination_bagging))
-            )
-            self.bagging_scores["output"].append(score)
-            self.bagging_scores["means"].append(mean_bagging)
-            self.bagging_scores["sigmas"].append(sigma_bagging)
 
         if self.best_score is not None:
             score_delta = score - self.best_score
