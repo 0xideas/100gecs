@@ -28,7 +28,7 @@ from lightgbm.basic import LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
 from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
-from numpy import float16, float64, ndarray
+from numpy import str_, float16, float64, ndarray
 from numpy.random.mtrand import RandomState
 
 
@@ -57,12 +57,14 @@ class GEC(LGBMClassifier):
         importance_type: str = "split",
         frozen: bool = False,
         **kwargs,
-    ):
+    ) -> None:
         adapted_lgbm_params = str(inspect.signature(LGBMClassifier.__init__)).replace(
             "importance_type: str = 'split'", "importance_type: str = 'split', frozen: bool = False"
-        ) 
+        ).replace(
+            "**kwargs)", "**kwargs) -> None"
+        )
         gec_params = str( inspect.signature(GEC.__init__))
-        assert adapted_lgbm_params == gec_params, gec_params
+        assert adapted_lgbm_params == gec_params, adapted_lgbm_params
 
         r"""Construct a gradient boosting model.
 
@@ -706,7 +708,7 @@ class GEC(LGBMClassifier):
 
 
 
-    def _get_random_hyperparameter_configuration(self):
+    def _get_random_hyperparameter_configuration(self) -> Tuple[str_, ndarray, Tuple[int, float64], Dict[str, Optional[Union[str, float, int, float64]]]]:
 
         selected_arm = np.random.choice(
             self._categorical_hyperparameter_combinations
@@ -734,7 +736,7 @@ class GEC(LGBMClassifier):
         return(selected_arm, selected_combination, selected_combination_bagging, arguments)
 
 
-    def _select_parameters(self):
+    def _select_parameters(self) -> Tuple[str, ndarray, ndarray, ndarray]:
         
         sampled_reward = np.array(
             [
@@ -782,7 +784,7 @@ class GEC(LGBMClassifier):
 
         return(selected_arm, selected_combination, mean, sigma)
 
-    def _get_combinations_to_score(self, sets):
+    def _get_combinations_to_score(self, sets: ndarray) -> List[ndarray]:
         if len(self.hyperparameter_scores["inputs"]):
             n_best = max(
                 3, int(self.gec_iter * self.gec_hyperparameters["best_share"])
@@ -808,7 +810,7 @@ class GEC(LGBMClassifier):
 
         return(combinations)
 
-    def _select_bagging_parameters(self):
+    def _select_bagging_parameters(self) -> Tuple[Tuple[int, float64], ndarray, ndarray]:
         if len(self.bagging_scores["inputs"]) > 0:
             self._fit_gaussian_bagging()
         mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
@@ -832,7 +834,7 @@ class GEC(LGBMClassifier):
         ]
         return(best_predicted_combination_bagging, mean_bagging, sigma_bagging)
 
-    def _update_gec_fields(self, score, arguments, selected_arm, selected_combination, mean, sigma): 
+    def _update_gec_fields(self, score: float64, arguments: Dict[str, Optional[Union[str, float, int, float64]]], selected_arm: Union[str, str_], selected_combination: ndarray, mean: Optional[ndarray], sigma: Optional[ndarray]) -> None: 
         
         self.selected_arms.append(selected_arm)
         self.hyperparameter_scores["inputs"].append(
@@ -863,7 +865,7 @@ class GEC(LGBMClassifier):
             self.best_score = score
             self.best_params_ = arguments
 
-    def _update_gec_fields_bagging(self, score, selected_combination_bagging, mean_bagging, sigma_bagging ):
+    def _update_gec_fields_bagging(self, score: float64, selected_combination_bagging: Tuple[int, float64], mean_bagging: Optional[ndarray], sigma_bagging: Optional[ndarray] ) -> None:
         self.bagging_scores["inputs"].append(
             list(self._rescale_bagging_combination(*selected_combination_bagging))
         )
