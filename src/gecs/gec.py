@@ -622,7 +622,7 @@ class GEC(LGBMClassifier):
                 self.best_params_gec["search"],
                 self.best_scores_gec["search"],
             ) = self._optimise_hyperparameters(
-                n_iter, X, y, self.best_score, self.best_params_
+                n_iter, X, y
             )
             self.best_params_gec["grid"] = self._find_best_parameters()
             self.best_scores_gec["grid"] = self._calculate_cv_score(
@@ -663,194 +663,207 @@ class GEC(LGBMClassifier):
         n_iter: int,
         X: ndarray,
         Y: ndarray,
-        best_score: None,
-        best_params: None,
         **kwargs,
     ) -> Tuple[Dict[str, Optional[Union[int, float, str]]], float64]:
 
         if self.gec_hyperparameters["randomize"]:
             np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
 
-        for i in tqdm(list(range(n_iter))):
-            if (i + self.gec_iter) < min(
-                self.gec_hyperparameters["n_random_exploration"], int(n_iter / 2)
-            ):
-                selected_arm = np.random.choice(
-                    self._categorical_hyperparameter_combinations
-                )
-                random_combination = np.array(
-                    [
-                        np.random.choice(range_)
-                        for real_hyperparameter, range_ in self._real_hyperparameters_linear
-                    ]
-                )
-                arguments = self._build_arguments(
-                    selected_arm.split("-"), random_combination
-                )
-                selected_combination = random_combination
-                random_combination_bagging = self._bagging_combinations[
-                    np.random.choice(range(len(self._bagging_combinations)))
-                ]
+        n_random_exploration = min(
+            self.gec_hyperparameters["n_random_exploration"], int(n_iter / 2)
+        )
 
-                (
-                    arguments["bagging_freq"],
-                    arguments["bagging_fraction"],
-                ) = random_combination_bagging
-                selected_combination_bagging = random_combination_bagging
+        for i in tqdm(list(range(n_iter))):
+            if (i + self.gec_iter) < n_random_exploration:
+                selected_arm, selected_combination, selected_combination_bagging, arguments = self._get_random_hyperparameter_configuration()
 
                 mean, sigma, mean_bagging, sigma_bagging = 0, 0, 0, 0
             else:
-                sampled_reward = np.array(
-                    [
-                        beta.rvs(reward["a"], reward["b"])
-                        for _, reward in self.rewards.items()
-                    ]
-                )
-                selected_arm_index = sampled_reward.argmax()
-                selected_arm = self._categorical_hyperparameter_combinations[
-                    selected_arm_index
-                ]
 
-
-                sets = np.array(
-                    [
-                        np.random.choice(
-                            range_, self.gec_hyperparameters["n_sample_initial"]
-                        )
-                        for _, range_ in self._real_hyperparameters_linear
-                    ]
-                )
-
-                if len(self.hyperparameter_scores["inputs"]):
-                    n_best = max(
-                        3, int(self.gec_iter * self.gec_hyperparameters["best_share"])
-                    )
-                    best_interactions = np.argsort(
-                        np.array(self.hyperparameter_scores["output"])
-                    )[::-1][:n_best]
-
-                    best_hyperparameters = np.array(
-                        self.hyperparameter_scores["inputs"]
-                    )[best_interactions, :]
-
-                    closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
-                        :, : self.gec_hyperparameters["n_sample"]
-                    ]
-                    selected_hyperparameter_indices = np.unique(
-                        closest_hyperparameters.flatten()
-                    )
-
-                    combinations = list(sets[:, selected_hyperparameter_indices].T)
-                else:
-                    combinations = list(sets[:, :self.gec_hyperparameters["n_sample"]].T)
-
-                assert len(combinations), sets
-
-                if len(self.hyperparameter_scores["inputs"]) > 0:
-                    self._fit_gaussian()
-
-                mean, sigma = self.gaussian.predict(combinations, return_std=True)
-
-                predicted_rewards = np.array(
-                    [
-                        scipy.stats.norm.ppf(
-                            self.gec_hyperparameters[
-                                "hyperparams_acquisition_percentile"
-                            ],
-                            loc=m,
-                            scale=s,
-                        )
-                        for m, s in zip(mean, sigma)
-                    ]
-                )
-
-                best_predicted_combination = combinations[np.argmax(predicted_rewards)]
-                selected_combination = best_predicted_combination
+                selected_arm, selected_combination, mean, sigma = self._select_parameters()
                 arguments = self._build_arguments(
                     selected_arm.split("-"), selected_combination
                 )
 
                 if "yes_bagging" in selected_arm:
-                    if len(self.bagging_scores["inputs"]) > 0:
-                        self._fit_gaussian_bagging()
-                    mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-                        self._bagging_combinations_rescaled, return_std=True
-                    )
+                    selected_combination_bagging = self._select_bagging_parameters()
 
-                    predicted_rewards_bagging = np.array(
-                        [
-                            scipy.stats.norm.ppf(
-                                self.gec_hyperparameters[
-                                    "bagging_acquisition_percentile"
-                                ],
-                                loc=m,
-                                scale=s,
-                            )
-                            for m, s in zip(mean_bagging, sigma_bagging)
-                        ]
-                    )
-                    best_predicted_combination_bagging = self._bagging_combinations[
-                        np.argmax(predicted_rewards_bagging)
-                    ]
-                    selected_combination_bagging = best_predicted_combination_bagging
                     (
                         arguments["bagging_freq"],
                         arguments["bagging_fraction"],
-                    ) = best_predicted_combination_bagging
+                    ) = selected_combination_bagging
 
             del arguments["bagging"]
             arguments["verbosity"] = -1
 
-            try:
-                score = self._calculate_cv_score(X, Y, arguments)
-                if np.isnan(score):
-                    score = 0
+            score = self._calculate_cv_score(X, Y, arguments)
 
-                if best_score is None or score > best_score:
-                    best_score = score
-                    best_params = arguments
+            self._update_gec_fields(score, arguments, selected_arm, selected_combination, mean, sigma, selected_combination_bagging, mean_bagging, sigma_bagging)
 
-                self.selected_arms.append(selected_arm)
-                self.hyperparameter_scores["inputs"].append(
-                    [float(f) for f in selected_combination]
+        return (self.best_params_, self.best_score)
+    
+    def _get_random_hyperparameter_configuration(self):
+
+        selected_arm = np.random.choice(
+            self._categorical_hyperparameter_combinations
+        )
+        random_combination = np.array(
+            [
+                np.random.choice(range_)
+                for real_hyperparameter, range_ in self._real_hyperparameters_linear
+            ]
+        )
+        arguments = self._build_arguments(
+            selected_arm.split("-"), random_combination
+        )
+        selected_combination = random_combination
+        random_combination_bagging = self._bagging_combinations[
+            np.random.choice(range(len(self._bagging_combinations)))
+        ]
+
+        (
+            arguments["bagging_freq"],
+            arguments["bagging_fraction"],
+        ) = random_combination_bagging
+        selected_combination_bagging = random_combination_bagging
+
+        return(selected_arm, selected_combination, selected_combination_bagging, arguments)
+
+
+    def _select_parameters(self):
+        
+        sampled_reward = np.array(
+            [
+                beta.rvs(reward["a"], reward["b"])
+                for _, reward in self.rewards.items()
+            ]
+        )
+        selected_arm_index = sampled_reward.argmax()
+        selected_arm = self._categorical_hyperparameter_combinations[
+            selected_arm_index
+        ]
+
+        sets = np.array(
+            [
+                np.random.choice(
+                    range_, self.gec_hyperparameters["n_sample_initial"]
                 )
-                self.hyperparameter_scores["output"].append(score)
-                self.hyperparameter_scores["means"].append(mean)
-                self.hyperparameter_scores["sigmas"].append(sigma)
+                for _, range_ in self._real_hyperparameters_linear
+            ]
+        )
 
-                if "bagging_freq" in arguments:
-                    self.bagging_scores["inputs"].append(
-                        list(self._rescale_bagging_combination(*selected_combination_bagging))
-                    )
-                    self.bagging_scores["output"].append(score)
-                    self.bagging_scores["means"].append(mean_bagging)
-                    self.bagging_scores["sigmas"].append(sigma_bagging)
+        combinations = self._get_combinations_to_score(sets)
 
-                if self.best_score is not None:
-                    score_delta = score - self.best_score
-                    weighted_score_delta = (
-                        score_delta * self.gec_hyperparameters["bandit_greediness"]
-                    )
-                    if score_delta > 0:
-                        self.rewards[selected_arm]["a"] = (
-                            self.rewards[selected_arm]["a"] + weighted_score_delta
-                        )
-                        self.best_params_ = arguments
-                        self.best_score = score
-                    else:
-                        self.rewards[selected_arm]["b"] = (
-                            self.rewards[selected_arm]["b"] - weighted_score_delta
-                        )
-                else:
-                    self.best_score = score
-                    self.best_params_ = arguments
+        assert len(combinations), sets
 
-            except Exception as e:
-                warnings.warn(f"These arguments led to an Error: {arguments}: {e}")
+        if len(self.hyperparameter_scores["inputs"]) > 0:
+            self._fit_gaussian()
 
-        best_score = self._calculate_cv_score(X, Y, best_params)
+        mean, sigma = self.gaussian.predict(combinations, return_std=True)
 
-        return (best_params, best_score)
+        predicted_rewards = np.array(
+            [
+                scipy.stats.norm.ppf(
+                    self.gec_hyperparameters[
+                        "hyperparams_acquisition_percentile"
+                    ],
+                    loc=m,
+                    scale=s,
+                )
+                for m, s in zip(mean, sigma)
+            ]
+        )
+
+        selected_combination = combinations[np.argmax(predicted_rewards)]
+
+        return(selected_arm, selected_combination, mean, sigma)
+
+    def _get_combinations_to_score(self, sets):
+        if len(self.hyperparameter_scores["inputs"]):
+            n_best = max(
+                3, int(self.gec_iter * self.gec_hyperparameters["best_share"])
+            )
+            best_interactions = np.argsort(
+                np.array(self.hyperparameter_scores["output"])
+            )[::-1][:n_best]
+
+            best_hyperparameters = np.array(
+                self.hyperparameter_scores["inputs"]
+            )[best_interactions, :]
+
+            closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
+                :, : self.gec_hyperparameters["n_sample"]
+            ]
+            selected_hyperparameter_indices = np.unique(
+                closest_hyperparameters.flatten()
+            )
+
+            combinations = list(sets[:, selected_hyperparameter_indices].T)
+        else:
+            combinations = list(sets[:, :self.gec_hyperparameters["n_sample"]].T)
+
+        return(combinations)
+
+    def _select_bagging_parameters(self):
+        if len(self.bagging_scores["inputs"]) > 0:
+            self._fit_gaussian_bagging()
+        mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
+            self._bagging_combinations_rescaled, return_std=True
+        )
+
+        predicted_rewards_bagging = np.array(
+            [
+                scipy.stats.norm.ppf(
+                    self.gec_hyperparameters[
+                        "bagging_acquisition_percentile"
+                    ],
+                    loc=m,
+                    scale=s,
+                )
+                for m, s in zip(mean_bagging, sigma_bagging)
+            ]
+        )
+        best_predicted_combination_bagging = self._bagging_combinations[
+            np.argmax(predicted_rewards_bagging)
+        ]
+        return(best_predicted_combination_bagging)
+
+    def _update_gec_fields(self, score, arguments, selected_arm, selected_combination, mean, sigma, selected_combination_bagging, mean_bagging, sigma_bagging): 
+        
+        self.selected_arms.append(selected_arm)
+        self.hyperparameter_scores["inputs"].append(
+            [float(f) for f in selected_combination]
+        )
+        self.hyperparameter_scores["output"].append(score)
+        self.hyperparameter_scores["means"].append(mean)
+        self.hyperparameter_scores["sigmas"].append(sigma)
+
+        if "bagging_freq" in arguments:
+            self.bagging_scores["inputs"].append(
+                list(self._rescale_bagging_combination(*selected_combination_bagging))
+            )
+            self.bagging_scores["output"].append(score)
+            self.bagging_scores["means"].append(mean_bagging)
+            self.bagging_scores["sigmas"].append(sigma_bagging)
+
+        if self.best_score is not None:
+            score_delta = score - self.best_score
+            weighted_score_delta = (
+                score_delta * self.gec_hyperparameters["bandit_greediness"]
+            )
+            if score_delta > 0:
+                self.rewards[selected_arm]["a"] = (
+                    self.rewards[selected_arm]["a"] + weighted_score_delta
+                )
+                self.best_params_ = arguments
+                self.best_score = score
+            else:
+                self.rewards[selected_arm]["b"] = (
+                    self.rewards[selected_arm]["b"] - weighted_score_delta
+                )
+        else:
+            self.best_score = score
+            self.best_params_ = arguments
 
     def _build_arguments(self, categorical_combination: List[str], real_combination_linear: ndarray) -> Dict[str, Optional[Union[int, float, str]]]:
         best_predicted_combination_converted = [
