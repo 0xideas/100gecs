@@ -11,7 +11,7 @@ from sklearn.model_selection import cross_val_score
 from gecs.gec import GEC
 from cloud_io.load_dataset import load_dataset
 
-VERSION = 27
+VERSION = 29
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"
