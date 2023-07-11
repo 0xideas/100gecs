@@ -677,7 +677,7 @@ class GEC(LGBMClassifier):
             if (i + self.gec_iter) < n_random_exploration:
                 selected_arm, selected_combination, selected_combination_bagging, arguments = self._get_random_hyperparameter_configuration()
 
-                mean, sigma, mean_bagging, sigma_bagging = 0, 0, 0, 0
+                mean, sigma, mean_bagging, sigma_bagging = None, None, None, None
             else:
                 selected_arm, selected_combination, mean, sigma = self._select_parameters()
                 arguments = self._build_arguments(
@@ -703,14 +703,7 @@ class GEC(LGBMClassifier):
                 self._update_gec_fields_bagging(score, selected_combination_bagging, mean_bagging, sigma_bagging)
 
         return (self.best_params_, self.best_score)
-    
-    def _update_gec_fields_bagging(self, score, selected_combination_bagging, mean_bagging, sigma_bagging ):
-        self.bagging_scores["inputs"].append(
-            list(self._rescale_bagging_combination(*selected_combination_bagging))
-        )
-        self.bagging_scores["output"].append(score)
-        self.bagging_scores["means"].append(mean_bagging)
-        self.bagging_scores["sigmas"].append(sigma_bagging)
+
 
 
     def _get_random_hyperparameter_configuration(self):
@@ -846,8 +839,10 @@ class GEC(LGBMClassifier):
             [float(f) for f in selected_combination]
         )
         self.hyperparameter_scores["output"].append(score)
-        self.hyperparameter_scores["means"].append(mean)
-        self.hyperparameter_scores["sigmas"].append(sigma)
+
+        if mean is not None:
+            self.hyperparameter_scores["means"].append(mean)
+            self.hyperparameter_scores["sigmas"].append(sigma)
 
         if self.best_score is not None:
             score_delta = score - self.best_score
@@ -867,6 +862,15 @@ class GEC(LGBMClassifier):
         else:
             self.best_score = score
             self.best_params_ = arguments
+
+    def _update_gec_fields_bagging(self, score, selected_combination_bagging, mean_bagging, sigma_bagging ):
+        self.bagging_scores["inputs"].append(
+            list(self._rescale_bagging_combination(*selected_combination_bagging))
+        )
+        self.bagging_scores["output"].append(score)
+        if mean_bagging is not None:
+            self.bagging_scores["means"].append(mean_bagging)
+            self.bagging_scores["sigmas"].append(sigma_bagging)
 
     def _build_arguments(self, categorical_combination: List[str], real_combination_linear: ndarray) -> Dict[str, Optional[Union[int, float, str]]]:
         best_predicted_combination_converted = [
