@@ -41,28 +41,30 @@ def y(X, seed):
 @pytest.fixture(scope="session")
 def gec(X, y):
     gec = GEC()
-    gec.set_gec_hyperparameters({
-        "l": 1.0,
-        "l_bagging": 0.1,
-        "hyperparams_acquisition_percentile": 0.7,
-        "bagging_acquisition_percentile": 0.7,
-        "bandit_greediness": 1.0,
-        "n_random_exploration": 10,
-        "n_sample": 100,
-        "n_sample_initial": 100,
-        "best_share": 0.2,
-        "hyperparameters": [
-            "learning_rate",
-            "n_estimators",
-            "num_leaves",
-            "max_bin",
-            "reg_alpha",
-            "reg_lambda",
-            "min_child_samples",
-            "min_child_weight",
-            "colsample_bytree", #feature_fraction
-        ],
-        "randomize": True
-    })
+    gec.set_gec_hyperparameters(
+        {
+            "l": 1.0,
+            "l_bagging": 0.1,
+            "hyperparams_acquisition_percentile": 0.7,
+            "bagging_acquisition_percentile": 0.7,
+            "bandit_greediness": 1.0,
+            "n_random_exploration": 10,
+            "n_sample": 100,
+            "n_sample_initial": 100,
+            "best_share": 0.2,
+            "hyperparameters": [
+                "learning_rate",
+                "n_estimators",
+                "num_leaves",
+                "max_bin",
+                "reg_alpha",
+                "reg_lambda",
+                "min_child_samples",
+                "min_child_weight",
+                "colsample_bytree",  # feature_fraction
+            ],
+            "randomize": True,
+        }
+    )
     gec.fit(X, y, 10)
     return gec
