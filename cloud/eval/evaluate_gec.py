@@ -1,17 +1,19 @@
 import json
 import os
-import typer
-import boto3
-from typing import Optional
-from io import BytesIO
-import numpy as np
 from datetime import datetime
+from io import BytesIO
+from typing import Optional
+
+import boto3
+import numpy as np
+import typer
+from cloud_io.load_dataset import load_dataset
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import cross_val_score
-from gecs.gec import GEC
-from cloud_io.load_dataset import load_dataset
 
-VERSION = 27
+from gecs.gec import GEC
+
+VERSION = 29
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"

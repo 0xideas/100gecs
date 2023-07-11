@@ -1,6 +1,5 @@
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
 
@@ -41,4 +40,3 @@ def load_bank_dataset(path, share=0.1):
     y_reweighted = np.concatenate([y] + [y_pos] * 3)
 
     return (X_reweighted, y_reweighted)
-

@@ -1,5 +1,7 @@
-import pytest
 import os
+
+import pytest
+
 from gecs.gec import GEC
 
 
@@ -8,7 +10,8 @@ def plot_path():
     return "tests/data/outputs/plots/gec"
 
 
-def test_plotting(plot_path, X, y):
-    gec = GEC.deserialize("tests/data/inputs/gec_for_plot_test.json", X, y)
+@pytest.mark.dependency(depends=['test_serde'])
+def test_plotting(plot_path, gec_is_serialised, serialisation_path, X, y):
+    gec = GEC.deserialize(serialisation_path, X, y)
 
     gec.save_plots(plot_path)
