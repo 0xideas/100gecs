@@ -43,7 +43,7 @@ The `GEC` class provides the same API to the user as the `LGBMClassifier` class 
     - `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. 
 
 
--   the methods `serialize` and `deserialize`, which stores the `GEC` state for the hyperparameter optimization process, **but not the fitted `LGBMClassifier` parameters**, to a json file. To store the boosted tree model itself, you have to provide your own serialization or use `pickle`
+-   the methods `serialize` and `deserialize`, which stores the `GEC` state for the hyperparameter optimization process, **but not the fitted** `LGBMClassifier` **parameters**, to a json file. To store the boosted tree model itself, you have to provide your own serialization or use `pickle`
 
 -   the methods `freeze` and `unfreeze` that turn the `GEC` functionally into a `LGBMClassifier` and back
 
