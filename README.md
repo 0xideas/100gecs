@@ -5,6 +5,7 @@
 
 Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
 
+
 ## Table of Contents
 
 - [Project Overview](#project-overview)
@@ -13,9 +14,11 @@ Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
 - [Contributing](#contributing)
 - [License](#license)
 
+
 ## Project Overview
 
 `gecs` is a tool to help automate the process of hyperparameter tuning for LightGBM classifiers, which can potentially save significant time and computational resources in model building and optimization processes. The `GEC` stands for **G**ood **E**nough **C**lassifier, which allows you to focus on other tasks such as feature engineering. If you deploy 100 of them, you get 100GECs.
+
 
 ## Introduction
 
@@ -34,19 +37,18 @@ By default, `GEC` optimizes `learning_rate`, `reg_alpha`, `reg_lambda`, `min_chi
 
 The `GEC` class provides the same API to the user as the `LGBMClassifier` class of `lightgbm`, and additionally:
 
--   the two additional parameters to the fit method `n_iter` and `fixed_hyperparameters`
+-   the two additional parameters to the fit method `n_iter` and `fixed_hyperparameters`:
+    - `n_iter`: Defines the number of hyperparameter combinations that the model should try. More iterations could lead to better model performance, but at the expense of computational resources.
+
+    - `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. 
+
 
 -   the methods `serialize` and `deserialize`, which stores the `GEC` state for the hyperparameter optimization process, **but not the fitted `LGBMClassifier` parameters**, to a json file. To store the boosted tree model itself, you have to provide your own serialization or use `pickle`
 
 -   the methods `freeze` and `unfreeze` that turn the `GEC` functionally into a `LGBMClassifier` and back
 
 
-The `fit` method of `GEC` has all the same parameters as that of `LGBMClassifier`, and two additional ones:
-
-- `n_iter`: Defines the number of hyperparameter combinations that the model should try. More iterations could lead to better model performance, but at the expense of computational resources.
-
-- `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. 
-
+## Example
 
 The default use of `GEC` would look like this:
 
@@ -63,8 +65,6 @@ The default use of `GEC` would look like this:
     gec.freeze() # freeze GEC so that it behaves like a LGBMClassifier
 
     gec.unfreeze() # unfreeze to enable GEC hyperparameter optimisation
-
-
 
 
 
