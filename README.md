@@ -40,9 +40,9 @@ By default, `GEC` optimizes `learning_rate`, `reg_alpha`, `reg_lambda`, `min_chi
 The `GEC` class provides the same API to the user as the `LGBMClassifier` class of `lightgbm`, and additionally:
 
 -   the two additional parameters to the fit method `n_iter` and `fixed_hyperparameters`:
-    - `n_iter`: Defines the number of hyperparameter combinations that the model should try. More iterations could lead to better model performance, but at the expense of computational resources.
+    - `n_iter`: Defines the number of hyperparameter combinations that the model should try. More iterations could lead to better model performance, but at the expense of computational resources
 
-    - `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. 
+    - `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`
 
 
 -   the methods `serialize` and `deserialize`, which stores the `GEC` state for the hyperparameter optimization process, **but not the fitted** `LGBMClassifier` **parameters**, to a json file. To store the boosted tree model itself, you have to provide your own serialization or use `pickle`
