@@ -15,16 +15,35 @@ Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
 
 ## Project Overview
 
-The package `gecs` provides the class `GEC`, which is a child class of the class `LGBMClassifier` from the package `lightgbm`. It can be imported from `gecs.gec` and then used in place of `LGBMClassifier`, with the same API. The difference to `LGBMClassifier` lies in the fact that `GEC`automatically does bayesian hyperparameter optimization of the parameters `learning_rate`, `reg_alpha`, `reg_lambda`, `min_child_samples`, `min_child_weight`, `colsample_bytree` and optionally also of `num_leaves` and `n_estimators`.
+`gecs` is a tool to help automate the process of hyperparameter tuning for LightGBM classifiers, which can potentially save significant time and computational resources in model building and optimization processes. The `GEC` stands for **G**ood **E**nough **C**lassifier, which allows you to focus on other tasks such as feature engineering. If you deploy 100 of them, you get 100GECs.
 
-The fit method has two new parameters: `n_iter`, which sets the number of hyperparameter combinations that will be tried (the higher `n_iter` the higher the expected accuracy, but at a cost of compute) and `fixed_hyperparameters`, which determines which hyperparameters of the LGBM classifier won't get optimized. By default, these are `n_estimators` and `num_leaves`, as the highest possible value for these hyperparameters is almost always optimal. The idea then is to set these as high as makes sense in a specific context and then optimize the other hyperparameters.
+The primary class in this package is `GEC`, which is derived from `LGBMClassifier`. Like its parent, GEC can be used to build and train gradient boosting models, but with the added feature of automated hyperparameter tuning. It can be imported from `gecs.gec` and then used in place of `LGBMClassifier`, with the same API.
+
+The significant advantage that `GEC` offers is its ability to perform Bayesian hyperparameter optimization. The following hyperparameters are optimized by default:`learning_rate`, `reg_alpha`, `reg_lambda`, `min_child_samples`, `min_child_weight`, `colsample_bytree`. Optionally also `num_leaves` and `n_estimators` can be optimized, but these should generally set to their highest acceptable level, given the application, and then remain static.
+
+The `fit` method of `GEC` has all the same parameters as that of `LGBMClassifier`, and two additional ones:
+
+- `n_iter`: Defines the number of hyperparameter combinations that the model should try. More iterations could lead to better model performance, but at the expense of computational resources.
+
+- `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. 
 
 
 ## Installation
 
     pip install gecs
 
+
 ## Usage
+
+The `GEC` class provides the same API to the user as the `LGBMClassifier` class of `lightgbm`, and additionally:
+
+-   the two additional parameters to the fit method `n_iter` and `fixed_hyperparameters`
+
+-   the methods `serialize` and `deserialize`, which stores the `GEC` state for the hyperparameter optimization process, **but not the fitted `LGBMClassifier` parameters**, to a json file. To store the boosted tree model itself, you have to provide your own serialization or use `pickle`
+
+-   the methods `freeze` and `unfreeze` that turn the `GEC` functionally into a `LGBMClassifier` and back
+
+
 
     from gecs.gec import GEC
 
@@ -37,10 +56,10 @@ The fit method has two new parameters: `n_iter`, which sets the number of hyperp
     yhat = gec.predict(X)
 
     gec.freeze() # freeze GEC so that it behaves like a LGBMClassifier
+
     gec.unfreeze() # unfreeze to enable GEC hyperparameter optimisation
 
 
-    
 
 
 
