@@ -9,8 +9,10 @@ Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Introduction](#introduction)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Example](#example)
 - [Contributing](#contributing)
 - [License](#license)
 
