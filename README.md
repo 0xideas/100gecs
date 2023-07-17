@@ -17,6 +17,8 @@ Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
 
 `gecs` is a tool to help automate the process of hyperparameter tuning for LightGBM classifiers, which can potentially save significant time and computational resources in model building and optimization processes. The `GEC` stands for **G**ood **E**nough **C**lassifier, which allows you to focus on other tasks such as feature engineering. If you deploy 100 of them, you get 100GECs.
 
+## Introduction
+
 The primary class in this package is `GEC`, which is derived from `LGBMClassifier`. Like its parent, GEC can be used to build and train gradient boosting models, but with the added feature of automated hyperparameter tuning. It can be imported from `gecs.gec` and then used in place of `LGBMClassifier`, with the same API.
 
 The significant advantage that `GEC` offers is its ability to perform Bayesian hyperparameter optimization. The following hyperparameters are optimized by default:`learning_rate`, `reg_alpha`, `reg_lambda`, `min_child_samples`, `min_child_weight`, `colsample_bytree`. Optionally also `num_leaves` and `n_estimators` can be optimized, but these should generally set to their highest acceptable level, given the application, and then remain static.
