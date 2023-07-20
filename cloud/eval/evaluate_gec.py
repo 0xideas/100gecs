@@ -13,7 +13,7 @@ from sklearn.model_selection import cross_val_score
 
 from gecs.gec import GEC
 
-VERSION = 29
+VERSION = 30
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"

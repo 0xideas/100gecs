@@ -216,6 +216,11 @@ class GEC(LGBMClassifier):
             for k, v in kwargs.items()
             if k not in ["bagging_freq", "bagging_fraction"]
         }
+        self.bagging_fraction = kwargs.get("bagging_fraction", None)
+        self.bagging_freq = kwargs.get("bagging_freq", None)
+
+        self.fix_bagging = False
+        self.fix_boosting_type = False
 
         self.frozen = frozen
         non_optimized_init_args = [
@@ -269,6 +274,11 @@ class GEC(LGBMClassifier):
         )
 
         prohibited_combinations = ["rf-no_bagging"]
+        if self.fix_bagging and (
+            self.bagging_fraction is None or self.bagging_freq is None
+        ):
+            prohibited_combinations += ["rf-yes_bagging"]
+
         self._categorical_hyperparameter_combinations = [
             "-".join(y)
             for y in itertools.product(
@@ -276,6 +286,13 @@ class GEC(LGBMClassifier):
             )
             if "-".join(y) not in prohibited_combinations
         ]
+
+        if self.fix_boosting_type:
+            self._categorical_hyperparameter_combinations = [
+                hp_comb
+                for hp_comb in self._categorical_hyperparameter_combinations
+                if hp_comb.startswith(self.boosting_type)
+            ]
 
         ten_to_ten_thousand = np.concatenate(
             [
@@ -681,6 +698,21 @@ class GEC(LGBMClassifier):
             "callbacks": callbacks,
             "init_model": init_model,
         }
+
+        self.fix_boosting_type = "boosting_type" in fixed_hyperparameters
+        fixed_hyperparameters = [
+            hp for hp in fixed_hyperparameters if hp != "boosting_type"
+        ]
+
+        self.fix_bagging = "bagging" in fixed_hyperparameters
+        fixed_hyperparameters = [hp for hp in fixed_hyperparameters if hp != "bagging"]
+
+        assert (
+            (not self.fix_bagging)
+            or (self.bagging_freq is not None)
+            or (self.boosting_type != "rf")
+            or (not self.fix_boosting_type)
+        ), 'boosting_type="rf" requires bagging'
         if not self.frozen:
             filtered_hyperparameters = list(
                 set(self.gec_hyperparameters["hyperparameters"]).difference(
@@ -695,15 +727,20 @@ class GEC(LGBMClassifier):
                 self.best_params_gec["search"],
                 self.best_scores_gec["search"],
             ) = self._optimise_hyperparameters(n_iter, X, y)
-            self.best_params_gec["grid"] = self._find_best_parameters()
+
+            best_params_grid = self._find_best_parameters()
+            self.best_params_gec["grid"] = self._replace_fixed_args(best_params_grid)
             self.best_scores_gec["grid"] = self._calculate_cv_score(
                 X, y, self.best_params_gec["grid"]
             )
-            best_params_prep = copy.deepcopy(self.best_params_gec["search"])
-            self.best_params_gec[
-                "grid_from_search"
-            ] = self._find_best_parameters_from_search(best_params_prep)
 
+            best_params_prep = copy.deepcopy(self.best_params_gec["search"])
+            best_params_grid_from_search = self._find_best_parameters_from_search(
+                best_params_prep
+            )
+            self.best_params_gec["grid_from_search"] = self._replace_fixed_args(
+                best_params_grid_from_search
+            )
             self.best_scores_gec["grid_from_search"] = self._calculate_cv_score(
                 X, y, self.best_params_gec["grid_from_search"]
             )
@@ -716,6 +753,29 @@ class GEC(LGBMClassifier):
         self._fit_best_params(X, y)
 
         return self
+
+    def _replace_fixed_args(self, params):
+        if self.fix_boosting_type:
+            params["boosting_type"] = self.boosting_type
+        self.selected_arms = []
+        if (
+            self.fix_bagging
+            and "bagging_fraction" in params
+            and "bagging_freq" in params
+        ):
+            if self.bagging_fraction is not None and self.bagging_freq is not None:
+                params["bagging_fraction"] = self.bagging_fraction
+                params["bagging_freq"] = self.bagging_freq
+            else:
+                del params["bagging_fraction"]
+                del params["bagging_freq"]
+            self.bagging_scores = {
+                "inputs": [],
+                "output": [],
+                "means": [],
+                "sigmas": [],
+            }
+        return params
 
     def _calculate_cv_score(
         self,
@@ -788,6 +848,7 @@ class GEC(LGBMClassifier):
             del arguments["bagging"]
             arguments["verbosity"] = -1
 
+            arguments = self._replace_fixed_args(arguments)
             score = self._calculate_cv_score(X, Y, arguments)
 
             self._update_gec_fields(
@@ -823,11 +884,14 @@ class GEC(LGBMClassifier):
             np.random.choice(range(len(self._bagging_combinations)))
         ]
 
-        (
-            arguments["bagging_freq"],
-            arguments["bagging_fraction"],
-        ) = random_combination_bagging
-        selected_combination_bagging = random_combination_bagging
+        if "yes_bagging" in selected_arm:
+            (
+                arguments["bagging_freq"],
+                arguments["bagging_fraction"],
+            ) = random_combination_bagging
+            selected_combination_bagging = random_combination_bagging
+        else:
+            selected_combination_bagging = None
 
         return (
             selected_arm,
@@ -839,7 +903,11 @@ class GEC(LGBMClassifier):
     def _select_parameters(self) -> Tuple[str, ndarray, ndarray, ndarray]:
 
         sampled_reward = np.array(
-            [beta.rvs(reward["a"], reward["b"]) for _, reward in self.rewards.items()]
+            [
+                beta.rvs(reward["a"], reward["b"])
+                for arm, reward in self.rewards.items()
+                if arm in self._categorical_hyperparameter_combinations
+            ]
         )
         selected_arm_index = sampled_reward.argmax()
         selected_arm = self._categorical_hyperparameter_combinations[selected_arm_index]
@@ -1027,17 +1095,19 @@ class GEC(LGBMClassifier):
         )
 
     def _fit_gaussian_bagging(self) -> None:
-        self.gaussian_bagging.fit(
-            np.array(self.bagging_scores["inputs"]),
-            np.array(self.bagging_scores["output"])
-            - np.mean(self.bagging_scores["output"]),
-        )
+        if len(self.bagging_scores["output"]):
+            self.gaussian_bagging.fit(
+                np.array(self.bagging_scores["inputs"]),
+                np.array(self.bagging_scores["output"])
+                - np.mean(self.bagging_scores["output"]),
+            )
 
     def _get_best_arm(self) -> str:
         mean_reward = np.array(
             [
                 reward["a"] / (reward["a"] + reward["b"])
-                for _, reward in self.rewards.items()
+                for arm, reward in self.rewards.items()
+                if arm in self._categorical_hyperparameter_combinations
             ]
         )
         best_arm = self._categorical_hyperparameter_combinations[mean_reward.argmax()]
@@ -1111,14 +1181,6 @@ class GEC(LGBMClassifier):
             neighbouring_combinations = self._get_neighbouring_combinations(
                 best_combination, step_size, previous_step_size
             )
-
-            new_ranges = [
-                (name, min(r), max(r))
-                for name, r in zip(
-                    self._real_hyperparameter_names, neighbouring_combinations
-                )
-            ]
-            # log.info(new_ranges)
 
             best_combination, best_score = self._find_best_parameters_iter(
                 neighbouring_combinations
