@@ -277,6 +277,7 @@ class GEC(LGBMClassifier):
         if self.fix_bagging and (self.bagging_fraction is None or self.bagging_freq is None):
             prohibited_combinations += ["rf-yes_bagging"]
 
+
         self._categorical_hyperparameter_combinations = [
             "-".join(y)
             for y in itertools.product(
@@ -284,6 +285,10 @@ class GEC(LGBMClassifier):
             )
             if "-".join(y) not in prohibited_combinations
         ]
+    
+        if self.fix_boosting_type:
+            self._categorical_hyperparameter_combinations = [hp_comb for hp_comb in self._categorical_hyperparameter_combinations if hp_comb.startswith(self.boosting_type)]
+
 
         ten_to_ten_thousand = np.concatenate(
             [
@@ -740,7 +745,7 @@ class GEC(LGBMClassifier):
     def _replace_fixed_args(self, params):
         if self.fix_boosting_type:
             params["boosting_type"] = self.boosting_type
-            self.selected_arms = []
+        self.selected_arms = []
         if self.fix_bagging and "bagging_fraction" in params and "bagging_freq" in params:
             if self.bagging_fraction is not None and self.bagging_freq is not None:
                 params["bagging_fraction"] = self.bagging_fraction
@@ -808,7 +813,7 @@ class GEC(LGBMClassifier):
                     selected_arm.split("-"), selected_combination
                 )
 
-                if "yes_bagging" in selected_arm or (self.fix_boosting_type and self.boosting_type == "rf"):
+                if "yes_bagging" in selected_arm:
                     (
                         selected_combination_bagging,
                         mean_bagging,
@@ -859,7 +864,7 @@ class GEC(LGBMClassifier):
             np.random.choice(range(len(self._bagging_combinations)))
         ]
 
-        if "yes_bagging" in selected_arm or (self.fix_boosting_type and self.boosting_type == "rf"):
+        if "yes_bagging" in selected_arm:
             (
                 arguments["bagging_freq"],
                 arguments["bagging_fraction"],
@@ -878,7 +883,7 @@ class GEC(LGBMClassifier):
     def _select_parameters(self) -> Tuple[str, ndarray, ndarray, ndarray]:
 
         sampled_reward = np.array(
-            [beta.rvs(reward["a"], reward["b"]) for _, reward in self.rewards.items()]
+            [beta.rvs(reward["a"], reward["b"]) for arm, reward in self.rewards.items() if arm in self._categorical_hyperparameter_combinations]
         )
         selected_arm_index = sampled_reward.argmax()
         selected_arm = self._categorical_hyperparameter_combinations[selected_arm_index]
@@ -1077,7 +1082,8 @@ class GEC(LGBMClassifier):
         mean_reward = np.array(
             [
                 reward["a"] / (reward["a"] + reward["b"])
-                for _, reward in self.rewards.items()
+                for arm, reward in self.rewards.items()
+                if arm in self._categorical_hyperparameter_combinations
             ]
         )
         best_arm = self._categorical_hyperparameter_combinations[mean_reward.argmax()]
@@ -1158,7 +1164,7 @@ class GEC(LGBMClassifier):
 
         arguments = self._build_arguments(best_arm.split("-"), best_combination)
 
-        if "yes_bagging" in best_arm or (self.fix_boosting_type and self.boosting_type == "rf"):
+        if "yes_bagging" in best_arm:
             self._fit_gaussian_bagging()
             mean_bagging = self.gaussian_bagging.predict(
                 self._bagging_combinations_rescaled
