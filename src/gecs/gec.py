@@ -26,8 +26,9 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.model_selection import cross_val_score
 from sklearn.utils.extmath import cartesian
+from sklearn.utils._testing import ignore_warnings
 from tqdm import tqdm
-
+from time import sleep
 
 class GEC(LGBMClassifier):
     def __init__(
@@ -439,7 +440,7 @@ class GEC(LGBMClassifier):
     @kernel.setter
     def kernel(self, value):
         self._kernel = value
-        self.gaussian = GaussianProcessRegressor(kernel=value)
+        self.gaussian = GaussianProcessRegressor(kernel=value, n_restarts_optimizer=9)
 
     @property
     def kernel_bagging(self):
@@ -448,7 +449,7 @@ class GEC(LGBMClassifier):
     @kernel_bagging.setter
     def kernel_bagging(self, value):
         self._kernel_bagging = value
-        self.gaussian_bagging = GaussianProcessRegressor(kernel=value)
+        self.gaussian_bagging = GaussianProcessRegressor(kernel=value, n_restarts_optimizer=9)
 
     @property
     def gec_iter(self) -> int:
@@ -855,7 +856,7 @@ class GEC(LGBMClassifier):
                 score, arguments, selected_arm, selected_combination, mean, sigma
             )
 
-            if "subsample_freq" in arguments:
+            if "yes_bagging" in selected_arm:
                 self._update_gec_fields_bagging(
                     score, selected_combination_bagging, mean_bagging, sigma_bagging
                 )
@@ -1087,6 +1088,7 @@ class GEC(LGBMClassifier):
 
         super().fit(X, y, **self.fit_params)
 
+    @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian(self) -> None:
         self.gaussian.fit(
             np.array(self.hyperparameter_scores["inputs"]),
@@ -1094,6 +1096,7 @@ class GEC(LGBMClassifier):
             - np.mean(self.hyperparameter_scores["output"]),
         )
 
+    @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian_bagging(self) -> None:
         if len(self.bagging_scores["output"]):
             self.gaussian_bagging.fit(
@@ -1139,7 +1142,7 @@ class GEC(LGBMClassifier):
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
 
-        if "subsample_freq" in params:
+        if params["subsample_freq"]==0:
             del params["subsample_freq"]
             del params["subsample"]
             bagging = "yes_bagging"
