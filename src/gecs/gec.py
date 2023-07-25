@@ -316,24 +316,8 @@ class GEC(LGBMClassifier):
             ),
             ("num_leaves", np.array(list(range(1, 100)) + list(range(100, 1000, 5)))),
             ("n_estimators", ten_to_ten_thousand),
-            (
-                "reg_alpha",
-                (
-                    np.concatenate(
-                        [np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.00, 0.02)]
-                    )
-                    ** 2
-                ),
-            ),
-            (
-                "reg_lambda",
-                (
-                    np.concatenate(
-                        [np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.00, 0.02)]
-                    )
-                    ** 2
-                ),
-            ),
+            ("reg_alpha", np.arange(0.0, 10.0, 0.1) ** 2),
+            ("reg_lambda",np.arange(0.0, 10.0, 0.1) ** 2),
             (
                 "min_child_weight",
                 list(
