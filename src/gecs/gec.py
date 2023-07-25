@@ -214,10 +214,10 @@ class GEC(LGBMClassifier):
         self._init_kwargs = {
             k: v
             for k, v in kwargs.items()
-            if k not in ["bagging_freq", "bagging_fraction"]
+            if k not in ["subsample_freq", "subsample"]
         }
-        self.bagging_fraction = kwargs.get("bagging_fraction", None)
-        self.bagging_freq = kwargs.get("bagging_freq", None)
+        self.subsample = kwargs.get("subsample", None)
+        self.subsample_freq = kwargs.get("subsample_freq", None)
 
         self.fix_bagging = False
         self.fix_boosting_type = False
@@ -275,7 +275,7 @@ class GEC(LGBMClassifier):
 
         prohibited_combinations = ["rf-no_bagging"]
         if self.fix_bagging and (
-            self.bagging_fraction is None or self.bagging_freq is None
+            self.subsample is None or self.subsample_freq is None
         ):
             prohibited_combinations += ["rf-yes_bagging"]
 
@@ -709,7 +709,7 @@ class GEC(LGBMClassifier):
 
         assert (
             (not self.fix_bagging)
-            or (self.bagging_freq is not None)
+            or (self.subsample_freq is not None)
             or (self.boosting_type != "rf")
             or (not self.fix_boosting_type)
         ), 'boosting_type="rf" requires bagging'
@@ -760,15 +760,15 @@ class GEC(LGBMClassifier):
         self.selected_arms = []
         if (
             self.fix_bagging
-            and "bagging_fraction" in params
-            and "bagging_freq" in params
+            and "subsample" in params
+            and "subsample_freq" in params
         ):
-            if self.bagging_fraction is not None and self.bagging_freq is not None:
-                params["bagging_fraction"] = self.bagging_fraction
-                params["bagging_freq"] = self.bagging_freq
+            if self.subsample is not None and self.subsample_freq is not None:
+                params["subsample"] = self.subsample
+                params["subsample_freq"] = self.subsample_freq
             else:
-                del params["bagging_fraction"]
-                del params["bagging_freq"]
+                del params["subsample"]
+                del params["subsample_freq"]
             self.bagging_scores = {
                 "inputs": [],
                 "output": [],
@@ -841,8 +841,8 @@ class GEC(LGBMClassifier):
                     ) = self._select_bagging_parameters()
 
                     (
-                        arguments["bagging_freq"],
-                        arguments["bagging_fraction"],
+                        arguments["subsample_freq"],
+                        arguments["subsample"],
                     ) = selected_combination_bagging
 
             del arguments["bagging"]
@@ -855,7 +855,7 @@ class GEC(LGBMClassifier):
                 score, arguments, selected_arm, selected_combination, mean, sigma
             )
 
-            if "bagging_freq" in arguments:
+            if "subsample_freq" in arguments:
                 self._update_gec_fields_bagging(
                     score, selected_combination_bagging, mean_bagging, sigma_bagging
                 )
@@ -886,8 +886,8 @@ class GEC(LGBMClassifier):
 
         if "yes_bagging" in selected_arm:
             (
-                arguments["bagging_freq"],
-                arguments["bagging_fraction"],
+                arguments["subsample_freq"],
+                arguments["subsample"],
             ) = random_combination_bagging
             selected_combination_bagging = random_combination_bagging
         else:
@@ -1139,9 +1139,9 @@ class GEC(LGBMClassifier):
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
 
-        if "bagging_freq" in params:
-            del params["bagging_freq"]
-            del params["bagging_fraction"]
+        if "subsample_freq" in params:
+            del params["subsample_freq"]
+            del params["subsample"]
             bagging = "yes_bagging"
         else:
             bagging = "no_bagging"
@@ -1198,8 +1198,8 @@ class GEC(LGBMClassifier):
             ]
 
             (
-                arguments["bagging_freq"],
-                arguments["bagging_fraction"],
+                arguments["subsample_freq"],
+                arguments["subsample"],
             ) = best_predicted_combination_bagging
 
         del arguments["bagging"]
