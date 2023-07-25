@@ -7,6 +7,7 @@ import math
 import os
 import warnings
 from datetime import datetime
+from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -25,10 +26,10 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.model_selection import cross_val_score
-from sklearn.utils.extmath import cartesian
 from sklearn.utils._testing import ignore_warnings
+from sklearn.utils.extmath import cartesian
 from tqdm import tqdm
-from time import sleep
+
 
 class GEC(LGBMClassifier):
     def __init__(
@@ -213,9 +214,7 @@ class GEC(LGBMClassifier):
         self.set_params(**kwargs)
 
         self._init_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k not in ["subsample_freq", "subsample"]
+            k: v for k, v in kwargs.items() if k not in ["subsample_freq", "subsample"]
         }
         self.subsample = kwargs.get("subsample", None)
         self.subsample_freq = kwargs.get("subsample_freq", None)
@@ -275,9 +274,7 @@ class GEC(LGBMClassifier):
         )
 
         prohibited_combinations = ["rf-no_bagging"]
-        if self.fix_bagging and (
-            self.subsample is None or self.subsample_freq is None
-        ):
+        if self.fix_bagging and (self.subsample is None or self.subsample_freq is None):
             prohibited_combinations += ["rf-yes_bagging"]
 
         self._categorical_hyperparameter_combinations = [
@@ -316,8 +313,20 @@ class GEC(LGBMClassifier):
             ),
             ("num_leaves", np.array(list(range(1, 100)) + list(range(100, 1000, 5)))),
             ("n_estimators", ten_to_ten_thousand),
-            ("reg_alpha", np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]).round(4) ** 2),
-            ("reg_lambda", np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]).round(4) ** 2),
+            (
+                "reg_alpha",
+                np.concatenate(
+                    [np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]
+                ).round(4)
+                ** 2,
+            ),
+            (
+                "reg_lambda",
+                np.concatenate(
+                    [np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]
+                ).round(4)
+                ** 2,
+            ),
             (
                 "min_child_weight",
                 list(
@@ -433,7 +442,9 @@ class GEC(LGBMClassifier):
     @kernel_bagging.setter
     def kernel_bagging(self, value):
         self._kernel_bagging = value
-        self.gaussian_bagging = GaussianProcessRegressor(kernel=value, n_restarts_optimizer=9)
+        self.gaussian_bagging = GaussianProcessRegressor(
+            kernel=value, n_restarts_optimizer=9
+        )
 
     @property
     def gec_iter(self) -> int:
@@ -576,7 +587,9 @@ class GEC(LGBMClassifier):
             for v in values
         }
 
-        assert np.all(np.array(real_to_linear_to_real.values())), {k:v for k,v in real_to_linear_to_real.items() if not v}
+        assert np.all(np.array(real_to_linear_to_real.values())), {
+            k: v for k, v in real_to_linear_to_real.items() if not v
+        }
 
         linear_to_real_to_linear = {
             v: self._real_hyperparameters_map_reverse[hp][
@@ -586,7 +599,9 @@ class GEC(LGBMClassifier):
             for hp, values in self._real_hyperparameters_linear
             for v in values
         }
-        assert np.all(np.array(linear_to_real_to_linear.values())), {k:v for k,v in linear_to_real_to_linear.items() if not v}
+        assert np.all(np.array(linear_to_real_to_linear.values())), {
+            k: v for k, v in linear_to_real_to_linear.items() if not v
+        }
 
     def set_gec_hyperparameters(
         self, gec_hyperparameters: Dict[str, Union[int, float, List[str]]]
@@ -743,11 +758,7 @@ class GEC(LGBMClassifier):
         if self.fix_boosting_type:
             params["boosting_type"] = self.boosting_type
         self.selected_arms = []
-        if (
-            self.fix_bagging
-            and "subsample" in params
-            and "subsample_freq" in params
-        ):
+        if self.fix_bagging and "subsample" in params and "subsample_freq" in params:
             if self.subsample is not None and self.subsample_freq is not None:
                 params["subsample"] = self.subsample
                 params["subsample_freq"] = self.subsample_freq
@@ -1126,7 +1137,7 @@ class GEC(LGBMClassifier):
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
 
-        if params["subsample_freq"]==0:
+        if params["subsample_freq"] == 0:
             del params["subsample_freq"]
             del params["subsample"]
             bagging = "yes_bagging"
