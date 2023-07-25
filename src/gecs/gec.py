@@ -316,8 +316,8 @@ class GEC(LGBMClassifier):
             ),
             ("num_leaves", np.array(list(range(1, 100)) + list(range(100, 1000, 5)))),
             ("n_estimators", ten_to_ten_thousand),
-            ("reg_alpha", np.arange(0.0, 10.0, 0.1) ** 2),
-            ("reg_lambda",np.arange(0.0, 10.0, 0.1) ** 2),
+            ("reg_alpha", np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]).round(4) ** 2),
+            ("reg_lambda", np.concatenate([np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]).round(4) ** 2),
             (
                 "min_child_weight",
                 list(
@@ -343,7 +343,7 @@ class GEC(LGBMClassifier):
             if hp_name in self.gec_hyperparameters["hyperparameters"]
         ]
         self._real_hyperparameters_linear = [
-            (name, np.arange(-1, 1, 2 / len(values)).astype(np.float16))
+            (name, np.arange(-1.0, 1.0, 2 / len(values)).round(4).astype(np.float16))
             for name, values in self._real_hyperparameters
         ]
 
@@ -567,26 +567,26 @@ class GEC(LGBMClassifier):
         return representation
 
     def _validate_parameter_maps(self) -> None:
-        real_to_linear_to_real = [
-            self._real_hyperparameters_map[hp][
+        real_to_linear_to_real = {
+            v: self._real_hyperparameters_map[hp][
                 self._real_hyperparameters_map_reverse[hp][v]
             ]
             == v
             for hp, values in self._real_hyperparameters
             for v in values
-        ]
+        }
 
-        assert np.all(real_to_linear_to_real), real_to_linear_to_real
+        assert np.all(np.array(real_to_linear_to_real.values())), {k:v for k,v in real_to_linear_to_real.items() if not v}
 
-        linear_to_real_to_linear = [
-            self._real_hyperparameters_map_reverse[hp][
+        linear_to_real_to_linear = {
+            v: self._real_hyperparameters_map_reverse[hp][
                 self._real_hyperparameters_map[hp][v]
             ]
             == v
             for hp, values in self._real_hyperparameters_linear
             for v in values
-        ]
-        assert np.all(linear_to_real_to_linear), linear_to_real_to_linear
+        }
+        assert np.all(np.array(linear_to_real_to_linear.values())), {k:v for k,v in linear_to_real_to_linear.items() if not v}
 
     def set_gec_hyperparameters(
         self, gec_hyperparameters: Dict[str, Union[int, float, List[str]]]
