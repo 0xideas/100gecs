@@ -1,9 +1,8 @@
 from cloud_io.load_bank_dataset import load_bank_dataset
 from cloud_io.load_cover_dataset import load_cover_dataset
+from cloud_io.load_enzymes_dataset import load_enzymes_dataset
 from cloud_io.load_income_dataset import load_income_dataset
 from cloud_io.load_mushroom_dataset import load_mushroom_dataset
-from cloud_io.load_enzymes_dataset import load_enzymes_dataset
-
 
 default_paths = {
     "bank": "/home/ubuntu/data/bank/bank-full.csv",
@@ -11,7 +10,7 @@ default_paths = {
     "cover": "/home/ubuntu/data/cover/cover.csv",
     "mushroom": "/home/ubuntu/data/mushroom/mushroom.csv",
     "enzymes1": "/home/leon/data/enzymes/enzymes-train.csv",
-    "enzymes2": "/home/leon/data/enzymes/enzymes-train.csv"
+    "enzymes2": "/home/leon/data/enzymes/enzymes-train.csv",
 }
 
 

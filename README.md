@@ -26,7 +26,7 @@ Bayesian hyperparameter tuning for LGBMClassifier with a scikit-learn API
 
 The primary class in this package is `GEC`, which is derived from `LGBMClassifier`. Like its parent, GEC can be used to build and train gradient boosting models, but with the added feature of **automated bayesian hyperparameter optimization**. It can be imported from `gecs.gec` and then used in place of `LGBMClassifier`, with the same API.
 
-By default, `GEC` optimizes `boosting_type`, `learning_rate`, `reg_alpha`, `reg_lambda`, `min_child_samples`, `min_child_weight`, `colsample_bytree`, `bagging_freq`, `bagging_fraction` and optionally `num_leaves` and `n_estimators`. Which hyperparameters to tune is fully customizable.
+By default, `GEC` optimizes `boosting_type`, `learning_rate`, `reg_alpha`, `reg_lambda`, `min_child_samples`, `min_child_weight`, `colsample_bytree`, `subsample_freq`, `subsample` and optionally `num_leaves` and `n_estimators`. Which hyperparameters to tune is fully customizable.
 
 
 ## Installation
@@ -42,7 +42,7 @@ The `GEC` class provides the same API to the user as the `LGBMClassifier` class 
 -   the two additional parameters to the fit method:
     - `n_iter`: Defines the number of hyperparameter combinations that the model should try. More iterations could lead to better model performance, but at the expense of computational resources
 
-    - `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. Any of the LGBMClassifier init arguments can be fixed, and so can  `bagging_freq` and `bagging_fraction`, but only jointly. This is done by passing the value `bagging`.
+    - `fixed_hyperparameters`: Allows the user to specify hyperparameters that the GEC should not optimize. By default, these are `n_estimators` and `num_leaves`. Any of the LGBMClassifier init arguments can be fixed, and so can  `subsample_freq` and `subsample`, but only jointly. This is done by passing the value `bagging`.
 
 -   the methods `serialize` and `deserialize`, which stores the `GEC` state for the hyperparameter optimization process, **but not the fitted** `LGBMClassifier` **parameters**, to a json file. To store the boosted tree model itself, you have to provide your own serialization or use `pickle`
 

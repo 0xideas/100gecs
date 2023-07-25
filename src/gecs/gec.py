@@ -7,6 +7,7 @@ import math
 import os
 import warnings
 from datetime import datetime
+from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -25,6 +26,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.model_selection import cross_val_score
+from sklearn.utils._testing import ignore_warnings
 from sklearn.utils.extmath import cartesian
 from tqdm import tqdm
 
@@ -212,12 +214,10 @@ class GEC(LGBMClassifier):
         self.set_params(**kwargs)
 
         self._init_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k not in ["bagging_freq", "bagging_fraction"]
+            k: v for k, v in kwargs.items() if k not in ["subsample_freq", "subsample"]
         }
-        self.bagging_fraction = kwargs.get("bagging_fraction", None)
-        self.bagging_freq = kwargs.get("bagging_freq", None)
+        self.subsample = kwargs.get("subsample", None)
+        self.subsample_freq = kwargs.get("subsample_freq", None)
 
         self.fix_bagging = False
         self.fix_boosting_type = False
@@ -274,9 +274,7 @@ class GEC(LGBMClassifier):
         )
 
         prohibited_combinations = ["rf-no_bagging"]
-        if self.fix_bagging and (
-            self.bagging_fraction is None or self.bagging_freq is None
-        ):
+        if self.fix_bagging and (self.subsample is None or self.subsample_freq is None):
             prohibited_combinations += ["rf-yes_bagging"]
 
         self._categorical_hyperparameter_combinations = [
@@ -317,21 +315,17 @@ class GEC(LGBMClassifier):
             ("n_estimators", ten_to_ten_thousand),
             (
                 "reg_alpha",
-                (
-                    np.concatenate(
-                        [np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.00, 0.02)]
-                    )
-                    ** 2
-                ),
+                np.concatenate(
+                    [np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]
+                ).round(4)
+                ** 2,
             ),
             (
                 "reg_lambda",
-                (
-                    np.concatenate(
-                        [np.arange(0.0, 0.5, 0.01), np.arange(0.5, 1.00, 0.02)]
-                    )
-                    ** 2
-                ),
+                np.concatenate(
+                    [np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]
+                ).round(4)
+                ** 2,
             ),
             (
                 "min_child_weight",
@@ -358,7 +352,7 @@ class GEC(LGBMClassifier):
             if hp_name in self.gec_hyperparameters["hyperparameters"]
         ]
         self._real_hyperparameters_linear = [
-            (name, np.arange(-1, 1, 2 / len(values)).astype(np.float16))
+            (name, np.arange(-1.0, 1.0, 2 / len(values)).round(4).astype(np.float16))
             for name, values in self._real_hyperparameters
         ]
 
@@ -439,7 +433,7 @@ class GEC(LGBMClassifier):
     @kernel.setter
     def kernel(self, value):
         self._kernel = value
-        self.gaussian = GaussianProcessRegressor(kernel=value)
+        self.gaussian = GaussianProcessRegressor(kernel=value, n_restarts_optimizer=9)
 
     @property
     def kernel_bagging(self):
@@ -448,7 +442,9 @@ class GEC(LGBMClassifier):
     @kernel_bagging.setter
     def kernel_bagging(self, value):
         self._kernel_bagging = value
-        self.gaussian_bagging = GaussianProcessRegressor(kernel=value)
+        self.gaussian_bagging = GaussianProcessRegressor(
+            kernel=value, n_restarts_optimizer=9
+        )
 
     @property
     def gec_iter(self) -> int:
@@ -582,26 +578,30 @@ class GEC(LGBMClassifier):
         return representation
 
     def _validate_parameter_maps(self) -> None:
-        real_to_linear_to_real = [
-            self._real_hyperparameters_map[hp][
+        real_to_linear_to_real = {
+            v: self._real_hyperparameters_map[hp][
                 self._real_hyperparameters_map_reverse[hp][v]
             ]
             == v
             for hp, values in self._real_hyperparameters
             for v in values
-        ]
+        }
 
-        assert np.all(real_to_linear_to_real), real_to_linear_to_real
+        assert np.all(np.array(real_to_linear_to_real.values())), {
+            k: v for k, v in real_to_linear_to_real.items() if not v
+        }
 
-        linear_to_real_to_linear = [
-            self._real_hyperparameters_map_reverse[hp][
+        linear_to_real_to_linear = {
+            v: self._real_hyperparameters_map_reverse[hp][
                 self._real_hyperparameters_map[hp][v]
             ]
             == v
             for hp, values in self._real_hyperparameters_linear
             for v in values
-        ]
-        assert np.all(linear_to_real_to_linear), linear_to_real_to_linear
+        }
+        assert np.all(np.array(linear_to_real_to_linear.values())), {
+            k: v for k, v in linear_to_real_to_linear.items() if not v
+        }
 
     def set_gec_hyperparameters(
         self, gec_hyperparameters: Dict[str, Union[int, float, List[str]]]
@@ -709,7 +709,7 @@ class GEC(LGBMClassifier):
 
         assert (
             (not self.fix_bagging)
-            or (self.bagging_freq is not None)
+            or (self.subsample_freq is not None)
             or (self.boosting_type != "rf")
             or (not self.fix_boosting_type)
         ), 'boosting_type="rf" requires bagging'
@@ -758,17 +758,13 @@ class GEC(LGBMClassifier):
         if self.fix_boosting_type:
             params["boosting_type"] = self.boosting_type
         self.selected_arms = []
-        if (
-            self.fix_bagging
-            and "bagging_fraction" in params
-            and "bagging_freq" in params
-        ):
-            if self.bagging_fraction is not None and self.bagging_freq is not None:
-                params["bagging_fraction"] = self.bagging_fraction
-                params["bagging_freq"] = self.bagging_freq
+        if self.fix_bagging and "subsample" in params and "subsample_freq" in params:
+            if self.subsample is not None and self.subsample_freq is not None:
+                params["subsample"] = self.subsample
+                params["subsample_freq"] = self.subsample_freq
             else:
-                del params["bagging_fraction"]
-                del params["bagging_freq"]
+                del params["subsample"]
+                del params["subsample_freq"]
             self.bagging_scores = {
                 "inputs": [],
                 "output": [],
@@ -841,8 +837,8 @@ class GEC(LGBMClassifier):
                     ) = self._select_bagging_parameters()
 
                     (
-                        arguments["bagging_freq"],
-                        arguments["bagging_fraction"],
+                        arguments["subsample_freq"],
+                        arguments["subsample"],
                     ) = selected_combination_bagging
 
             del arguments["bagging"]
@@ -855,7 +851,7 @@ class GEC(LGBMClassifier):
                 score, arguments, selected_arm, selected_combination, mean, sigma
             )
 
-            if "bagging_freq" in arguments:
+            if "yes_bagging" in selected_arm:
                 self._update_gec_fields_bagging(
                     score, selected_combination_bagging, mean_bagging, sigma_bagging
                 )
@@ -886,8 +882,8 @@ class GEC(LGBMClassifier):
 
         if "yes_bagging" in selected_arm:
             (
-                arguments["bagging_freq"],
-                arguments["bagging_fraction"],
+                arguments["subsample_freq"],
+                arguments["subsample"],
             ) = random_combination_bagging
             selected_combination_bagging = random_combination_bagging
         else:
@@ -1087,6 +1083,7 @@ class GEC(LGBMClassifier):
 
         super().fit(X, y, **self.fit_params)
 
+    @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian(self) -> None:
         self.gaussian.fit(
             np.array(self.hyperparameter_scores["inputs"]),
@@ -1094,6 +1091,7 @@ class GEC(LGBMClassifier):
             - np.mean(self.hyperparameter_scores["output"]),
         )
 
+    @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian_bagging(self) -> None:
         if len(self.bagging_scores["output"]):
             self.gaussian_bagging.fit(
@@ -1139,9 +1137,9 @@ class GEC(LGBMClassifier):
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
 
-        if "bagging_freq" in params:
-            del params["bagging_freq"]
-            del params["bagging_fraction"]
+        if params["subsample_freq"] == 0:
+            del params["subsample_freq"]
+            del params["subsample"]
             bagging = "yes_bagging"
         else:
             bagging = "no_bagging"
@@ -1198,8 +1196,8 @@ class GEC(LGBMClassifier):
             ]
 
             (
-                arguments["bagging_freq"],
-                arguments["bagging_fraction"],
+                arguments["subsample_freq"],
+                arguments["subsample"],
             ) = best_predicted_combination_bagging
 
         del arguments["bagging"]
