@@ -58,10 +58,12 @@ The default use of `GEC` would look like this:
 
     X, y = load_iris(return_X_y=True)
 
+
     # fit and infer GEC
     gec = GEC()
     gec.fit(X, y)
     yhat = gec.predict(X)
+
 
     # manage GEC state
     path = "./gec.json"
