@@ -1025,7 +1025,7 @@ class GEC(LGBMClassifier):
                     self.rewards_[selected_arm]["b"] - weighted_score_delta
                 )
         else:
-            self.best_score = score
+            self.best_score_gec_ = score
             self.best_params_ = arguments
 
     def _update_gec_fields_bagging(
