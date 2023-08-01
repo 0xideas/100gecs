@@ -53,19 +53,37 @@ The `GEC` class provides the same API to the user as the `LGBMClassifier` class 
 
 The default use of `GEC` would look like this:
 
+    from sklearn.datasets import load_iris
     from gecs.gec import GEC
 
+    X, y = load_iris(return_X_y=True)
+
+    # fit and infer GEC
+    gec = GEC()
     gec.fit(X, y)
-
-    gec.serialize(path) # stores gec data and settings, but not underlying LGBMClassifier attributes
-
-    gec2 = GEC.deserialize(path, X, y) # X and y are necessary to fit the underlying LGBMClassifier
-
     yhat = gec.predict(X)
 
+    # manage GEC state
+    path = "./gec.json"
+    gec.serialize(path) # stores gec data and settings, but not underlying LGBMClassifier attributes
+    gec2 = GEC.deserialize(path, X, y) # X and y are necessary to fit the underlying LGBMClassifier
     gec.freeze() # freeze GEC so that it behaves like a LGBMClassifier
-
     gec.unfreeze() # unfreeze to enable GEC hyperparameter optimisation
+
+
+    # benchmark against LGBMClassifier
+    from lightgbm import LGBMClassifier
+    from sklearn.model_selection import cross_val_score
+    import numpy as np
+
+    clf = LGBMClassifier()
+    lgbm_score = np.mean(cross_val_score(clf, X, y))
+
+    gec.freeze()
+    gec_score = np.mean(cross_val_score(gec, X, y))
+
+    print(f"{gec_score = }, {lgbm_score = }")
+    assert gec_score > lgbm_score, "GEC doesn't outperform LGBMClassifier"
 
 
 
