@@ -216,8 +216,6 @@ class GEC(LGBMClassifier):
         self._init_kwargs = {
             k: v for k, v in kwargs.items() if k not in ["subsample_freq", "subsample"]
         }
-        self.subsample = kwargs.get("subsample", None)
-        self.subsample_freq = kwargs.get("subsample_freq", None)
 
         self.fix_bagging_ = False
         self.fix_boosting_type_ = False
@@ -641,7 +639,7 @@ class GEC(LGBMClassifier):
     def get_params(
         self, deep: bool = True
     ) -> Dict[str, Optional[Union[str, float, int, bool]]]:
-        if hasattr(self, "best_params") and self.best_params_ is not None:
+        if hasattr(self, "best_params_") and self.best_params_ is not None:
             params = copy.deepcopy(self.best_params_)
         else:
             params = super().get_params(deep)
