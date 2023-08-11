@@ -87,6 +87,9 @@ The default use of `GEC` would look like this:
     print(f"{gec_score = }, {lgbm_score = }")
     assert gec_score > lgbm_score, "GEC doesn't outperform LGBMClassifier"
 
+    #check what hyperparameter combinations were tried
+    gec.tried_hyperparameters()
+
 
 
 ## Contributing
