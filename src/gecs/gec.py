@@ -272,7 +272,9 @@ class GEC(LGBMClassifier):
         )
 
         prohibited_combinations = ["rf-no_bagging"]
-        if self.fix_bagging_ and (self.subsample is None or self.subsample_freq is None):
+        if self.fix_bagging_ and (
+            self.subsample is None or self.subsample_freq is None
+        ):
             prohibited_combinations += ["rf-yes_bagging"]
 
         self._categorical_hyperparameter_combinations = [
@@ -378,7 +380,6 @@ class GEC(LGBMClassifier):
             np.array(s).dtype for _, s in self._real_hyperparameters
         ]
 
-
     def _set_gec_fields(self) -> None:
         self.kernel = RBF(self.gec_hyperparameters_["l"])
         self.hyperparameter_scores_ = {
@@ -429,22 +430,37 @@ class GEC(LGBMClassifier):
         self.best_params_gec_ = {}
 
     def tried_hyperparameters(self):
-        assert np.array(self.hyperparameter_scores_["inputs"]).shape[0] == len(self.selected_arms_)
-        bagging_indicator = np.array(["yes_bagging" in selected_arm for selected_arm in self.selected_arms_])
-        assert np.array(self.bagging_scores_["inputs"]).shape[0] == np.sum(bagging_indicator)
+        assert np.array(self.hyperparameter_scores_["inputs"]).shape[0] == len(
+            self.selected_arms_
+        )
+        bagging_indicator = np.array(
+            ["yes_bagging" in selected_arm for selected_arm in self.selected_arms_]
+        )
+        assert np.array(self.bagging_scores_["inputs"]).shape[0] == np.sum(
+            bagging_indicator
+        )
 
-        bagging_scores_expanded = np.zeros((np.array(self.hyperparameter_scores_["inputs"]).shape[0], 2))
-        bagging_scores_expanded[bagging_indicator,:] = self.bagging_scores_["inputs"]
+        bagging_scores_expanded = np.zeros(
+            (np.array(self.hyperparameter_scores_["inputs"]).shape[0], 2)
+        )
+        bagging_scores_expanded[bagging_indicator, :] = self.bagging_scores_["inputs"]
 
         hyperparamters = []
-        for selected_arm, hyperparameter_inputs, bagging_ind, bagging_score in zip(self.selected_arms_, self.hyperparameter_scores_["inputs"], bagging_indicator, bagging_scores_expanded):
+        for selected_arm, hyperparameter_inputs, bagging_ind, bagging_score in zip(
+            self.selected_arms_,
+            self.hyperparameter_scores_["inputs"],
+            bagging_indicator,
+            bagging_scores_expanded,
+        ):
             args = self._build_arguments(selected_arm.split("-"), hyperparameter_inputs)
             if bagging_ind:
-                args["subsample_freq"], args["subsample"] = self._invert_rescaled_bagging_combination(*bagging_score)
+                (
+                    args["subsample_freq"],
+                    args["subsample"],
+                ) = self._invert_rescaled_bagging_combination(*bagging_score)
             hyperparamters.append(args)
 
-        return(hyperparamters)
-
+        return hyperparamters
 
     @property
     def kernel(self):
@@ -959,7 +975,9 @@ class GEC(LGBMClassifier):
 
     def _get_combinations_to_score(self, sets: ndarray) -> List[ndarray]:
         if len(self.hyperparameter_scores_["inputs"]):
-            n_best = max(3, int(self.gec_iter_ * self.gec_hyperparameters_["best_share"]))
+            n_best = max(
+                3, int(self.gec_iter_ * self.gec_hyperparameters_["best_share"])
+            )
             best_interactions = np.argsort(
                 np.array(self.hyperparameter_scores_["output"])
             )[::-1][:n_best]
