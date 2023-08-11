@@ -458,6 +458,8 @@ class GEC(LGBMClassifier):
                     args["subsample_freq"],
                     args["subsample"],
                 ) = self._invert_rescaled_bagging_combination(*bagging_score)
+            del args["bagging"]
+
             hyperparamters.append(args)
 
         return hyperparamters
