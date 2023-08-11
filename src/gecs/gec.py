@@ -757,7 +757,7 @@ class GEC(LGBMClassifier):
     def _replace_fixed_args(self, params):
         if self.fix_boosting_type_:
             params["boosting_type"] = self.boosting_type
-        self.selected_arms_ = []
+
         if self.fix_bagging_ and "subsample" in params and "subsample_freq" in params:
             if self.subsample is not None and self.subsample_freq is not None:
                 params["subsample"] = self.subsample
