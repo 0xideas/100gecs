@@ -1123,20 +1123,23 @@ class GEC(LGBMClassifier):
 
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian(self) -> None:
-        self.gaussian.fit(
-            np.array(self.hyperparameter_scores_["inputs"]),
-            np.array(self.hyperparameter_scores_["output"])
-            - np.mean(self.hyperparameter_scores_["output"]),
-        )
+        best_rows = np.argsort(self.hyperparameter_scores_["output"])[-50:]
+        random_rows = np.random.choice(np.argsort(self.hyperparameter_scores_["output"])[:-50], min(max(0, self.gec_iter_-50), 50))
+        selected_rows = np.concatenate([random_rows, best_rows])
+        X = np.array(self.hyperparameter_scores_["inputs"])[selected_rows, :]
+        y = np.array(self.hyperparameter_scores_["output"])[selected_rows]
+        self.gaussian.fit(X, y - np.mean(y))
 
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian_bagging(self) -> None:
-        if len(self.bagging_scores_["output"]):
-            self.gaussian_bagging.fit(
-                np.array(self.bagging_scores_["inputs"]),
-                np.array(self.bagging_scores_["output"])
-                - np.mean(self.bagging_scores_["output"]),
-            )
+        bagging_iter = len(self.bagging_scores_["output"])
+        if bagging_iter:
+            best_rows = np.argsort(self.bagging_scores_["output"])[-50:]
+            random_rows = np.random.choice(np.argsort(self.bagging_scores_["output"])[:-50], min(max(0, bagging_iter-50), 50))
+            selected_rows = np.concatenate([random_rows, best_rows])
+            X = np.array(self.bagging_scores_["inputs"])[selected_rows, :]
+            y = np.array(self.bagging_scores_["output"])[selected_rows]
+            self.gaussian_bagging.fit(X, y - np.mean(y))
 
     def _get_best_arm(self) -> str:
         mean_reward = np.array(
