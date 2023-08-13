@@ -18,7 +18,7 @@ class GECSim(GEC):
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ) -> float64:
         score, data = self.sim_fn(params)
-        self.sim_fn_data += data
+        self.sim_fn_data.extend(data)
         return(score)
     
 
@@ -45,7 +45,7 @@ example_params =  {
   'importance_type': 'split'
 }
 
-optimal_params = {"boosting_type":"dart", "reg_alpha":2.5, "reg_lambda":0.2, "min_child_weight":0.1, "min_child_samples":5, "subsample":0.6, "subsample_freq": 0.5, "learning_rate": 0.5}
+optimal_params = {"boosting_type":"dart", "reg_alpha":2.5, "reg_lambda":0.2, "min_child_weight":0.1, "min_child_samples":5, "subsample":0.6, "subsample_freq": 0.5, "learning_rate": 0.5, "colsample_bytree":0.7}
 
     
 def single_peak_real_hps_fn(params:  Dict[str, Optional[Union[str, float, int, float64]]]):
@@ -61,21 +61,29 @@ def single_peak_real_hps_fn(params:  Dict[str, Optional[Union[str, float, int, f
 
     score_constituents["min_child_samples_loss"] = abs(params["min_child_samples"]-5)
 
-    return((20.0 - np.sum(list(score_constituents.values())))/20.0, score_constituents)
+    score_constituents["colsample_bytree_loss"] = abs(params["colsample_bytree"]-0.7)
+
+    score = (20.0 - np.sum(list(score_constituents.values())))/20.0
+    return(score, [score_constituents])
 
 
+def calculate_rs_scores_real_hps(fn, gecsim, n_iter):
+    hyperparams = dict(gecsim._real_hyperparameters)
+    params = [{k:np.random.choice(v) for k,v in hyperparams.items()} for _ in range(n_iter)]
+    scores = [fn(params_)[0] for params_ in params]
+    return(scores)
 
 if __name__ == "__main__":
     gecsim = GECSim()
     gecsim.set_sim_fn(single_peak_real_hps_fn)
-    n_iter=100
+    n_iter=1000
     gec_hyperparameters = {
         "l": 1.0,
         "l_bagging": 0.1,
-        "hyperparams_acquisition_percentile": 0.3,
-        "bagging_acquisition_percentile": 0.3,
+        "hyperparams_acquisition_percentile": 0.2,
+        "bagging_acquisition_percentile": 0.2,
         "bandit_greediness": 0.4,
-        "n_random_exploration": 5,
+        "n_random_exploration": 10,
         "n_sample": 1000,
         "n_sample_initial": 1000,
         "best_share": 0.2,
@@ -97,14 +105,13 @@ if __name__ == "__main__":
     X = np.random.randn(100, 3)
     y = np.random.choice([0, 1], 100)
 
-    gecsim.fit(X, y, n_iter=n_iter)
+    #"reg_alpha", "colsample_bytree", "min_child_weight", "min_child_samples",
+    gecsim.fit(X, y, n_iter=n_iter, fixed_hyperparameters=[ "num_leaves", "n_estimators"])
     scores = gecsim.hyperparameter_scores_["output"]
     rolling_average_score = np.array([np.mean(scores[i:i+10]) for i in range(len(scores)-10)])
     print(f"max score {np.max(scores)} at {np.argmax(scores)}")
-    print("scores:")
-    print(scores)
-    print("selected arms counts:")
-    print(pd.Series(gecsim.selected_arms_).value_counts().sort_index())
+    rs_scores = calculate_rs_scores_real_hps(single_peak_real_hps_fn, gecsim, n_iter)
+    print(f"rs max score {np.max(rs_scores)} at {np.argmax(rs_scores)}")
 
     tried_hyperparameters = pd.DataFrame(gecsim.tried_hyperparameters())
     tried_hyperparameters["score"] = scores
@@ -113,4 +120,4 @@ if __name__ == "__main__":
         tried_hyperparameters.to_csv(f, index=False)
 
     with open("sims/data/score_constituents.csv", "w") as f:
-        pd.DataFrame(gecsim.sim_fn_data).to_csv(f, index=False)
+        pd.DataFrame(gecsim.sim_fn_data[:-2]).to_csv(f, index=False)
