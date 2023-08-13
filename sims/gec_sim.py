@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import json
 from numpy import ndarray, float64
 from typing import Dict, Optional, Union
 
@@ -8,6 +9,7 @@ from gecs.gec import GEC
 class GECSim(GEC):
     def set_sim_fn(self, fn):
         self.sim_fn = fn
+        self.sim_fn_data = []
 
     def _calculate_cv_score(
         self,
@@ -15,7 +17,9 @@ class GECSim(GEC):
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ) -> float64:
-        return(self.sim_fn(params))
+        score, data = self.sim_fn(params)
+        self.sim_fn_data += data
+        return(score)
     
 
 example_params =  {
@@ -44,33 +48,27 @@ example_params =  {
 optimal_params = {"boosting_type":"dart", "reg_alpha":2.5, "reg_lambda":0.2, "min_child_weight":0.1, "min_child_samples":5, "subsample":0.6, "subsample_freq": 0.5, "learning_rate": 0.5}
 
     
-def single_peak_fn(params:  Dict[str, Optional[Union[str, float, int, float64]]]):
-    score = 20.0
-    if params["boosting_type"] == "dart":
-        score += 5.0
-    
-    score -= abs(params["learning_rate"]-0.5)
+def single_peak_real_hps_fn(params:  Dict[str, Optional[Union[str, float, int, float64]]]):
+    score_constituents = {}
 
-    score -= abs(params["reg_alpha"]-2.5)
+    score_constituents["learning_rate_loss"] = abs(params["learning_rate"]-0.5)
 
-    score -= abs(params["reg_lambda"]-0.2)
+    score_constituents["reg_alpha_loss"] = abs(params["reg_alpha"]-2.5)
 
-    score -= abs(params["min_child_weight"]-0.1)*10
+    score_constituents["reg_lambda_loss"] = abs(params["reg_lambda"]-0.2)
 
-    score -= abs(params["min_child_samples"]-5)
-    
-    score -= abs(params["subsample"] - 0.6)
+    score_constituents["min_child_weight_loss"] = abs(params["min_child_weight"]-0.1)*10
 
-    score -= abs(params["subsample_freq"] - 5)
+    score_constituents["min_child_samples_loss"] = abs(params["min_child_samples"]-5)
 
-    return(score/20.0)
+    return((20.0 - np.sum(list(score_constituents.values())))/20.0, score_constituents)
 
 
 
 if __name__ == "__main__":
     gecsim = GECSim()
-    gecsim.set_sim_fn(single_peak_fn)
-    n_iter=50
+    gecsim.set_sim_fn(single_peak_real_hps_fn)
+    n_iter=100
     gec_hyperparameters = {
         "l": 1.0,
         "l_bagging": 0.1,
@@ -103,8 +101,16 @@ if __name__ == "__main__":
     scores = gecsim.hyperparameter_scores_["output"]
     rolling_average_score = np.array([np.mean(scores[i:i+10]) for i in range(len(scores)-10)])
     print(f"max score {np.max(scores)} at {np.argmax(scores)}")
-    print("rolling average score:")
-    print(rolling_average_score)
+    print("scores:")
+    print(scores)
     print("selected arms counts:")
     print(pd.Series(gecsim.selected_arms_).value_counts().sort_index())
 
+    tried_hyperparameters = pd.DataFrame(gecsim.tried_hyperparameters())
+    tried_hyperparameters["score"] = scores
+
+    with open("sims/data/tried_hyperparameters.csv", "w") as f:
+        tried_hyperparameters.to_csv(f, index=False)
+
+    with open("sims/data/score_constituents.csv", "w") as f:
+        pd.DataFrame(gecsim.sim_fn_data).to_csv(f, index=False)
