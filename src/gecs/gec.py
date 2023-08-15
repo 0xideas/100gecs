@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 from numpy import float16, float64, ndarray, str_
 from numpy.random.mtrand import RandomState
 from scipy.stats import beta
+from scipy.spatial.distance import cdist
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
@@ -246,6 +247,7 @@ class GEC(LGBMClassifier):
             "n_sample": 1000,
             "n_sample_initial": 1000,
             "best_share": 0.2,
+            "distance_metric": "cityblock",
             "hyperparameters": [
                 "learning_rate",
                 "n_estimators",
@@ -982,15 +984,17 @@ class GEC(LGBMClassifier):
             )
             best_interactions = np.argsort(
                 np.array(self.hyperparameter_scores_["output"])
-            )[::-1][:n_best]
+            )[-n_best:]
 
             best_hyperparameters = np.array(self.hyperparameter_scores_["inputs"])[
                 best_interactions, :
             ]
 
-            closest_hyperparameters = best_hyperparameters.dot(sets).argsort(1)[
-                :, : self.gec_hyperparameters_["n_sample"]
-            ]
+            closest_hyperparameters = cdist(
+                best_hyperparameters,
+                sets.T,
+                metric=self.gec_hyperparameters_["distance_metric"],
+            ).argsort(1)[:, : self.gec_hyperparameters_["n_sample"]]
             selected_hyperparameter_indices = np.unique(
                 closest_hyperparameters.flatten()
             )

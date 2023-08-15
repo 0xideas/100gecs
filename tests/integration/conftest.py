@@ -50,10 +50,11 @@ def gec(X, y):
             "hyperparams_acquisition_percentile": 0.7,
             "bagging_acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
-            "n_random_exploration": 10,
+            "n_random_exploration": 2,
             "n_sample": 100,
             "n_sample_initial": 100,
             "best_share": 0.2,
+            "distance_metric": "cityblock",
             "hyperparameters": [
                 "learning_rate",
                 "n_estimators",
