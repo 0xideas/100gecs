@@ -990,9 +990,11 @@ class GEC(LGBMClassifier):
                 best_interactions, :
             ]
 
-            closest_hyperparameters = cdist(best_hyperparameters, sets.T, metric=self.gec_hyperparameters_["distance_metric"]).argsort(1)[
-                :, : self.gec_hyperparameters_["n_sample"]
-            ]
+            closest_hyperparameters = cdist(
+                best_hyperparameters,
+                sets.T,
+                metric=self.gec_hyperparameters_["distance_metric"],
+            ).argsort(1)[:, : self.gec_hyperparameters_["n_sample"]]
             selected_hyperparameter_indices = np.unique(
                 closest_hyperparameters.flatten()
             )
