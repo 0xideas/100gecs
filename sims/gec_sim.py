@@ -76,7 +76,7 @@ def calculate_rs_scores_real_hps(fn, gecsim, n_iter):
 if __name__ == "__main__":
     gecsim = GECSim()
     gecsim.set_sim_fn(single_peak_real_hps_fn)
-    n_iter=1000
+    n_iter=50
     gec_hyperparameters = {
         "l": 1.0,
         "l_bagging": 0.1,
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         "bandit_greediness": 0.4,
         "n_random_exploration": 10,
         "n_sample": 1000,
-        "n_sample_initial": 1000,
+        "n_sample_initial": 2000,
         "best_share": 0.2,
         "hyperparameters": [
             "learning_rate",
