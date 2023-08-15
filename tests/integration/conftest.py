@@ -54,6 +54,7 @@ def gec(X, y):
             "n_sample": 100,
             "n_sample_initial": 100,
             "best_share": 0.2,
+            "distance_metric": "cityblock",
             "hyperparameters": [
                 "learning_rate",
                 "n_estimators",

@@ -247,6 +247,7 @@ class GEC(LGBMClassifier):
             "n_sample": 1000,
             "n_sample_initial": 1000,
             "best_share": 0.2,
+            "distance_metric": "cityblock",
             "hyperparameters": [
                 "learning_rate",
                 "n_estimators",
@@ -989,7 +990,7 @@ class GEC(LGBMClassifier):
                 best_interactions, :
             ]
 
-            closest_hyperparameters = cdist(best_hyperparameters, sets.T, metric="cityblock").argsort(1)[
+            closest_hyperparameters = cdist(best_hyperparameters, sets.T, metric=self.gec_hyperparameters_["distance_metric"]).argsort(1)[
                 :, : self.gec_hyperparameters_["n_sample"]
             ]
             selected_hyperparameter_indices = np.unique(
