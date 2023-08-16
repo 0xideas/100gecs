@@ -32,7 +32,7 @@ from sklearn.utils.extmath import cartesian
 from tqdm import tqdm
 
 
-class GEC(LGBMClassifier):
+class GECBase(LGBMClassifier):
     def __init__(
         self,
         boosting_type: str = "gbdt",
