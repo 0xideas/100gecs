@@ -738,6 +738,10 @@ class GEC(LGBMClassifier):
             "callbacks": callbacks,
             "init_model": init_model,
         }
+        self._fit_inner(X, y, n_iter, fixed_hyperparameters)
+
+
+    def _fit_inner(self, X, y, n_iter, fixed_hyperparameters):
 
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters
         fixed_hyperparameters = [
