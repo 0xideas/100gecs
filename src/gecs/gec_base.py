@@ -884,15 +884,6 @@ class GECBase:
             **self._init_kwargs,
         }
 
-    def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
-
-        if hasattr(self, "best_params") and self.best_params_ is not None:
-            for k, v in self.best_params_.items():
-                setattr(self, k, v)
-            setattr(self, "random_state", 101)
-
-        super().fit(X, y, **self.gec_fit_params_)
-
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian(self) -> None:
         self.gaussian.fit(

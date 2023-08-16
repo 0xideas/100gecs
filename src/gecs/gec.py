@@ -240,7 +240,7 @@ class GEC(LGBMClassifier, GECBase):
 
 
     def __sklearn_clone__(self):
-        gec = GEC()
+        gec = GER()
 
         for k, v in self.__dict__.items():
             gec.__dict__[k] = copy.deepcopy(v)

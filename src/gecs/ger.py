@@ -42,7 +42,7 @@ class GER(LGBMRegressor, GECBase):
             )
             .replace("**kwargs)", "**kwargs) -> None")
         )
-        gec_params = str(inspect.signature(GEC.__init__))
+        gec_params = str(inspect.signature(GER.__init__))
         assert adapted_lgbm_params == gec_params, f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"
 
         r"""Construct a gradient boosting model.
