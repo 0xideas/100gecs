@@ -1,12 +1,15 @@
 import copy
 import inspect
+from typing import Callable, Dict, List, Optional, Union
+
+import numpy as np
+from lightgbm import LGBMClassifier
 from lightgbm.basic import LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
-import numpy as np
-from numpy import ndarray, float64
-from typing import List, Dict, Optional, Union, Callable
-from lightgbm import LGBMClassifier
+from numpy import float64, ndarray
+
 from .gec_base import GECBase
+
 
 class GEC(LGBMClassifier, GECBase):
     def __init__(
@@ -43,7 +46,9 @@ class GEC(LGBMClassifier, GECBase):
             .replace("**kwargs)", "**kwargs) -> None")
         )
         gec_params = str(inspect.signature(GEC.__init__))
-        assert adapted_lgbm_params == gec_params, f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"
+        assert (
+            adapted_lgbm_params == gec_params
+        ), f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"
 
         r"""Construct a gradient boosting model.
 
@@ -238,7 +243,6 @@ class GEC(LGBMClassifier, GECBase):
         }
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
-
     def __sklearn_clone__(self):
         gec = GER()
 
@@ -246,7 +250,7 @@ class GEC(LGBMClassifier, GECBase):
             gec.__dict__[k] = copy.deepcopy(v)
 
         return gec
-    
+
     def set_params(self, **kwargs) -> None:
         if "frozen" in kwargs:
             setattr(self, "frozen", kwargs.pop("frozen"))
@@ -262,7 +266,7 @@ class GEC(LGBMClassifier, GECBase):
         params["frozen"] = self.frozen
 
         return params
-    
+
     def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
 
         if hasattr(self, "best_params") and self.best_params_ is not None:
@@ -276,6 +280,6 @@ class GEC(LGBMClassifier, GECBase):
         self,
         X: ndarray,
         y: ndarray,
-        params: Dict[str, Optional[Union[str, float, int, float64]]]
+        params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
-        return(self._calculate_cv_score(X, y, params, LGBMClassifier))
+        return self._calculate_cv_score(X, y, params, LGBMClassifier)

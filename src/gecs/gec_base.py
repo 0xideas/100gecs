@@ -19,8 +19,8 @@ from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
 from numpy import float16, float64, ndarray, str_
 from numpy.random.mtrand import RandomState
-from scipy.stats import beta
 from scipy.spatial.distance import cdist
+from scipy.stats import beta
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
@@ -31,7 +31,6 @@ from tqdm import tqdm
 
 
 class GECBase:
-
     def _gec_init(self, kwargs, frozen):
         self._init_kwargs = {
             k: v for k, v in kwargs.items() if k not in ["subsample_freq", "subsample"]
@@ -504,7 +503,6 @@ class GECBase:
 
         return params
 
-    
     def _fit_inner(self, X, y, n_iter, fixed_hyperparameters):
 
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters

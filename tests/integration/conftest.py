@@ -30,22 +30,18 @@ def X(seed):
 
 @pytest.fixture(scope="session")
 def y_real(X, seed):
-    return(((X.sum(1) ** 2 + np.random.uniform(0, 1, X.shape[0]))))
+    return X.sum(1) ** 2 + np.random.uniform(0, 1, X.shape[0])
+
 
 @pytest.fixture(scope="session")
 def y_class(y_real, seed):
     np.random.seed(seed)
-    return np.array(
-        [
-            min(4, yy.astype(int))
-            for yy in y_real
-        ]
-    )
+    return np.array([min(4, yy.astype(int)) for yy in y_real])
 
 
 @pytest.fixture(scope="session")
 def gec_hps():
-    return({
+    return {
         "l": 1.0,
         "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
@@ -68,7 +64,7 @@ def gec_hps():
             "colsample_bytree",  # feature_fraction
         ],
         "randomize": True,
-    })
+    }
 
 
 @pytest.fixture(scope="session")
@@ -101,7 +97,7 @@ def gec_is_serialised(gec, gec_serialisation_path):
 def ger_serialisation_path():
     return "tests/data/outputs/ger.json"
 
+
 @pytest.fixture(scope="session")
 def ger_is_serialised(ger, ger_serialisation_path):
     ger.serialize(ger_serialisation_path)
-

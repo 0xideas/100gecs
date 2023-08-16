@@ -1,12 +1,15 @@
 import copy
 import inspect
+from typing import Callable, Dict, List, Optional, Union
+
+import numpy as np
+from lightgbm import LGBMRegressor
 from lightgbm.basic import LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
-import numpy as np
-from numpy import ndarray, float64
-from typing import List, Dict, Optional, Union, Callable
-from lightgbm import LGBMRegressor
+from numpy import float64, ndarray
+
 from .gec_base import GECBase
+
 
 class GER(LGBMRegressor, GECBase):
     def __init__(
@@ -43,7 +46,9 @@ class GER(LGBMRegressor, GECBase):
             .replace("**kwargs)", "**kwargs) -> None")
         )
         gec_params = str(inspect.signature(GER.__init__))
-        assert adapted_lgbm_params == gec_params, f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"
+        assert (
+            adapted_lgbm_params == gec_params
+        ), f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"
 
         r"""Construct a gradient boosting model.
 
@@ -236,7 +241,6 @@ class GER(LGBMRegressor, GECBase):
         }
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
-
     def __sklearn_clone__(self):
         gec = GEC()
 
@@ -244,7 +248,7 @@ class GER(LGBMRegressor, GECBase):
             gec.__dict__[k] = copy.deepcopy(v)
 
         return gec
-    
+
     def set_params(self, **kwargs) -> None:
         if "frozen" in kwargs:
             setattr(self, "frozen", kwargs.pop("frozen"))
@@ -260,7 +264,7 @@ class GER(LGBMRegressor, GECBase):
         params["frozen"] = self.frozen
 
         return params
-    
+
     def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
 
         if hasattr(self, "best_params") and self.best_params_ is not None:
@@ -274,6 +278,6 @@ class GER(LGBMRegressor, GECBase):
         self,
         X: ndarray,
         y: ndarray,
-        params: Dict[str, Optional[Union[str, float, int, float64]]]
+        params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
-        return(self._calculate_cv_score(X, y, params, LGBMRegressor))
+        return self._calculate_cv_score(X, y, params, LGBMRegressor)
