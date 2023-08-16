@@ -282,4 +282,4 @@ class GEC(LGBMClassifier, GECBase):
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
-        return self._calculate_cv_score(X, y, params)
+        return self._calculate_cv_score(X, y, params, LGBMClassifier)

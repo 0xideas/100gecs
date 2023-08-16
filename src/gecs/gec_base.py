@@ -13,7 +13,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-from lightgbm import LGBMClassifier, LGBMRegressor
 from matplotlib import cm
 from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
@@ -78,7 +77,6 @@ class GECBase:
             ],
             "randomize": True,
         }
-        self._class_map = {"GER": LGBMRegressor, "GEC": LGBMClassifier}
         self._set_gec_attributes()
         self._set_gec_fields()
 
@@ -535,7 +533,7 @@ class GECBase:
 
             best_params_grid = self._find_best_parameters()
             self.best_params_gec_["grid"] = self._replace_fixed_args(best_params_grid)
-            self.best_scores_gec_["grid"] = self._calculate_cv_score(
+            self.best_scores_gec_["grid"] = self.score_single_iteration(
                 X, y, self.best_params_gec_["grid"]
             )
 
@@ -546,7 +544,7 @@ class GECBase:
             self.best_params_gec_["grid_from_search"] = self._replace_fixed_args(
                 best_params_grid_from_search
             )
-            self.best_scores_gec_["grid_from_search"] = self._calculate_cv_score(
+            self.best_scores_gec_["grid_from_search"] = self.score_single_iteration(
                 X, y, self.best_params_gec_["grid_from_search"]
             )
 
@@ -583,8 +581,9 @@ class GECBase:
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
+        class_
     ) -> float64:
-        clf = self._class_map[str(type(self)).split(".")[-1][:3]](**params)
+        clf = class_(**params)
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
                 cross_val_scores = cross_val_score(
@@ -650,7 +649,7 @@ class GECBase:
             arguments["verbosity"] = -1
 
             arguments = self._replace_fixed_args(arguments)
-            score = self._calculate_cv_score(X, Y, arguments)
+            score = self.score_single_iteration(X, Y, arguments)
 
             self._update_gec_fields(
                 score, arguments, selected_arm, selected_combination, mean, sigma
