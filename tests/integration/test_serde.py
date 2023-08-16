@@ -14,9 +14,9 @@ def test_serde(gec, gec_is_serialised, gec_serialisation_path, X, y_class):
         assert str(v) == str(v2), f"{k} - {v} != {v2}"
 
 
-def test_serde(ger, ger_is_serialised, gec_serialisation_path, X, y_real):
+def test_serde(ger, ger_is_serialised, ger_serialisation_path, X, y_real):
 
-    gec2 = GER.deserialize(gec_serialisation_path, X, y_real)
+    gec2 = GER.deserialize(ger_serialisation_path, X, y_real)
 
     for k, v in ger._get_representation().items():
         v2 = getattr(gec2, f"{k}_")
