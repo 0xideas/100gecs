@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-from lightgbm import LGBMClassifier
+from lightgbm import LGBMClassifier, LGBMRegressor
 from matplotlib import cm
 from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
@@ -78,6 +78,7 @@ class GECBase:
             ],
             "randomize": True,
         }
+        self._class_map = {"GER": LGBMRegressor, "GEC": LGBMClassifier}
         self._set_gec_attributes()
         self._set_gec_fields()
 
@@ -583,7 +584,7 @@ class GECBase:
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ) -> float64:
-        clf = LGBMClassifier(**params)
+        clf = self._class_map[str(type(self)).split(".")[-1][:3]](**params)
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
                 cross_val_scores = cross_val_score(

@@ -244,7 +244,7 @@ class GEC(LGBMClassifier, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        gec = GER()
+        gec = GEC()
 
         for k, v in self.__dict__.items():
             gec.__dict__[k] = copy.deepcopy(v)
@@ -282,4 +282,4 @@ class GEC(LGBMClassifier, GECBase):
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
-        return self._calculate_cv_score(X, y, params, LGBMClassifier)
+        return self._calculate_cv_score(X, y, params)
