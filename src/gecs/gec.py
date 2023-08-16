@@ -1,8 +1,12 @@
-from numpy import ndarray
-from typing import List
+import copy
+from numpy import ndarray, float64
+from typing import List, Dict, Optional, Union
+from lightgbm import LGBMClassifier
 from .gec_base import GECBase
 
-class GEC(GECBase):
+class GEC(LGBMClassifier, GECBase):
+    def __post_init__(self):
+        self._gec_init()
 
     def fit(
         self,
@@ -59,3 +63,36 @@ class GEC(GECBase):
             gec.__dict__[k] = copy.deepcopy(v)
 
         return gec
+    
+    def set_params(self, **kwargs) -> None:
+        if "frozen" in kwargs:
+            setattr(self, "frozen", kwargs.pop("frozen"))
+        super().set_params(**kwargs)
+
+    def get_params(
+        self, deep: bool = True
+    ) -> Dict[str, Optional[Union[str, float, int, bool]]]:
+        if hasattr(self, "best_params_") and self.best_params_ is not None:
+            params = copy.deepcopy(self.best_params_)
+        else:
+            params = super().get_params(deep)
+        params["frozen"] = self.frozen
+
+        return params
+    
+    def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
+
+        if hasattr(self, "best_params") and self.best_params_ is not None:
+            for k, v in self.best_params_.items():
+                setattr(self, k, v)
+            setattr(self, "random_state", 101)
+
+        super().fit(X, y, **self.gec_fit_params_)
+
+    def score_single_iteration(
+        self,
+        X: ndarray,
+        y: ndarray,
+        params: Dict[str, Optional[Union[str, float, int, float64]]]
+    ):
+        return(self._calculate_cv_score(X, y, params, LGBMClassifier))
