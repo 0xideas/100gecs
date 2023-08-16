@@ -213,7 +213,7 @@ class GER(LGBMRegressor, GECBase):
         categorical_feature="auto",
         callbacks=None,
         init_model=None,
-    ) -> "GEC":
+    ) -> "GER":
         """Docstring is inherited from the LGBMRegressor.
 
         Except for
@@ -242,7 +242,7 @@ class GER(LGBMRegressor, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        gec = GEC()
+        gec = GER()
 
         for k, v in self.__dict__.items():
             gec.__dict__[k] = copy.deepcopy(v)
