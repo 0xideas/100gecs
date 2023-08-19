@@ -341,7 +341,8 @@ class GECar(CatBoostRegressor, GECBase):
 
         if self.best_params_ is not None:
             for k, v in self.best_params_.items():
-                self._init_params[k] = v
+                if v is not None:
+                    self._init_params[k] = v
             self._init_params["random_state"] = 101
             self._init_params["silent"] = True
 
@@ -365,3 +366,8 @@ class GECar(CatBoostRegressor, GECBase):
     def retrieve_hyperparameter(self, hyperparameter):
         return(self._init_params.get(hyperparameter, None))
     
+    def _replace_fixed_args(self, params):
+        if self.fix_boosting_type_:
+            params["boosting_type"] = self._init_params["boosting_type"]
+
+        return params

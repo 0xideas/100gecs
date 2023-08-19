@@ -464,11 +464,6 @@ class GECBase:
 
         return self
 
-    def _replace_fixed_args(self, params):
-        if self.fix_boosting_type_:
-            params["boosting_type"] = self.boosting_type
-
-        return params
 
     def _calculate_cv_score(
         self,
