@@ -204,7 +204,6 @@ class GECar(CatBoostRegressor, GECBase):
             "device_config",
             "devices",
             "bootstrap_type",
-            "subsample",
             "mvs_reg",
             "sampling_frequency",
             "sampling_unit",
@@ -251,6 +250,7 @@ class GECar(CatBoostRegressor, GECBase):
             "reg_lambda",
             "min_child_samples",
             "colsample_bylevel",  # feature_fraction
+            "subsample"
         ]
         self._gec_init({}, frozen, non_optimized_init_args, optimization_candidate_init_args)
 
@@ -341,8 +341,8 @@ class GECar(CatBoostRegressor, GECBase):
 
         if self.best_params_ is not None:
             for k, v in self.best_params_.items():
-                setattr(self, k, v)
-            setattr(self, "random_state", 101)
+                self._init_params[k] = v
+            self._init_params["random_state"] = 101
             self._init_params["silent"] = True
 
         super().fit(X, y, **self.gec_fit_params_)
