@@ -8,7 +8,7 @@ from catboost import CatBoostRegressor
 from numpy import float64, ndarray
 from six import iteritems, string_types, integer_types
 
-#from .gec_base import GECBase
+from .gec_base import GECBase
 
 class GECar(CatBoostRegressor, GECBase):
     def __init__(
@@ -139,7 +139,7 @@ class GECar(CatBoostRegressor, GECBase):
         ), f"{gecat_params = } \n not equal to \n {adapted_cat_params = }"
 
         params = {}
-        not_params = ["not_params", "self", "params", "__class__"]
+        not_params = ["not_params", "self", "params", "__class__", "gecat_params", "adapted_cat_params", "frozen"]
         for key, value in iteritems(locals().copy()):
             if key not in not_params and value is not None:
                 params[key] = value
@@ -343,6 +343,7 @@ class GECar(CatBoostRegressor, GECBase):
             for k, v in self.best_params_.items():
                 setattr(self, k, v)
             setattr(self, "random_state", 101)
+            self._init_params["silent"] = True
 
         super().fit(X, y, **self.gec_fit_params_)
 
@@ -355,7 +356,6 @@ class GECar(CatBoostRegressor, GECBase):
         
         if "subsample_freq" in params:
             del params["subsample_freq"]
-
 
         params["silent"] = True
 
