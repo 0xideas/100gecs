@@ -415,7 +415,7 @@ class GECBase:
             "best_params_gec": self.best_params_gec_,
             "best_scores_gec": self.best_scores_gec_,
             "gec_iter": self.gec_iter_,
-            "gec_fit_params": self.gec_fit_params_,
+            "gec_fit_params": {k: v for k, v in self.gec_fit_params_.items() if k not in ["log_cout", "log_cerr"]},
         }
         return representation
 
