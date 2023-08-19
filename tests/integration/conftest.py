@@ -44,9 +44,7 @@ def y_class(y_real, seed):
 def gec_hps():
     return {
         "l": 1.0,
-        "l_bagging": 0.1,
         "hyperparams_acquisition_percentile": 0.7,
-        "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
         "score_evaluation_method": None,
         "maximize_score": True,
