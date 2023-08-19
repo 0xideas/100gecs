@@ -61,6 +61,7 @@ class GECBase:
             "bagging_acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
             "score_evaluation_method": None,
+            "maximize_score": True,
             "n_random_exploration": 10,
             "n_sample": 1000,
             "n_sample_initial": 1000,
@@ -588,10 +589,14 @@ class GECBase:
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
                 evaluation_fn = self.gec_hyperparameters_["score_evaluation_method"]
+                maximize_score = self.gec_hyperparameters_["maximize_score"]
                 cross_val_scores = cross_val_score(
                     clf, X, y, cv=5, fit_params=self.gec_fit_params_, scoring=evaluation_fn
                 )
-                score = np.mean(cross_val_scores)
+                if maximize_score:
+                    score = np.mean(cross_val_scores)
+                else:
+                    score = -np.mean(cross_val_score)
         except:
             warnings.warn(
                 f"Could not calculate cross val scores for parameters: {params}"
