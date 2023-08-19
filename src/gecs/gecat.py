@@ -8,7 +8,7 @@ from catboost import CatBoostClassifier
 from numpy import float64, ndarray
 from six import iteritems, string_types, integer_types
 
-#from .gec_base import GECBase
+from .gec_base import GECBase
 
 class GECat(CatBoostClassifier, GECBase):
     def __init__(
@@ -346,7 +346,7 @@ class GECat(CatBoostClassifier, GECBase):
 
     def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
 
-        if hasattr(self, "best_params") and self.best_params_ is not None:
+        if self.best_params_ is not None:
             for k, v in self.best_params_.items():
                 setattr(self, k, v)
             setattr(self, "random_state", 101)
