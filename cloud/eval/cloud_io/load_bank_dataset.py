@@ -5,7 +5,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 def load_bank_dataset(path, share=0.1):
     data = pd.read_csv(path, sep=";")
-    one_hot_encode = ["job", "marital", "education", "contact", "poutcome", "month"]
+    categorical_columns = ["job", "marital", "education", "contact", "poutcome", "month"]
     binary = ["default", "housing", "loan", "y"]
 
     enc = OneHotEncoder()
@@ -16,8 +16,8 @@ def load_bank_dataset(path, share=0.1):
         )
 
     one_hot = pd.DataFrame(
-        enc.fit_transform(data[one_hot_encode]).toarray(),
-        columns=enc.get_feature_names_out(one_hot_encode),
+        enc.fit_transform(data[categorical_columns]).toarray(),
+        columns=enc.get_feature_names_out(categorical_columns),
     )
     data2 = pd.concat(
         [one_hot]
@@ -26,7 +26,7 @@ def load_bank_dataset(path, share=0.1):
             for col in data.columns
         ],
         1,
-    ).drop(one_hot_encode, 1)
+    ).drop(categorical_columns, 1)
     X, y = data2.values[:, :-1], data2.values[:, -1]
     np.random.seed(102)
     ind = np.random.uniform(0, 1, X.shape[0]) < share

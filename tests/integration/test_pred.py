@@ -12,4 +12,4 @@ def test_ger(ger, X, y_real):
     y_hat = ger.predict(X)
 
     assert y_real.shape == y_hat.shape
-    assert np.corrcoef(y_real, y_hat)[0, 1] > 0.0
+    assert np.corrcoef(y_real, y_hat)[0, 1] > 0.0, f"{y_real}, {y_hat}"

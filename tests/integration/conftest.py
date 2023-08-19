@@ -47,6 +47,8 @@ def gec_hps():
         "hyperparams_acquisition_percentile": 0.7,
         "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "score_evaluation_method": None,
+        "maximize_score": True,
         "n_random_exploration": 2,
         "n_sample": 100,
         "n_sample_initial": 100,
@@ -79,7 +81,7 @@ def gec(X, y_class, gec_hps):
 def ger(X, y_real, gec_hps):
     ger = GER()
     ger.set_gec_hyperparameters(gec_hps)
-    ger.fit(X, y_real, 10)
+    ger.fit(X, y_real, 20)
     return ger
 
 
