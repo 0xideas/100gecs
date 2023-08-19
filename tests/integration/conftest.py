@@ -80,7 +80,7 @@ def gec(X, y_class, gec_hps):
 def ger(X, y_real, gec_hps):
     ger = GER()
     ger.set_gec_hyperparameters(gec_hps)
-    ger.fit(X, y_real, 10)
+    ger.fit(X, y_real, 20)
     return ger
 
 
