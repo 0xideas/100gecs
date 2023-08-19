@@ -60,6 +60,7 @@ class GECBase:
             "hyperparams_acquisition_percentile": 0.7,
             "bagging_acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
+            "score_evaluation_method": None,
             "n_random_exploration": 10,
             "n_sample": 1000,
             "n_sample_initial": 1000,
@@ -586,8 +587,9 @@ class GECBase:
         clf = class_(**params)
         try:
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+                evaluation_fn = self.gec_hyperparameters_["score_evaluation_method"]
                 cross_val_scores = cross_val_score(
-                    clf, X, y, cv=5, fit_params=self.gec_fit_params_
+                    clf, X, y, cv=5, fit_params=self.gec_fit_params_, scoring=evaluation_fn
                 )
                 score = np.mean(cross_val_scores)
         except:

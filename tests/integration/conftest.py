@@ -47,6 +47,7 @@ def gec_hps():
         "hyperparams_acquisition_percentile": 0.7,
         "bagging_acquisition_percentile": 0.7,
         "bandit_greediness": 1.0,
+        "score_evaluation_method": None,
         "n_random_exploration": 2,
         "n_sample": 100,
         "n_sample_initial": 100,
