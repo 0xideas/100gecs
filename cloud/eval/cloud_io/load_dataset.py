@@ -3,6 +3,7 @@ from cloud_io.load_cover_dataset import load_cover_dataset
 from cloud_io.load_enzymes_dataset import load_enzymes_dataset
 from cloud_io.load_income_dataset import load_income_dataset
 from cloud_io.load_mushroom_dataset import load_mushroom_dataset
+from cloud_io.load_house_price_dataset import load_house_price_dataset
 
 default_paths = {
     "bank": "/home/ubuntu/data/bank/bank-full.csv",
@@ -31,6 +32,8 @@ def load_dataset(dataset, dataset_path=None):
         X, y = load_enzymes_dataset(dataset_path, 1.0, target=1)
     elif dataset == "enzymes2":
         X, y = load_enzymes_dataset(dataset_path, 1.0, target=2)
+    elif dataset == "house-price":
+        X, y = load_house_price_dataset(dataset_path)
     else:
         raise Exception(f"dataset '{dataset}' is not available")
     return X, y
