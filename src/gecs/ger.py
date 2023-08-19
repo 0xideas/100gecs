@@ -308,3 +308,9 @@ class GER(LGBMRegressor, GECBase):
 
     def retrieve_hyperparameter(self, hyperparameter):
         return(getattr(self, hyperparameter))
+    
+    def _replace_fixed_args(self, params):
+        if self.fix_boosting_type_:
+            params["boosting_type"] = self.boosting_type
+
+        return params
