@@ -146,7 +146,7 @@ class GECat(CatBoostClassifier, GECBase):
         ), f"{gecat_params = } \n not equal to \n {adapted_cat_params = }"
 
         params = {}
-        not_params = ["not_params", "self", "params", "__class__"]
+        not_params = ["not_params", "self", "params", "__class__", "gecat_params", "adapted_cat_params", "frozen"]
         for key, value in iteritems(locals().copy()):
             if key not in not_params and value is not None:
                 params[key] = value
@@ -283,6 +283,7 @@ class GECat(CatBoostClassifier, GECBase):
             column_description=None,
             verbose_eval=None,
             metric_period=None,
+            silent=None,
             early_stopping_rounds=None,
             save_snapshot=None,
             snapshot_file=None,
@@ -350,6 +351,7 @@ class GECat(CatBoostClassifier, GECBase):
             for k, v in self.best_params_.items():
                 setattr(self, k, v)
             setattr(self, "random_state", 101)
+            self._init_params["silent"] = True
 
         super().fit(X, y, **self.gec_fit_params_)
 

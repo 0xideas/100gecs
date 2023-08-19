@@ -918,7 +918,7 @@ class GECBase:
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
 
-        if params["subsample_freq"] == 0:
+        if "subsample_freq" in params and params["subsample_freq"] == 0:
             del params["subsample_freq"]
             del params["subsample"]
             bagging = "yes_bagging"
