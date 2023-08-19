@@ -51,7 +51,7 @@ class GECBase:
             "bandit_greediness": 1.0,
             "score_evaluation_method": None,
             "maximize_score": True,
-            "n_random_exploration": 10,
+            "n_random_exploration": 5,
             "n_sample": 1000,
             "n_sample_initial": 1000,
             "best_share": 0.2,
