@@ -343,7 +343,7 @@ class GECat(CatBoostClassifier, GECBase):
             params = super().get_params(deep)
         params["frozen"] = self.frozen
 
-        return params
+        return {k:v for k, v in params.items() if v is not None}
 
     def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
 

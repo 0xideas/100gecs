@@ -8,7 +8,7 @@ from catboost import CatBoostRegressor
 from numpy import float64, ndarray
 from six import iteritems, string_types, integer_types
 
-from .gec_base import GECBase
+#from .gec_base import GECBase
 
 class GECar(CatBoostRegressor, GECBase):
     def __init__(
@@ -335,7 +335,7 @@ class GECar(CatBoostRegressor, GECBase):
             params = super().get_params(deep)
         params["frozen"] = self.frozen
 
-        return params
+        return {k:v for k, v in params.items() if v is not None}
 
     def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
 
