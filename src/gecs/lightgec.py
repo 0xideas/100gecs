@@ -11,7 +11,7 @@ from numpy import float64, ndarray
 from .gec_base import GECBase
 
 
-class GEC(LGBMClassifier, GECBase):
+class LightGEC(LGBMClassifier, GECBase):
     def __init__(
         self,
         boosting_type: str = "gbdt",
