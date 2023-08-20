@@ -2,10 +2,10 @@ import os
 
 import pytest
 
-from gecs.gec import GEC
-from gecs.gecar import GECar
-from gecs.gecat import GECat
-from gecs.ger import GER
+from gecs.lightgec import LightGEC
+from gecs.catger import CatGER
+from gecs.catgec import CatGEC
+from gecs.lightger import LightGER
 
 
 @pytest.fixture

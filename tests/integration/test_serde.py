@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from gecs.gec import GEC
-from gecs.gecar import GECar
-from gecs.gecat import GECat
-from gecs.ger import GER
+from gecs.lightgec import LightGEC
+from gecs.catger import CatGER
+from gecs.catgec import CatGEC
+from gecs.lightger import LightGER
 
 
 def test_serde_gec(gec, gec_is_serialised, gec_serialisation_path, X, y_class):

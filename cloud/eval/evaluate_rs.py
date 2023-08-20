@@ -13,7 +13,7 @@ from cloud_io.load_dataset import load_dataset
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import RandomizedSearchCV, cross_val_score
 
-from gecs.gec import GEC
+from gecs.lightgec import LightGEC
 
 VERSION = 33
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
