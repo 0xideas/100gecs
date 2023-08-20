@@ -32,10 +32,9 @@ from tqdm import tqdm
 class GECBase:
     def _gec_init(self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args):
         self._init_kwargs = {
-            k: v for k, v in kwargs.items() if k not in ["subsample_freq", "subsample"]
+            k: v for k, v in kwargs.items() if k not in ["subsample"]
         }
 
-        self.fix_bagging_ = False
         self.fix_boosting_type_ = False
 
         self.frozen = frozen
@@ -45,9 +44,7 @@ class GECBase:
 
         self.gec_hyperparameters_ = {
             "l": 1.0,
-            "l_bagging": 0.1,
             "hyperparams_acquisition_percentile": 0.7,
-            "bagging_acquisition_percentile": 0.7,
             "bandit_greediness": 1.0,
             "score_evaluation_method": None,
             "maximize_score": True,
@@ -68,15 +65,9 @@ class GECBase:
             ("bagging", ["yes_bagging", "no_bagging"]),
         ]
 
-        self._categorical_hyperparameter_names, _ = zip(
-            *self.categorical_hyperparameters
-        )
+        self._categorical_hyperparameter_names = ["boosting_type"]
 
         prohibited_combinations = ["rf-no_bagging"]
-        if self.fix_bagging_ and (
-            self.subsample is None or self.subsample_freq is None
-        ):
-            prohibited_combinations += ["rf-yes_bagging"]
 
         self._categorical_hyperparameter_combinations = [
             "-".join(y)
@@ -140,6 +131,7 @@ class GECBase:
             ("min_child_samples", np.arange(2, 50, 1)),
             ("colsample_bytree", np.arange(0.1, 1.00, 0.01)),
             ("colsample_bylevel", np.arange(0.1, 1.00, 0.01)),
+            ("subsample", [x/100 for x in range(15, 101)])
         ]
         self._real_hyperparameters_all = [(n, r) for n, r in real_hyperparameters_all_across_classes if n in self._optimization_candidate_init_args ]
 
@@ -192,31 +184,6 @@ class GECBase:
             "sigmas": [],
         }
 
-        self.kernel_bagging = RBF(self.gec_hyperparameters_["l_bagging"])
-
-        self.bagging_scores_ = {"inputs": [], "output": [], "means": [], "sigmas": []}
-
-        self._bagging_combinations = list(
-            itertools.product(
-                *[
-                    list(range(1, 11, 1)),
-                    np.arange(0.5, 1.0, 0.01),
-                ]
-            )
-        )
-
-        self._rescale_bagging_combination = lambda freq, frac: (
-            ((freq / 5) - 1),
-            ((frac * 4) - 3),
-        )
-        self._invert_rescaled_bagging_combination = lambda freq, frac: (
-            int((freq + 1) * 5),
-            ((frac + 3) / 4),
-        )
-        self._bagging_combinations_rescaled = [
-            self._rescale_bagging_combination(freq, frac)
-            for freq, frac in self._bagging_combinations
-        ]
 
         self.best_score_gec_ = None
         self.best_params_ = None
@@ -237,33 +204,14 @@ class GECBase:
         assert np.array(self.hyperparameter_scores_["inputs"]).shape[0] == len(
             self.selected_arms_
         )
-        bagging_indicator = np.array(
-            ["yes_bagging" in selected_arm for selected_arm in self.selected_arms_]
-        )
-        assert np.array(self.bagging_scores_["inputs"]).shape[0] == np.sum(
-            bagging_indicator
-        )
-
-        bagging_scores_expanded = np.zeros(
-            (np.array(self.hyperparameter_scores_["inputs"]).shape[0], 2)
-        )
-        bagging_scores_expanded[bagging_indicator, :] = self.bagging_scores_["inputs"]
 
         hyperparamters = []
-        for selected_arm, hyperparameter_inputs, bagging_ind, bagging_score in zip(
+        for selected_arm, hyperparameter_inputs in zip(
             self.selected_arms_,
-            self.hyperparameter_scores_["inputs"],
-            bagging_indicator,
-            bagging_scores_expanded,
+            self.hyperparameter_scores_["inputs"]
         ):
-            args = self._build_arguments(selected_arm.split("-"), hyperparameter_inputs)
-            if bagging_ind:
-                (
-                    args["subsample_freq"],
-                    args["subsample"],
-                ) = self._invert_rescaled_bagging_combination(*bagging_score)
-            del args["bagging"]
-
+            bagging = "yes_bagging" in selected_arm.split("-")
+            args = self._build_arguments(selected_arm.split("-")[:1], hyperparameter_inputs, bagging)
             hyperparamters.append(args)
 
         return hyperparamters
@@ -277,16 +225,6 @@ class GECBase:
         self._kernel = value
         self.gaussian = GaussianProcessRegressor(kernel=value, n_restarts_optimizer=9)
 
-    @property
-    def kernel_bagging(self):
-        return self._kernel_bagging
-
-    @kernel_bagging.setter
-    def kernel_bagging(self, value):
-        self._kernel_bagging = value
-        self.gaussian_bagging = GaussianProcessRegressor(
-            kernel=value, n_restarts_optimizer=9
-        )
 
     @property
     def gec_iter_(self) -> int:
@@ -330,9 +268,6 @@ class GECBase:
             gec._convert_gaussian_process_data_from_deserialisation(
                 representation["hyperparameter_scores"]
             )
-        )
-        gec.bagging_scores_ = gec._convert_gaussian_process_data_from_deserialisation(
-            representation["bagging_scores"]
         )
         gec.best_params_ = representation["best_params"]
         gec.best_score_gec_ = float(representation["best_score_gec"])
@@ -401,15 +336,11 @@ class GECBase:
         hyperparameter_scores = self._convert_gaussian_process_data_for_serialisation(
             self.hyperparameter_scores_
         )
-        bagging_scores = self._convert_gaussian_process_data_for_serialisation(
-            self.bagging_scores_
-        )
         representation = {
             "gec_hyperparameters": self.gec_hyperparameters_,
             "rewards": self.rewards_,
             "selected_arms": self.selected_arms_,
             "hyperparameter_scores": hyperparameter_scores,
-            "bagging_scores": bagging_scores,
             "best_params": self.best_params_,
             "best_score_gec": self.best_score_gec_,
             "best_params_gec": self.best_params_gec_,
@@ -494,15 +425,6 @@ class GECBase:
             hp for hp in fixed_hyperparameters if hp != "boosting_type"
         ]
 
-        self.fix_bagging_ = "bagging" in fixed_hyperparameters
-        fixed_hyperparameters = [hp for hp in fixed_hyperparameters if hp != "bagging"]
-
-        assert (
-            (not self.fix_bagging_)
-            or (self.subsample_freq is not None)
-            or (self.boosting_type != "rf")
-            or (not self.fix_boosting_type_)
-        ), 'boosting_type="rf" requires bagging'
         if not self.frozen:
             filtered_hyperparameters = list(
                 set(self.gec_hyperparameters_["hyperparameters"]).difference(
@@ -546,19 +468,6 @@ class GECBase:
         if self.fix_boosting_type_:
             params["boosting_type"] = self.boosting_type
 
-        if self.fix_bagging_ and "subsample" in params and "subsample_freq" in params:
-            if self.subsample is not None and self.subsample_freq is not None:
-                params["subsample"] = self.subsample
-                params["subsample_freq"] = self.subsample_freq
-            else:
-                del params["subsample"]
-                del params["subsample_freq"]
-            self.bagging_scores_ = {
-                "inputs": [],
-                "output": [],
-                "means": [],
-                "sigmas": [],
-            }
         return params
 
     def _calculate_cv_score(
@@ -607,11 +516,10 @@ class GECBase:
                 (
                     selected_arm,
                     selected_combination,
-                    selected_combination_bagging,
                     arguments,
                 ) = self._get_random_hyperparameter_configuration()
 
-                mean, sigma, mean_bagging, sigma_bagging = None, None, None, None
+                mean, sigma = None, None
             else:
                 (
                     selected_arm,
@@ -619,23 +527,10 @@ class GECBase:
                     mean,
                     sigma,
                 ) = self._select_parameters()
+                bagging = "yes_bagging" in selected_arm.split("-")
                 arguments = self._build_arguments(
-                    selected_arm.split("-"), selected_combination
+                    selected_arm.split("-")[:1], selected_combination, bagging
                 )
-
-                if "yes_bagging" in selected_arm:
-                    (
-                        selected_combination_bagging,
-                        mean_bagging,
-                        sigma_bagging,
-                    ) = self._select_bagging_parameters()
-
-                    (
-                        arguments["subsample_freq"],
-                        arguments["subsample"],
-                    ) = selected_combination_bagging
-
-            del arguments["bagging"]
 
             arguments = self._replace_fixed_args(arguments)
             score = self.score_single_iteration(X, Y, arguments)
@@ -643,11 +538,6 @@ class GECBase:
             self._update_gec_fields(
                 score, arguments, selected_arm, selected_combination, mean, sigma
             )
-
-            if "yes_bagging" in selected_arm:
-                self._update_gec_fields_bagging(
-                    score, selected_combination_bagging, mean_bagging, sigma_bagging
-                )
 
         return (self.best_params_, self.best_score_gec_)
 
@@ -667,25 +557,14 @@ class GECBase:
                 for real_hyperparameter, range_ in self._real_hyperparameters_linear
             ]
         )
-        arguments = self._build_arguments(selected_arm.split("-"), random_combination)
+        bagging = "yes_bagging" in selected_arm.split("-")
+        arguments = self._build_arguments(selected_arm.split("-")[:1], random_combination, bagging)
         selected_combination = random_combination
-        random_combination_bagging = self._bagging_combinations[
-            np.random.choice(range(len(self._bagging_combinations)))
-        ]
 
-        if "yes_bagging" in selected_arm:
-            (
-                arguments["subsample_freq"],
-                arguments["subsample"],
-            ) = random_combination_bagging
-            selected_combination_bagging = random_combination_bagging
-        else:
-            selected_combination_bagging = None
 
         return (
             selected_arm,
             selected_combination,
-            selected_combination_bagging,
             arguments,
         )
 
@@ -760,30 +639,6 @@ class GECBase:
 
         return combinations
 
-    def _select_bagging_parameters(
-        self,
-    ) -> Tuple[Tuple[int, float64], ndarray, ndarray]:
-        if len(self.bagging_scores_["inputs"]) > 0:
-            self._fit_gaussian_bagging()
-        mean_bagging, sigma_bagging = self.gaussian_bagging.predict(
-            self._bagging_combinations_rescaled, return_std=True
-        )
-
-        predicted_rewards_bagging = np.array(
-            [
-                scipy.stats.norm.ppf(
-                    self.gec_hyperparameters_["bagging_acquisition_percentile"],
-                    loc=m,
-                    scale=s,
-                )
-                for m, s in zip(mean_bagging, sigma_bagging)
-            ]
-        )
-        best_predicted_combination_bagging = self._bagging_combinations[
-            np.argmax(predicted_rewards_bagging)
-        ]
-        return (best_predicted_combination_bagging, mean_bagging, sigma_bagging)
-
     def _update_gec_fields(
         self,
         score: float64,
@@ -823,23 +678,9 @@ class GECBase:
             self.best_score_gec_ = score
             self.best_params_ = arguments
 
-    def _update_gec_fields_bagging(
-        self,
-        score: float64,
-        selected_combination_bagging: Tuple[int, float64],
-        mean_bagging: Optional[ndarray],
-        sigma_bagging: Optional[ndarray],
-    ) -> None:
-        self.bagging_scores_["inputs"].append(
-            list(self._rescale_bagging_combination(*selected_combination_bagging))
-        )
-        self.bagging_scores_["output"].append(score)
-        if mean_bagging is not None:
-            self.bagging_scores_["means"].append(mean_bagging)
-            self.bagging_scores_["sigmas"].append(sigma_bagging)
 
     def _build_arguments(
-        self, categorical_combination: List[str], real_combination_linear: ndarray
+        self, categorical_combination: List[str], real_combination_linear: ndarray, bagging: bool
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         best_predicted_combination_converted = [
             self._real_hyperparameters_map[name][value]
@@ -859,11 +700,16 @@ class GECBase:
 
         arguments = dict(
             zip(
-                self._categorical_hyperparameter_names
-                + self._real_hyperparameter_names,
+                list(self._categorical_hyperparameter_names)
+                + list(self._real_hyperparameter_names),
                 hyperparameter_values,
             )
         )
+        if bagging:
+            arguments["subsample_freq"] = 1
+        else:
+            arguments["subsample"] = 1.0
+
         return {
             **arguments,
             **self.fixed_params,
@@ -878,15 +724,6 @@ class GECBase:
             np.array(self.hyperparameter_scores_["output"])
             - np.mean(self.hyperparameter_scores_["output"]),
         )
-
-    @ignore_warnings(category=ConvergenceWarning)
-    def _fit_gaussian_bagging(self) -> None:
-        if len(self.bagging_scores_["output"]):
-            self.gaussian_bagging.fit(
-                np.array(self.bagging_scores_["inputs"]),
-                np.array(self.bagging_scores_["output"])
-                - np.mean(self.bagging_scores_["output"]),
-            )
 
     def _get_best_arm(self) -> str:
         mean_reward = np.array(
@@ -927,10 +764,10 @@ class GECBase:
 
         if "subsample_freq" in params and params["subsample_freq"] == 0:
             del params["subsample_freq"]
-            del params["subsample"]
             bagging = "yes_bagging"
         else:
             bagging = "no_bagging"
+    
         boosting = params.pop("boosting_type")
         best_arm = f"{boosting}-{bagging}"
 
@@ -972,23 +809,8 @@ class GECBase:
                 neighbouring_combinations
             )
 
-        arguments = self._build_arguments(best_arm.split("-"), best_combination)
-
-        if "yes_bagging" in best_arm:
-            self._fit_gaussian_bagging()
-            mean_bagging = self.gaussian_bagging.predict(
-                self._bagging_combinations_rescaled
-            )
-            best_predicted_combination_bagging = self._bagging_combinations[
-                np.argmax(mean_bagging)
-            ]
-
-            (
-                arguments["subsample_freq"],
-                arguments["subsample"],
-            ) = best_predicted_combination_bagging
-
-        del arguments["bagging"]
+        bagging = "yes_bagging" in best_arm.split("-")
+        arguments = self._build_arguments(best_arm.split("-")[:1], best_combination, bagging)
 
         return arguments
 
@@ -1057,9 +879,6 @@ class GECBase:
 
         figs["parameters"] = fig
 
-        fig2 = self._plot_boosting_parameter_surface()
-        figs["bagging"] = fig2
-
         return figs
 
     def _plot_mean_prediction_and_mean_variance(self, ax: Axes, x: ndarray) -> None:
@@ -1105,52 +924,3 @@ class GECBase:
         )
         for i in range(inputs_.shape[1]):
             ax.plot(x, inputs_[:, i], label=self._real_hyperparameter_names[i])
-
-    def _plot_boosting_parameter_surface(
-        self,
-        plot_bounds: bool = True,
-    ) -> Figure:
-        self._fit_gaussian_bagging()
-
-        X_range = np.array(self._bagging_combinations_rescaled)[0, :]
-        Y_range = np.array(self._bagging_combinations_rescaled)[1, :]
-        Z_range = np.arange(-0.5, 1.5, 0.1)
-
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, figsize=(12, 12))
-
-        # Make data.
-        X = np.arange(
-            np.min(X_range), np.max(X_range), (np.max(X_range) - np.min(X_range)) / 100
-        )
-        Y = np.arange(
-            np.min(Y_range), np.max(Y_range), (np.max(Y_range) - np.min(Y_range)) / 100
-        )
-        Z = np.arange(
-            np.min(Z_range), np.max(Z_range), (np.max(Z_range) - np.min(Z_range)) / 100
-        )
-        R = cartesian(np.array([X, Y]))
-        X, Y = np.meshgrid(X, Y)
-        Z, sigma = self.gaussian_bagging.predict(R, return_std=True)
-        Z = Z.reshape((100, 100))
-        sigma = sigma.reshape((100, 100))
-
-        # Plot the surface.
-        surf = ax.plot_surface(
-            X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
-        )
-        if plot_bounds:
-            surf2 = ax.plot_surface(
-                X, Y, Z + 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
-            )
-            surf3 = ax.plot_surface(
-                X, Y, Z - 1.9600 * sigma, alpha=0.2, linewidth=0, antialiased=False
-            )
-        # Customize the z axis.
-        ax.set_zlim(np.min(Z_range), np.max(Z_range))
-        ax.set_xticks(X_range, labels=(X_range * 10).astype(int))
-        # ax.zaxis.set_major_locator(LinearLocator(10))
-        # A StrMethodFormatter is used automatically
-        ax.zaxis.set_major_formatter("{x:.02f}")
-        # Add a color bar which maps values to colors.
-        # fig.colorbar(surf, shrink=0.5, aspect=5)
-        return fig

@@ -216,6 +216,7 @@ class GEC(LGBMClassifier, GECBase):
             "min_child_samples",
             "min_child_weight",
             "colsample_bytree",  # feature_fraction
+            "subsample"
         ]
         self._gec_init(kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args)
 
