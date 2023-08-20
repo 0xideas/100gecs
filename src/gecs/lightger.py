@@ -45,7 +45,7 @@ class LightGER(LGBMRegressor, GECBase):
             )
             .replace("**kwargs)", "**kwargs) -> None")
         )
-        gec_params = str(inspect.signature(GER.__init__))
+        gec_params = str(inspect.signature(LightGER.__init__))
         assert (
             adapted_lgbm_params == gec_params
         ), f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"

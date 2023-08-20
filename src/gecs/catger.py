@@ -131,7 +131,7 @@ class CatGER(CatBoostRegressor, GECBase):
             "fixed_binary_splits=None)",
             "fixed_binary_splits=None, frozen=False)",
         )
-        gecat_params = str(inspect.signature(GECar.__init__))
+        gecat_params = str(inspect.signature(CatGER.__init__))
         assert (
             adapted_cat_params == gecat_params
         ), f"{gecat_params = } \n not equal to \n {adapted_cat_params = }"
@@ -320,7 +320,7 @@ class CatGER(CatBoostRegressor, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        class_ = GECar()
+        class_ = CatGER()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)
