@@ -66,7 +66,7 @@ def gec_hps():
 
 
 @pytest.fixture(scope="session")
-def gec(X, y_class, gec_hps):
+def lightgec(X, y_class, gec_hps):
     gec = LightGEC()
     gec.set_gec_hyperparameters(gec_hps)
     gec.fit(X, y_class, 10)
@@ -74,7 +74,7 @@ def gec(X, y_class, gec_hps):
 
 
 @pytest.fixture(scope="session")
-def ger(X, y_real, gec_hps):
+def lightger(X, y_real, gec_hps):
     ger = LightGER()
     ger.set_gec_hyperparameters(gec_hps)
     ger.fit(X, y_real, 20)
@@ -97,23 +97,23 @@ def catger(X, y_real, gec_hps):
 
 
 @pytest.fixture(scope="session")
-def gec_serialisation_path():
+def lightgec_serialisation_path():
     return "tests/data/outputs/gec.json"
 
 
 @pytest.fixture(scope="session")
-def gec_is_serialised(gec, gec_serialisation_path):
-    gec.serialize(gec_serialisation_path)
+def lightgec_is_serialised(lightgec, lightgec_serialisation_path):
+    lightgec.serialize(lightgec_serialisation_path)
 
 
 @pytest.fixture(scope="session")
-def ger_serialisation_path():
+def lightger_serialisation_path():
     return "tests/data/outputs/ger.json"
 
 
 @pytest.fixture(scope="session")
-def ger_is_serialised(ger, ger_serialisation_path):
-    ger.serialize(ger_serialisation_path)
+def lightger_is_serialised(lightger, lightger_serialisation_path):
+    lightger.serialize(lightger_serialisation_path)
 
 
 @pytest.fixture(scope="session")
