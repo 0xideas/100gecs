@@ -4,9 +4,9 @@ import shutil
 import numpy as np
 import pytest
 
-from gecs.lightgec import LightGEC
-from gecs.catger import CatGER
 from gecs.catgec import CatGEC
+from gecs.catger import CatGER
+from gecs.lightgec import LightGEC
 from gecs.lightger import LightGER
 
 
@@ -87,6 +87,7 @@ def catgec(X, y_class, gec_hps):
     catgec.set_gec_hyperparameters(gec_hps)
     catgec.fit(X, y_class, 5)
     return catgec
+
 
 @pytest.fixture(scope="session")
 def catger(X, y_real, gec_hps):
