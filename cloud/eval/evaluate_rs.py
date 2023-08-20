@@ -53,7 +53,7 @@ def run(
         aws_secret_access_key=aws_secret_access_key,
     )
     X, y = load_dataset(dataset, dataset_path)
-    gec = GEC()
+    gec = LightGEC()
     gec_hyperparameters = dict(gec.gec_hyperparameters)
     gec_hyperparameters["hyperparameters"] = hyperparameters.split("-")
     gec.set_gec_hyperparameters(gec_hyperparameters)

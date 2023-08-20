@@ -51,7 +51,7 @@ def run(
 
     for hyperparameter_dict in hyperparameter_dicts:
         random_id = "".join(list(np.random.randint(0, 10, size=6).astype(str)))
-        gec = GEC()
+        gec = LightGEC()
         n_iters = hyperparameter_dict.pop("n_iters")
         gec.set_gec_hyperparameters(hyperparameter_dict)
         hyperparameters = hyperparameter_dict.pop("hyperparameters")

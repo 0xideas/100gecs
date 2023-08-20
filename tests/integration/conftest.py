@@ -67,7 +67,7 @@ def gec_hps():
 
 @pytest.fixture(scope="session")
 def gec(X, y_class, gec_hps):
-    gec = GEC()
+    gec = LightGEC()
     gec.set_gec_hyperparameters(gec_hps)
     gec.fit(X, y_class, 10)
     return gec
