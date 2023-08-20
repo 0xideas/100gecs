@@ -27,7 +27,7 @@ def seed():
 @pytest.fixture(scope="session")
 def X(seed):
     np.random.seed(seed)
-    return np.random.randn(100, 3)
+    return np.random.randn(300, 3)
 
 
 @pytest.fixture(scope="session")
