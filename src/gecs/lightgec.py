@@ -240,7 +240,7 @@ class LightGEC(LGBMClassifier, GECBase):
         categorical_feature="auto",
         callbacks=None,
         init_model=None,
-    ) -> "GEC":
+    ) -> "LightGEC":
         """Docstring is inherited from the LGBMClassifier.
 
         Except for
@@ -270,7 +270,7 @@ class LightGEC(LGBMClassifier, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        class_ = GEC()
+        class_ = LightGEC()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)

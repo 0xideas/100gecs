@@ -239,7 +239,7 @@ class LightGER(LGBMRegressor, GECBase):
         categorical_feature="auto",
         callbacks=None,
         init_model=None,
-    ) -> "GER":
+    ) -> "LightGER":
         """Docstring is inherited from the LGBMRegressor.
 
         Except for
@@ -268,7 +268,7 @@ class LightGER(LGBMRegressor, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        class_ = GER()
+        class_ = LightGER()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)
