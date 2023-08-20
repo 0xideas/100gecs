@@ -194,7 +194,30 @@ class GER(LGBMRegressor, GECBase):
         self._classes = None
         self._n_classes = None
         self.set_params(**kwargs)
-        self._gec_init(kwargs, frozen)
+        non_optimized_init_args = [
+            "max_depth",
+            "subsample_for_bin",
+            "objective",
+            "class_weight",
+            "min_split_gain",
+            "subsample",
+            "subsample_freq",
+            "random_state",
+            "n_jobs",
+            "silent",
+            "importance_type",
+        ]
+        optimization_candidate_init_args = [
+            "learning_rate",
+            "n_estimators",
+            "num_leaves",
+            "reg_alpha",
+            "reg_lambda",
+            "min_child_samples",
+            "min_child_weight",
+            "colsample_bytree",  # feature_fraction
+        ]
+        self._gec_init(kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args)
 
     def fit(
         self,
@@ -242,12 +265,12 @@ class GER(LGBMRegressor, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        gec = GER()
+        class_ = GER()
 
         for k, v in self.__dict__.items():
-            gec.__dict__[k] = copy.deepcopy(v)
+            class_.__dict__[k] = copy.deepcopy(v)
 
-        return gec
+        return class_
 
     def set_params(self, **kwargs) -> None:
         if "frozen" in kwargs:
@@ -281,3 +304,6 @@ class GER(LGBMRegressor, GECBase):
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
         return self._calculate_cv_score(X, y, params, LGBMRegressor)
+
+    def retrieve_hyperparameter(self, hyperparameter):
+        return(getattr(self, hyperparameter))

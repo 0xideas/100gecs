@@ -30,7 +30,7 @@ from tqdm import tqdm
 
 
 class GECBase:
-    def _gec_init(self, kwargs, frozen):
+    def _gec_init(self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args):
         self._init_kwargs = {
             k: v for k, v in kwargs.items() if k not in ["subsample_freq", "subsample"]
         }
@@ -39,20 +39,9 @@ class GECBase:
         self.fix_boosting_type_ = False
 
         self.frozen = frozen
-        non_optimized_init_args = [
-            "max_depth",
-            "subsample_for_bin",
-            "objective",
-            "class_weight",
-            "min_split_gain",
-            "subsample",
-            "subsample_freq",
-            "random_state",
-            "n_jobs",
-            "silent",
-            "importance_type",
-        ]
-        self._init_args = {arg: getattr(self, arg) for arg in non_optimized_init_args}
+
+        self._init_args = {arg: self.retrieve_hyperparameter(arg) for arg in non_optimized_init_args}
+        self._optimization_candidate_init_args = optimization_candidate_init_args
 
         self.gec_hyperparameters_ = {
             "l": 1.0,
@@ -62,21 +51,12 @@ class GECBase:
             "bandit_greediness": 1.0,
             "score_evaluation_method": None,
             "maximize_score": True,
-            "n_random_exploration": 10,
+            "n_random_exploration": 5,
             "n_sample": 1000,
             "n_sample_initial": 1000,
             "best_share": 0.2,
             "distance_metric": "cityblock",
-            "hyperparameters": [
-                "learning_rate",
-                "n_estimators",
-                "num_leaves",
-                "reg_alpha",
-                "reg_lambda",
-                "min_child_samples",
-                "min_child_weight",
-                "colsample_bytree",  # feature_fraction
-            ],
+            "hyperparameters": optimization_candidate_init_args,
             "randomize": True,
         }
         self._set_gec_attributes()
@@ -122,7 +102,7 @@ class GECBase:
                 np.arange(1000, 10001, 1000),
             ]
         )
-        self._real_hyperparameters_all = [
+        real_hyperparameters_all_across_classes = [
             (
                 "learning_rate",
                 (
@@ -159,10 +139,12 @@ class GECBase:
             ),
             ("min_child_samples", np.arange(2, 50, 1)),
             ("colsample_bytree", np.arange(0.1, 1.00, 0.01)),
+            ("colsample_bylevel", np.arange(0.1, 1.00, 0.01)),
         ]
+        self._real_hyperparameters_all = [(n, r) for n, r in real_hyperparameters_all_across_classes if n in self._optimization_candidate_init_args ]
 
         self.fixed_params = {
-            hyperparameter: getattr(self, hyperparameter)
+            hyperparameter: self.retrieve_hyperparameter(hyperparameter)
             for hyperparameter, _ in self._real_hyperparameters_all
             if hyperparameter not in self.gec_hyperparameters_["hyperparameters"]
         }
@@ -249,6 +231,7 @@ class GECBase:
 
         self.best_scores_gec_ = {}
         self.best_params_gec_ = {}
+        
 
     def tried_hyperparameters(self):
         assert np.array(self.hyperparameter_scores_["inputs"]).shape[0] == len(
@@ -432,7 +415,7 @@ class GECBase:
             "best_params_gec": self.best_params_gec_,
             "best_scores_gec": self.best_scores_gec_,
             "gec_iter": self.gec_iter_,
-            "gec_fit_params": self.gec_fit_params_,
+            "gec_fit_params": {k: v for k, v in self.gec_fit_params_.items() if k not in ["log_cout", "log_cerr"]},
         }
         return representation
 
@@ -653,7 +636,6 @@ class GECBase:
                     ) = selected_combination_bagging
 
             del arguments["bagging"]
-            arguments["verbosity"] = -1
 
             arguments = self._replace_fixed_args(arguments)
             score = self.score_single_iteration(X, Y, arguments)
@@ -943,7 +925,7 @@ class GECBase:
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
 
-        if params["subsample_freq"] == 0:
+        if "subsample_freq" in params and params["subsample_freq"] == 0:
             del params["subsample_freq"]
             del params["subsample"]
             bagging = "yes_bagging"
