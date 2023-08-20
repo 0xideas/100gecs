@@ -5,7 +5,14 @@ from sklearn.preprocessing import OneHotEncoder
 
 def load_bank_dataset(path, share=0.1):
     data = pd.read_csv(path, sep=";")
-    categorical_columns = ["job", "marital", "education", "contact", "poutcome", "month"]
+    categorical_columns = [
+        "job",
+        "marital",
+        "education",
+        "contact",
+        "poutcome",
+        "month",
+    ]
     binary = ["default", "housing", "loan", "y"]
 
     enc = OneHotEncoder()

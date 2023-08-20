@@ -216,9 +216,11 @@ class GEC(LGBMClassifier, GECBase):
             "min_child_samples",
             "min_child_weight",
             "colsample_bytree",  # feature_fraction
-            "subsample"
+            "subsample",
         ]
-        self._gec_init(kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args)
+        self._gec_init(
+            kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args
+        )
 
     def fit(
         self,
@@ -307,9 +309,9 @@ class GEC(LGBMClassifier, GECBase):
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
         return self._calculate_cv_score(X, y, params, LGBMClassifier)
-    
+
     def retrieve_hyperparameter(self, hyperparameter):
-        return(getattr(self, hyperparameter))
+        return getattr(self, hyperparameter)
 
     def _replace_fixed_args(self, params):
         if self.fix_boosting_type_:
