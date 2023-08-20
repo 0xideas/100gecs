@@ -22,7 +22,6 @@ def test_gecat(gecat, X, y_class):
     assert np.mean(y_class == y_hat) > 0.0
 
 
-
 def test_gecar(gecar, X, y_real):
     y_hat = gecar.predict(X)
 
