@@ -8,7 +8,7 @@ from catboost import CatBoostRegressor
 from numpy import float64, ndarray
 from six import iteritems, string_types, integer_types
 
-#from .gec_base import GECBase
+from .gec_base import GECBase
 
 class GECar(CatBoostRegressor, GECBase):
     def __init__(
