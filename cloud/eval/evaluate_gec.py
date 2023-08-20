@@ -13,7 +13,7 @@ from sklearn.model_selection import cross_val_score
 
 from gecs.lightgec import LightGEC
 
-VERSION = 33
+VERSION = 34
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
 ARTEFACT_LOCATION = f"eval/artefacts/v={VERSION}"
 BUCKET = "100gecs"
