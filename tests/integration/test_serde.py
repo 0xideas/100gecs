@@ -9,7 +9,7 @@ from gecs.lightger import LightGER
 
 def test_serde_gec(gec, gec_is_serialised, gec_serialisation_path, X, y_class):
 
-    gec2 = GEC.deserialize(gec_serialisation_path, X, y_class)
+    gec2 =LightGEC.deserialize(gec_serialisation_path, X, y_class)
 
     for k, v in gec._get_representation().items():
         v2 = getattr(gec2, f"{k}_")
@@ -18,7 +18,7 @@ def test_serde_gec(gec, gec_is_serialised, gec_serialisation_path, X, y_class):
 
 def test_serde_ger(ger, ger_is_serialised, ger_serialisation_path, X, y_real):
 
-    ger2 = GER.deserialize(ger_serialisation_path, X, y_real)
+    ger2 = LightGER.deserialize(ger_serialisation_path, X, y_real)
 
     for k, v in ger._get_representation().items():
         v2 = getattr(ger2, f"{k}_")
