@@ -4,14 +4,14 @@ import sys
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-from catboost import CatBoostClassifier
+from catboost import CatBoostRegressor
 from numpy import float64, ndarray
 from six import integer_types, iteritems, string_types
 
 from .gec_base import GECBase
 
 
-class GECat(CatBoostClassifier, GECBase):
+class CatGER(CatBoostRegressor, GECBase):
     def __init__(
         self,
         iterations=None,
@@ -20,7 +20,7 @@ class GECat(CatBoostClassifier, GECBase):
         l2_leaf_reg=None,
         model_size_reg=None,
         rsm=None,
-        loss_function=None,
+        loss_function="RMSE",
         border_count=None,
         feature_border_type=None,
         per_float_feature_quantization=None,
@@ -48,16 +48,11 @@ class GECat(CatBoostClassifier, GECBase):
         has_time=None,
         allow_const_label=None,
         target_border=None,
-        classes_count=None,
-        class_weights=None,
-        auto_class_weights=None,
-        class_names=None,
         one_hot_max_size=None,
         random_strength=None,
         name=None,
         ignored_features=None,
         train_dir=None,
-        custom_loss=None,
         custom_metric=None,
         eval_metric=None,
         bagging_temperature=None,
@@ -83,8 +78,8 @@ class GECat(CatBoostClassifier, GECBase):
         bootstrap_type=None,
         subsample=None,
         mvs_reg=None,
-        sampling_unit=None,
         sampling_frequency=None,
+        sampling_unit=None,
         dev_score_calc_obj_block_size=None,
         dev_efb_max_buckets=None,
         sparse_features_conflict_fraction=None,
@@ -98,7 +93,6 @@ class GECat(CatBoostClassifier, GECBase):
         objective=None,
         eta=None,
         max_bin=None,
-        scale_pos_weight=None,
         gpu_cat_features_storage=None,
         data_partition=None,
         metadata=None,
@@ -129,18 +123,15 @@ class GECat(CatBoostClassifier, GECBase):
         feature_calcers=None,
         text_processing=None,
         embedding_features=None,
-        callback=None,
         eval_fraction=None,
         fixed_binary_splits=None,
         frozen=False,
     ):
-        adapted_cat_params = str(
-            inspect.signature(CatBoostClassifier.__init__)
-        ).replace(
+        adapted_cat_params = str(inspect.signature(CatBoostRegressor.__init__)).replace(
             "fixed_binary_splits=None)",
             "fixed_binary_splits=None, frozen=False)",
         )
-        gecat_params = str(inspect.signature(GECat.__init__))
+        gecat_params = str(inspect.signature(GECar.__init__))
         assert (
             adapted_cat_params == gecat_params
         ), f"{gecat_params = } \n not equal to \n {adapted_cat_params = }"
@@ -159,7 +150,7 @@ class GECat(CatBoostClassifier, GECBase):
             if key not in not_params and value is not None:
                 params[key] = value
 
-        super(CatBoostClassifier, self).__init__(params)
+        super(CatBoostRegressor, self).__init__(params)
 
         non_optimized_init_args = [
             "depth",
@@ -183,7 +174,6 @@ class GECat(CatBoostClassifier, GECBase):
             "use_best_model",
             "best_model_min_trees",
             "verbose",
-            "silent",
             "logging_level",
             "metric_period",
             "ctr_leaf_count_limit",
@@ -330,7 +320,7 @@ class GECat(CatBoostClassifier, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        class_ = GECat()
+        class_ = GECar()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)
@@ -376,7 +366,7 @@ class GECat(CatBoostClassifier, GECBase):
 
         params["silent"] = True
 
-        return self._calculate_cv_score(X, y, params, CatBoostClassifier)
+        return self._calculate_cv_score(X, y, params, CatBoostRegressor)
 
     def retrieve_hyperparameter(self, hyperparameter):
         return self._init_params.get(hyperparameter, None)
