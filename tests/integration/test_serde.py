@@ -25,19 +25,19 @@ def test_serde_ger(ger, ger_is_serialised, ger_serialisation_path, X, y_real):
         assert str(v) == str(v2), f"{k} - {v} != {v2}"
 
 
-def test_serde_gecat(gecat, gecat_is_serialised, gecat_serialisation_path, X, y_class):
+def test_serde_catgec(catgec, catgec_is_serialised, catgec_serialisation_path, X, y_class):
 
-    gecat = GECat.deserialize(gecat_serialisation_path, X, y_class)
+    catgec = CatGEC.deserialize(catgec_serialisation_path, X, y_class)
 
-    for k, v in gecat._get_representation().items():
-        v2 = getattr(gecat, f"{k}_")
+    for k, v in catgec._get_representation().items():
+        v2 = getattr(catgec, f"{k}_")
         assert str(v) == str(v2), f"{k} - {v} != {v2}"
 
 
-def test_serde_gecar(gecar, gecar_is_serialised, gecar_serialisation_path, X, y_class):
+def test_serde_catger(catger, catger_is_serialised, catger_serialisation_path, X, y_class):
 
-    gecar = GECar.deserialize(gecar_serialisation_path, X, y_class)
+    catger = CatGER.deserialize(catger_serialisation_path, X, y_class)
 
-    for k, v in gecar._get_representation().items():
-        v2 = getattr(gecar, f"{k}_")
+    for k, v in catger._get_representation().items():
+        v2 = getattr(catger, f"{k}_")
         assert str(v) == str(v2), f"{k} - {v} != {v2}"
