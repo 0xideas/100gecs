@@ -1,14 +1,15 @@
 import copy
-import sys
 import inspect
+import sys
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 from catboost import CatBoostRegressor
 from numpy import float64, ndarray
-from six import iteritems, string_types, integer_types
+from six import integer_types, iteritems, string_types
 
 from .gec_base import GECBase
+
 
 class GECar(CatBoostRegressor, GECBase):
     def __init__(

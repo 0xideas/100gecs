@@ -1,9 +1,9 @@
 from cloud_io.load_bank_dataset import load_bank_dataset
 from cloud_io.load_cover_dataset import load_cover_dataset
 from cloud_io.load_enzymes_dataset import load_enzymes_dataset
+from cloud_io.load_house_price_dataset import load_house_price_dataset
 from cloud_io.load_income_dataset import load_income_dataset
 from cloud_io.load_mushroom_dataset import load_mushroom_dataset
-from cloud_io.load_house_price_dataset import load_house_price_dataset
 
 default_paths = {
     "bank": "/home/ubuntu/data/bank/bank-full.csv",

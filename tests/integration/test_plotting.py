@@ -3,9 +3,10 @@ import os
 import pytest
 
 from gecs.gec import GEC
-from gecs.ger import GER
-from gecs.gecat import GECat
 from gecs.gecar import GECar
+from gecs.gecat import GECat
+from gecs.ger import GER
+
 
 @pytest.fixture
 def plot_path():
