@@ -74,20 +74,19 @@ def gec(X, y_class, gec_hps):
 
 
 @pytest.fixture(scope="session")
+def ger(X, y_real, gec_hps):
+    ger = LightGER()
+    ger.set_gec_hyperparameters(gec_hps)
+    ger.fit(X, y_real, 20)
+    return ger
+
+
+@pytest.fixture(scope="session")
 def catgec(X, y_class, gec_hps):
     catgec = CatGEC()
     catgec.set_gec_hyperparameters(gec_hps)
     catgec.fit(X, y_class, 5)
     return catgec
-
-
-@pytest.fixture(scope="session")
-def ger(X, y_real, gec_hps):
-    ger = GER()
-    ger.set_gec_hyperparameters(gec_hps)
-    ger.fit(X, y_real, 20)
-    return ger
-
 
 @pytest.fixture(scope="session")
 def catger(X, y_real, gec_hps):
