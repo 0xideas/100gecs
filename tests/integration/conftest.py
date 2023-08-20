@@ -74,11 +74,11 @@ def gec(X, y_class, gec_hps):
 
 
 @pytest.fixture(scope="session")
-def gecat(X, y_class, gec_hps):
-    gecat = GECat()
-    gecat.set_gec_hyperparameters(gec_hps)
-    gecat.fit(X, y_class, 5)
-    return gecat
+def catgec(X, y_class, gec_hps):
+    catgec = CatGEC()
+    catgec.set_gec_hyperparameters(gec_hps)
+    catgec.fit(X, y_class, 5)
+    return catgec
 
 
 @pytest.fixture(scope="session")
@@ -90,11 +90,11 @@ def ger(X, y_real, gec_hps):
 
 
 @pytest.fixture(scope="session")
-def gecar(X, y_real, gec_hps):
-    gecar = GECar()
-    gecar.set_gec_hyperparameters(gec_hps)
-    gecar.fit(X, y_real, 5)
-    return gecar
+def catger(X, y_real, gec_hps):
+    catger = CatGER()
+    catger.set_gec_hyperparameters(gec_hps)
+    catger.fit(X, y_real, 5)
+    return catger
 
 
 @pytest.fixture(scope="session")
@@ -118,20 +118,20 @@ def ger_is_serialised(ger, ger_serialisation_path):
 
 
 @pytest.fixture(scope="session")
-def gecat_serialisation_path():
-    return "tests/data/outputs/gecat.json"
+def catgec_serialisation_path():
+    return "tests/data/outputs/catgec.json"
 
 
 @pytest.fixture(scope="session")
-def gecat_is_serialised(gecat, gecat_serialisation_path):
-    gecat.serialize(gecat_serialisation_path)
+def catgec_is_serialised(catgec, catgec_serialisation_path):
+    catgec.serialize(catgec_serialisation_path)
 
 
 @pytest.fixture(scope="session")
-def gecar_serialisation_path():
-    return "tests/data/outputs/gecar.json"
+def catger_serialisation_path():
+    return "tests/data/outputs/catger.json"
 
 
 @pytest.fixture(scope="session")
-def gecar_is_serialised(gecar, gecar_serialisation_path):
-    gecar.serialize(gecar_serialisation_path)
+def catger_is_serialised(catger, catger_serialisation_path):
+    catger.serialize(catger_serialisation_path)

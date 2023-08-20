@@ -131,10 +131,10 @@ class CatGER(CatBoostRegressor, GECBase):
             "fixed_binary_splits=None)",
             "fixed_binary_splits=None, frozen=False)",
         )
-        gecat_params = str(inspect.signature(CatGER.__init__))
+        catgec_params = str(inspect.signature(CatGER.__init__))
         assert (
-            adapted_cat_params == gecat_params
-        ), f"{gecat_params = } \n not equal to \n {adapted_cat_params = }"
+            adapted_cat_params == catgec_params
+        ), f"{catgec_params = } \n not equal to \n {adapted_cat_params = }"
 
         params = {}
         not_params = [
@@ -142,7 +142,7 @@ class CatGER(CatBoostRegressor, GECBase):
             "self",
             "params",
             "__class__",
-            "gecat_params",
+            "catgec_params",
             "adapted_cat_params",
             "frozen",
         ]
