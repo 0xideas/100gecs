@@ -3,7 +3,7 @@ import inspect
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-from lightgbm import LGBMRegressor
+from lightgbm import LGBMClassifier
 from lightgbm.basic import LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
 from numpy import float64, ndarray
@@ -11,7 +11,7 @@ from numpy import float64, ndarray
 from .gec_base import GECBase
 
 
-class GER(LGBMRegressor, GECBase):
+class LightGEC(LGBMClassifier, GECBase):
     def __init__(
         self,
         boosting_type: str = "gbdt",
@@ -38,14 +38,14 @@ class GER(LGBMRegressor, GECBase):
         **kwargs,
     ) -> None:
         adapted_lgbm_params = (
-            str(inspect.signature(LGBMRegressor.__init__))
+            str(inspect.signature(LGBMClassifier.__init__))
             .replace(
                 "importance_type: str = 'split'",
                 "importance_type: str = 'split', frozen: bool = False",
             )
             .replace("**kwargs)", "**kwargs) -> None")
         )
-        gec_params = str(inspect.signature(GER.__init__))
+        gec_params = str(inspect.signature(LightGEC.__init__))
         assert (
             adapted_lgbm_params == gec_params
         ), f"{gec_params = } \n not equal to \n {adapted_lgbm_params = }"
@@ -75,7 +75,7 @@ class GER(LGBMRegressor, GECBase):
         objective : str, callable or None, optional (default=None)
             Specify the learning task and the corresponding learning objective or
             a custom objective function to be used (see note below).
-            Default: 'regression' for LGBMRegressor, 'binary' or 'multiclass' for LGBMRegressor, 'lambdarank' for LGBMRanker.
+            Default: 'regression' for LGBMRegressor, 'binary' or 'multiclass' for LGBMClassifier, 'lambdarank' for LGBMRanker.
         class_weight : dict, 'balanced' or None, optional (default=None)
             Weights associated with classes in the form ``{class_label: weight}``.
             Use this parameter only for multi-class classification task;
@@ -216,9 +216,11 @@ class GER(LGBMRegressor, GECBase):
             "min_child_samples",
             "min_child_weight",
             "colsample_bytree",  # feature_fraction
-            "subsample"
+            "subsample",
         ]
-        self._gec_init(kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args)
+        self._gec_init(
+            kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args
+        )
 
     def fit(
         self,
@@ -231,14 +233,15 @@ class GER(LGBMRegressor, GECBase):
         eval_set=None,
         eval_names=None,
         eval_sample_weight=None,
+        eval_class_weight=None,
         eval_init_score=None,
         eval_metric=None,
         feature_name="auto",
         categorical_feature="auto",
         callbacks=None,
         init_model=None,
-    ) -> "GER":
-        """Docstring is inherited from the LGBMRegressor.
+    ) -> "LightGEC":
+        """Docstring is inherited from the LGBMClassifier.
 
         Except for
 
@@ -256,6 +259,7 @@ class GER(LGBMRegressor, GECBase):
             "eval_set": eval_set,
             "eval_names": eval_names,
             "eval_sample_weight": eval_sample_weight,
+            "eval_class_weight": eval_class_weight,
             "eval_init_score": eval_init_score,
             "eval_metric": eval_metric,
             "feature_name": feature_name,
@@ -266,7 +270,7 @@ class GER(LGBMRegressor, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        class_ = GER()
+        class_ = LightGEC()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)
@@ -304,7 +308,13 @@ class GER(LGBMRegressor, GECBase):
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
-        return self._calculate_cv_score(X, y, params, LGBMRegressor)
+        return self._calculate_cv_score(X, y, params, LGBMClassifier)
 
     def retrieve_hyperparameter(self, hyperparameter):
-        return(getattr(self, hyperparameter))
+        return getattr(self, hyperparameter)
+
+    def _replace_fixed_args(self, params):
+        if self.fix_boosting_type_:
+            params["boosting_type"] = self.boosting_type
+
+        return params

@@ -13,7 +13,7 @@ from cloud_io.load_dataset import load_dataset
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import RandomizedSearchCV, cross_val_score
 
-from gecs.gec import GEC
+from gecs.lightgec import LightGEC
 
 VERSION = 33
 SCORE_LOCATION = f"eval/scores/v={VERSION}"
@@ -53,7 +53,7 @@ def run(
         aws_secret_access_key=aws_secret_access_key,
     )
     X, y = load_dataset(dataset, dataset_path)
-    gec = GEC()
+    gec = LightGEC()
     gec_hyperparameters = dict(gec.gec_hyperparameters)
     gec_hyperparameters["hyperparameters"] = hyperparameters.split("-")
     gec.set_gec_hyperparameters(gec_hyperparameters)

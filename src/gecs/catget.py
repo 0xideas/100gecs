@@ -1,16 +1,17 @@
 import copy
-import sys
 import inspect
+import sys
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-from catboost import CatBoostRegressor
+from catboost import CatBoostClassifier
 from numpy import float64, ndarray
-from six import iteritems, string_types, integer_types
+from six import integer_types, iteritems, string_types
 
 from .gec_base import GECBase
 
-class GECar(CatBoostRegressor, GECBase):
+
+class CatGEC(CatBoostClassifier, GECBase):
     def __init__(
         self,
         iterations=None,
@@ -19,7 +20,7 @@ class GECar(CatBoostRegressor, GECBase):
         l2_leaf_reg=None,
         model_size_reg=None,
         rsm=None,
-        loss_function='RMSE',
+        loss_function=None,
         border_count=None,
         feature_border_type=None,
         per_float_feature_quantization=None,
@@ -47,11 +48,16 @@ class GECar(CatBoostRegressor, GECBase):
         has_time=None,
         allow_const_label=None,
         target_border=None,
+        classes_count=None,
+        class_weights=None,
+        auto_class_weights=None,
+        class_names=None,
         one_hot_max_size=None,
         random_strength=None,
         name=None,
         ignored_features=None,
         train_dir=None,
+        custom_loss=None,
         custom_metric=None,
         eval_metric=None,
         bagging_temperature=None,
@@ -77,8 +83,8 @@ class GECar(CatBoostRegressor, GECBase):
         bootstrap_type=None,
         subsample=None,
         mvs_reg=None,
-        sampling_frequency=None,
         sampling_unit=None,
+        sampling_frequency=None,
         dev_score_calc_obj_block_size=None,
         dev_efb_max_buckets=None,
         sparse_features_conflict_fraction=None,
@@ -92,6 +98,7 @@ class GECar(CatBoostRegressor, GECBase):
         objective=None,
         eta=None,
         max_bin=None,
+        scale_pos_weight=None,
         gpu_cat_features_storage=None,
         data_partition=None,
         metadata=None,
@@ -122,29 +129,37 @@ class GECar(CatBoostRegressor, GECBase):
         feature_calcers=None,
         text_processing=None,
         embedding_features=None,
+        callback=None,
         eval_fraction=None,
         fixed_binary_splits=None,
-        frozen=False
+        frozen=False,
     ):
-        adapted_cat_params = (
-            str(inspect.signature(CatBoostRegressor.__init__))
-            .replace(
-                "fixed_binary_splits=None)",
-                "fixed_binary_splits=None, frozen=False)",
-            )
+        adapted_cat_params = str(
+            inspect.signature(CatBoostClassifier.__init__)
+        ).replace(
+            "fixed_binary_splits=None)",
+            "fixed_binary_splits=None, frozen=False)",
         )
-        gecat_params = str(inspect.signature(GECar.__init__))
+        catgec_params = str(inspect.signature(CatGEC.__init__))
         assert (
-            adapted_cat_params == gecat_params
-        ), f"{gecat_params = } \n not equal to \n {adapted_cat_params = }"
+            adapted_cat_params == catgec_params
+        ), f"{catgec_params = } \n not equal to \n {adapted_cat_params = }"
 
         params = {}
-        not_params = ["not_params", "self", "params", "__class__", "gecat_params", "adapted_cat_params", "frozen"]
+        not_params = [
+            "not_params",
+            "self",
+            "params",
+            "__class__",
+            "catgec_params",
+            "adapted_cat_params",
+            "frozen",
+        ]
         for key, value in iteritems(locals().copy()):
             if key not in not_params and value is not None:
                 params[key] = value
 
-        super(CatBoostRegressor, self).__init__(params)
+        super(CatBoostClassifier, self).__init__(params)
 
         non_optimized_init_args = [
             "depth",
@@ -168,6 +183,7 @@ class GECar(CatBoostRegressor, GECBase):
             "use_best_model",
             "best_model_min_trees",
             "verbose",
+            "silent",
             "logging_level",
             "metric_period",
             "ctr_leaf_count_limit",
@@ -241,7 +257,7 @@ class GECar(CatBoostRegressor, GECBase):
             "text_processing",
             "embedding_features",
             "eval_fraction",
-            "fixed_binary_splits"
+            "fixed_binary_splits",
         ]
         optimization_candidate_init_args = [
             "learning_rate",
@@ -250,41 +266,42 @@ class GECar(CatBoostRegressor, GECBase):
             "reg_lambda",
             "min_child_samples",
             "colsample_bylevel",  # feature_fraction
-            "subsample"
+            "subsample",
         ]
-        self._gec_init({}, frozen, non_optimized_init_args, optimization_candidate_init_args)
+        self._gec_init(
+            {}, frozen, non_optimized_init_args, optimization_candidate_init_args
+        )
 
-
-
-    def fit(self,
-            X,
-            y=None,
-            n_iter=50,
-            fixed_hyperparameters=["n_estimators", "num_leaves"],
-            cat_features=None,
-            text_features=None,
-            embedding_features=None,
-            sample_weight=None,
-            baseline=None,
-            use_best_model=None,
-            eval_set=None,
-            verbose=None,
-            logging_level=None,
-            plot=False,
-            plot_file=None,
-            column_description=None,
-            verbose_eval=None,
-            metric_period=None,
-            silent=None,
-            early_stopping_rounds=None,
-            save_snapshot=None,
-            snapshot_file=None,
-            snapshot_interval=None,
-            init_model=None,
-            callbacks=None,
-            log_cout=sys.stdout,
-            log_cerr=sys.stderr
-        ):
+    def fit(
+        self,
+        X,
+        y=None,
+        n_iter=50,
+        fixed_hyperparameters=["n_estimators", "num_leaves"],
+        cat_features=None,
+        text_features=None,
+        embedding_features=None,
+        sample_weight=None,
+        baseline=None,
+        use_best_model=None,
+        eval_set=None,
+        verbose=None,
+        logging_level=None,
+        plot=False,
+        plot_file=None,
+        column_description=None,
+        verbose_eval=None,
+        metric_period=None,
+        silent=None,
+        early_stopping_rounds=None,
+        save_snapshot=None,
+        snapshot_file=None,
+        snapshot_interval=None,
+        init_model=None,
+        callbacks=None,
+        log_cout=sys.stdout,
+        log_cerr=sys.stderr,
+    ):
         self.gec_fit_params_ = {
             "cat_features": cat_features,
             "text_features": text_features,
@@ -308,13 +325,12 @@ class GECar(CatBoostRegressor, GECBase):
             "init_model": init_model,
             "callbacks": callbacks,
             "log_cout": log_cout,
-            "log_cerr": log_cerr
-            }
+            "log_cerr": log_cerr,
+        }
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
-
     def __sklearn_clone__(self):
-        class_ = GECar()
+        class_ = CatLightGEC()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)
@@ -335,13 +351,14 @@ class GECar(CatBoostRegressor, GECBase):
             params = super().get_params(deep)
         params["frozen"] = self.frozen
 
-        return params
+        return {k: v for k, v in params.items() if v is not None}
 
     def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
 
         if self.best_params_ is not None:
             for k, v in self.best_params_.items():
-                self._init_params[k] = v
+                if v is not None:
+                    self._init_params[k] = v
             self._init_params["random_state"] = 101
             self._init_params["silent"] = True
 
@@ -353,15 +370,19 @@ class GECar(CatBoostRegressor, GECBase):
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ):
-        
+
         if "subsample_freq" in params:
             del params["subsample_freq"]
 
         params["silent"] = True
 
-        return self._calculate_cv_score(X, y, params, CatBoostRegressor)
+        return self._calculate_cv_score(X, y, params, CatBoostClassifier)
 
-    
     def retrieve_hyperparameter(self, hyperparameter):
-        return(self._init_params.get(hyperparameter, None))
-    
+        return self._init_params.get(hyperparameter, None)
+
+    def _replace_fixed_args(self, params):
+        if self.fix_boosting_type_:
+            params["boosting_type"] = self._init_params["boosting_type"]
+
+        return params

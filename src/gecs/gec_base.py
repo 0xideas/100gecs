@@ -30,16 +30,18 @@ from tqdm import tqdm
 
 
 class GECBase:
-    def _gec_init(self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args):
-        self._init_kwargs = {
-            k: v for k, v in kwargs.items() if k not in ["subsample"]
-        }
+    def _gec_init(
+        self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args
+    ):
+        self._init_kwargs = {k: v for k, v in kwargs.items() if k not in ["subsample"]}
 
         self.fix_boosting_type_ = False
 
         self.frozen = frozen
 
-        self._init_args = {arg: self.retrieve_hyperparameter(arg) for arg in non_optimized_init_args}
+        self._init_args = {
+            arg: self.retrieve_hyperparameter(arg) for arg in non_optimized_init_args
+        }
         self._optimization_candidate_init_args = optimization_candidate_init_args
 
         self.gec_hyperparameters_ = {
@@ -131,9 +133,13 @@ class GECBase:
             ("min_child_samples", np.arange(2, 50, 1)),
             ("colsample_bytree", np.arange(0.1, 1.00, 0.01)),
             ("colsample_bylevel", np.arange(0.1, 1.00, 0.01)),
-            ("subsample", [x/100 for x in range(15, 101)])
+            ("subsample", [x / 100 for x in range(15, 101)]),
         ]
-        self._real_hyperparameters_all = [(n, r) for n, r in real_hyperparameters_all_across_classes if n in self._optimization_candidate_init_args ]
+        self._real_hyperparameters_all = [
+            (n, r)
+            for n, r in real_hyperparameters_all_across_classes
+            if n in self._optimization_candidate_init_args
+        ]
 
         self.fixed_params = {
             hyperparameter: self.retrieve_hyperparameter(hyperparameter)
@@ -184,7 +190,6 @@ class GECBase:
             "sigmas": [],
         }
 
-
         self.best_score_gec_ = None
         self.best_params_ = None
         self.gec_fit_params_ = None
@@ -198,7 +203,6 @@ class GECBase:
 
         self.best_scores_gec_ = {}
         self.best_params_gec_ = {}
-        
 
     def tried_hyperparameters(self):
         assert np.array(self.hyperparameter_scores_["inputs"]).shape[0] == len(
@@ -207,11 +211,12 @@ class GECBase:
 
         hyperparamters = []
         for selected_arm, hyperparameter_inputs in zip(
-            self.selected_arms_,
-            self.hyperparameter_scores_["inputs"]
+            self.selected_arms_, self.hyperparameter_scores_["inputs"]
         ):
             bagging = "yes_bagging" in selected_arm.split("-")
-            args = self._build_arguments(selected_arm.split("-")[:1], hyperparameter_inputs, bagging)
+            args = self._build_arguments(
+                selected_arm.split("-")[:1], hyperparameter_inputs, bagging
+            )
             hyperparamters.append(args)
 
         return hyperparamters
@@ -224,7 +229,6 @@ class GECBase:
     def kernel(self, value):
         self._kernel = value
         self.gaussian = GaussianProcessRegressor(kernel=value, n_restarts_optimizer=9)
-
 
     @property
     def gec_iter_(self) -> int:
@@ -346,7 +350,11 @@ class GECBase:
             "best_params_gec": self.best_params_gec_,
             "best_scores_gec": self.best_scores_gec_,
             "gec_iter": self.gec_iter_,
-            "gec_fit_params": {k: v for k, v in self.gec_fit_params_.items() if k not in ["log_cout", "log_cerr"]},
+            "gec_fit_params": {
+                k: v
+                for k, v in self.gec_fit_params_.items()
+                if k not in ["log_cout", "log_cerr"]
+            },
         }
         return representation
 
@@ -464,18 +472,12 @@ class GECBase:
 
         return self
 
-    def _replace_fixed_args(self, params):
-        if self.fix_boosting_type_:
-            params["boosting_type"] = self.boosting_type
-
-        return params
-
     def _calculate_cv_score(
         self,
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
-        class_
+        class_,
     ) -> float64:
         clf = class_(**params)
         try:
@@ -483,7 +485,12 @@ class GECBase:
                 evaluation_fn = self.gec_hyperparameters_["score_evaluation_method"]
                 maximize_score = self.gec_hyperparameters_["maximize_score"]
                 cross_val_scores = cross_val_score(
-                    clf, X, y, cv=5, fit_params=self.gec_fit_params_, scoring=evaluation_fn
+                    clf,
+                    X,
+                    y,
+                    cv=5,
+                    fit_params=self.gec_fit_params_,
+                    scoring=evaluation_fn,
                 )
                 if maximize_score:
                     score = np.mean(cross_val_scores)
@@ -558,9 +565,10 @@ class GECBase:
             ]
         )
         bagging = "yes_bagging" in selected_arm.split("-")
-        arguments = self._build_arguments(selected_arm.split("-")[:1], random_combination, bagging)
+        arguments = self._build_arguments(
+            selected_arm.split("-")[:1], random_combination, bagging
+        )
         selected_combination = random_combination
-
 
         return (
             selected_arm,
@@ -678,9 +686,11 @@ class GECBase:
             self.best_score_gec_ = score
             self.best_params_ = arguments
 
-
     def _build_arguments(
-        self, categorical_combination: List[str], real_combination_linear: ndarray, bagging: bool
+        self,
+        categorical_combination: List[str],
+        real_combination_linear: ndarray,
+        bagging: bool,
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         best_predicted_combination_converted = [
             self._real_hyperparameters_map[name][value]
@@ -767,7 +777,7 @@ class GECBase:
             bagging = "yes_bagging"
         else:
             bagging = "no_bagging"
-    
+
         boosting = params.pop("boosting_type")
         best_arm = f"{boosting}-{bagging}"
 
@@ -810,7 +820,9 @@ class GECBase:
             )
 
         bagging = "yes_bagging" in best_arm.split("-")
-        arguments = self._build_arguments(best_arm.split("-")[:1], best_combination, bagging)
+        arguments = self._build_arguments(
+            best_arm.split("-")[:1], best_combination, bagging
+        )
 
         return arguments
 
