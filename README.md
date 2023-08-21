@@ -54,7 +54,11 @@ The `LightGEC` class provides the same API to the user as the `LGBMClassifier` c
 The default use of `LightGEC` would look like this:
 
     from sklearn.datasets import load_iris
-    from gecs.lightgec import LightGEC
+    from gecs.lightgec import LightGEC # LGBMClassifier with hyperparameter optimization
+    from gecs.lightger import LightGER # LGBMRegressor with hyperparameter optimization
+    from gecs.catgec import CatGEC # CatBoostClassifier with hyperparameter optimization
+    from gecs.catger import CatGER # CatBoostRegressor with hyperparameter optimization
+
 
     X, y = load_iris(return_X_y=True)
 
