@@ -26,3 +26,5 @@ terraform.tfvars
 catboost_info/*
 
 *.egg-info
+
+poetry.lock
