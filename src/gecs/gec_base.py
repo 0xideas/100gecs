@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 class GECBase:
     def _gec_init(
-        self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args
+        self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
     ):
         self._init_kwargs = {k: v for k, v in kwargs.items() if k not in ["subsample"]}
 
@@ -58,25 +58,27 @@ class GECBase:
             "hyperparameters": optimization_candidate_init_args,
             "randomize": True,
         }
+
+        self.categorical_hyperparameters = (
+            categorical_hyperparameters +
+            [("gec_bagging", ["gec_bagging_yes", "gec_bagging_no"])]
+        )
+        self._categorical_hyperparameter_names = [cat[0] for cat in self.categorical_hyperparameters]
+
+
         self._set_gec_attributes()
         self._set_gec_fields()
 
     def _set_gec_attributes(self) -> None:
-        self.categorical_hyperparameters = [
-            ("boosting_type", ["gbdt", "dart", "rf"]),
-            ("bagging", ["yes_bagging", "no_bagging"]),
-        ]
 
-        self._categorical_hyperparameter_names = ["boosting_type"]
-
-        prohibited_combinations = ["rf-no_bagging"]
+        prohibited_combinations = ["rf-gec_bagging_no", "Plain-Bayesian-gec_bagging_yes", "Plain-No-gec_bagging_yes"]
 
         self._categorical_hyperparameter_combinations = [
             "-".join(y)
             for y in itertools.product(
                 *[x[1] for x in self.categorical_hyperparameters]
             )
-            if "-".join(y) not in prohibited_combinations
+            if "-".join(y) not in  prohibited_combinations
         ]
 
         if self.fix_boosting_type_:
@@ -213,10 +215,9 @@ class GECBase:
         for selected_arm, hyperparameter_inputs in zip(
             self.selected_arms_, self.hyperparameter_scores_["inputs"]
         ):
-            bagging = "yes_bagging" in selected_arm.split("-")
-            args = self._build_arguments(
-                selected_arm.split("-")[:1], hyperparameter_inputs, bagging
-            )
+            args = self._process_arguments(self._build_arguments(
+                selected_arm, hyperparameter_inputs
+            ))
             hyperparamters.append(args)
 
         return hyperparamters
@@ -240,6 +241,8 @@ class GECBase:
             return float(value)
         elif type_ == np.int64:
             return int(value)
+        elif value is None:
+            return None
         else:
             raise Exception(f"type {type_} currently not supported")
 
@@ -426,6 +429,18 @@ class GECBase:
 
         return params
 
+    def _process_arguments(self, arguments):
+        args = copy.deepcopy(arguments)
+        bagging = args["gec_bagging"] == "gec_bagging_yes"
+        if bagging:
+            assert "subsample" in args
+            args["subsample_freq"] = 1
+        else:
+            del args["subsample"]
+        del args["gec_bagging"]
+        return(args)
+    
+
     def _fit_inner(self, X, y, n_iter, fixed_hyperparameters):
 
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters
@@ -447,18 +462,17 @@ class GECBase:
             ) = self._optimise_hyperparameters(n_iter, X, y)
 
             best_params_grid = self._find_best_parameters()
-            self.best_params_gec_["grid"] = self._replace_fixed_args(best_params_grid)
+            self.best_params_gec_["grid"] = self._process_arguments(self._replace_fixed_args(best_params_grid))
             self.best_scores_gec_["grid"] = self.score_single_iteration(
                 X, y, self.best_params_gec_["grid"]
             )
 
-            best_params_prep = copy.deepcopy(self.best_params_gec_["search"])
             best_params_grid_from_search = self._find_best_parameters_from_search(
-                best_params_prep
+                self.best_arm_, self.best_params_raw_
             )
-            self.best_params_gec_["grid_from_search"] = self._replace_fixed_args(
+            self.best_params_gec_["grid_from_search"] = self._process_arguments(self._replace_fixed_args(
                 best_params_grid_from_search
-            )
+            ))
             self.best_scores_gec_["grid_from_search"] = self.score_single_iteration(
                 X, y, self.best_params_gec_["grid_from_search"]
             )
@@ -496,9 +510,10 @@ class GECBase:
                     score = np.mean(cross_val_scores)
                 else:
                     score = -np.mean(cross_val_score)
-        except:
+        except Exception as e:
+            params_clean = {k:v for k,v in params.items() if v is not None}
             warnings.warn(
-                f"Could not calculate cross val scores for parameters: {params}"
+                f"Could not calculate cross val scores for parameters: {params_clean}, due to {e}"
             )
             score = 0.0
         return score
@@ -523,7 +538,6 @@ class GECBase:
                 (
                     selected_arm,
                     selected_combination,
-                    arguments,
                 ) = self._get_random_hyperparameter_configuration()
 
                 mean, sigma = None, None
@@ -534,13 +548,13 @@ class GECBase:
                     mean,
                     sigma,
                 ) = self._select_parameters()
-                bagging = "yes_bagging" in selected_arm.split("-")
-                arguments = self._build_arguments(
-                    selected_arm.split("-")[:1], selected_combination, bagging
-                )
+
+            arguments = self._build_arguments(
+                selected_arm, selected_combination
+            )
 
             arguments = self._replace_fixed_args(arguments)
-            score = self.score_single_iteration(X, Y, arguments)
+            score = self.score_single_iteration(X, Y, self._process_arguments(arguments))
 
             self._update_gec_fields(
                 score, arguments, selected_arm, selected_combination, mean, sigma
@@ -552,28 +566,20 @@ class GECBase:
         self,
     ) -> Tuple[
         str_,
-        ndarray,
-        Tuple[int, float64],
-        Dict[str, Optional[Union[str, float, int, float64]]],
+        Tuple[int, float64]
     ]:
 
-        selected_arm = np.random.choice(self._categorical_hyperparameter_combinations)
+        random_arm = np.random.choice(self._categorical_hyperparameter_combinations)
         random_combination = np.array(
             [
                 np.random.choice(range_)
                 for real_hyperparameter, range_ in self._real_hyperparameters_linear
             ]
         )
-        bagging = "yes_bagging" in selected_arm.split("-")
-        arguments = self._build_arguments(
-            selected_arm.split("-")[:1], random_combination, bagging
-        )
-        selected_combination = random_combination
 
         return (
-            selected_arm,
-            selected_combination,
-            arguments,
+            random_arm,
+            random_combination,
         )
 
     def _select_parameters(self) -> Tuple[str, ndarray, ndarray, ndarray]:
@@ -656,7 +662,7 @@ class GECBase:
         mean: Optional[ndarray],
         sigma: Optional[ndarray],
     ) -> None:
-
+        
         self.selected_arms_.append(selected_arm)
         self.hyperparameter_scores_["inputs"].append(
             [float(f) for f in selected_combination]
@@ -676,22 +682,28 @@ class GECBase:
                 self.rewards_[selected_arm]["a"] = (
                     self.rewards_[selected_arm]["a"] + weighted_score_delta
                 )
-                self.best_params_ = arguments
                 self.best_score_gec_ = score
+                self.best_params_ = self._process_arguments(arguments)
+                self.best_params_raw_ = arguments
+                self.best_arm_ = selected_arm
+
             else:
                 self.rewards_[selected_arm]["b"] = (
                     self.rewards_[selected_arm]["b"] - weighted_score_delta
                 )
         else:
             self.best_score_gec_ = score
-            self.best_params_ = arguments
+            self.best_params_ = self._process_arguments(arguments)
+            self.best_params_raw_ = arguments
+            self.best_arm_ = selected_arm
 
     def _build_arguments(
         self,
-        categorical_combination: List[str],
+        selected_arm: str,
         real_combination_linear: ndarray,
-        bagging: bool,
     ) -> Dict[str, Optional[Union[int, float, str]]]:
+        categorical_combination = selected_arm.split("-")
+        print(categorical_combination)         
         best_predicted_combination_converted = [
             self._real_hyperparameters_map[name][value]
             for name, value in zip(
@@ -715,10 +727,6 @@ class GECBase:
                 hyperparameter_values,
             )
         )
-        if bagging:
-            arguments["subsample_freq"] = 1
-        else:
-            arguments["subsample"] = 1.0
 
         return {
             **arguments,
@@ -768,18 +776,9 @@ class GECBase:
         return best_params
 
     def _find_best_parameters_from_search(
-        self, params: Dict[str, Optional[Union[int, float, str]]]
+        self, best_arm: str, params: Dict[str, Optional[Union[int, float, str]]]
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         self._fit_gaussian()
-
-        if "subsample_freq" in params and params["subsample_freq"] == 0:
-            del params["subsample_freq"]
-            bagging = "yes_bagging"
-        else:
-            bagging = "no_bagging"
-
-        boosting = params.pop("boosting_type")
-        best_arm = f"{boosting}-{bagging}"
 
         best_params_linear_values = [
             self._real_hyperparameters_map_reverse[name][params[name]]
@@ -819,9 +818,8 @@ class GECBase:
                 neighbouring_combinations
             )
 
-        bagging = "yes_bagging" in best_arm.split("-")
         arguments = self._build_arguments(
-            best_arm.split("-")[:1], best_combination, bagging
+            best_arm, best_combination
         )
 
         return arguments
@@ -930,9 +928,6 @@ class GECBase:
     def _plot_linear_scaled_parameter_samples(self, ax: Axes) -> None:
         inputs_ = np.array(self.hyperparameter_scores_["inputs"])
         x = np.arange(inputs_.shape[0])
-        assert (
-            (len(self._real_hyperparameter_names) == inputs_.shape[1]),
-            f"{len(self._real_hyperparameter_names)}!={inputs_.shape[1]}",
-        )
+
         for i in range(inputs_.shape[1]):
             ax.plot(x, inputs_[:, i], label=self._real_hyperparameter_names[i])

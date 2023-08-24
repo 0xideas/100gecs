@@ -200,8 +200,6 @@ class LightGEC(LGBMClassifier, GECBase):
             "objective",
             "class_weight",
             "min_split_gain",
-            "subsample",
-            "subsample_freq",
             "random_state",
             "n_jobs",
             "silent",
@@ -218,8 +216,11 @@ class LightGEC(LGBMClassifier, GECBase):
             "colsample_bytree",  # feature_fraction
             "subsample",
         ]
+        categorical_hyperparameters = [
+            ("boosting_type", ["gbdt", "dart", "rf"]),
+        ]
         self._gec_init(
-            kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args
+            {}, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
         )
 
     def fit(
