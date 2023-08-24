@@ -703,7 +703,6 @@ class GECBase:
         real_combination_linear: ndarray,
     ) -> Dict[str, Optional[Union[int, float, str]]]:
         categorical_combination = selected_arm.split("-")
-        print(categorical_combination)         
         best_predicted_combination_converted = [
             self._real_hyperparameters_map[name][value]
             for name, value in zip(
