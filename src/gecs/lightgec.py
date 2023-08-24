@@ -200,8 +200,6 @@ class LightGEC(LGBMClassifier, GECBase):
             "objective",
             "class_weight",
             "min_split_gain",
-            "subsample",
-            "subsample_freq",
             "random_state",
             "n_jobs",
             "silent",
@@ -224,7 +222,7 @@ class LightGEC(LGBMClassifier, GECBase):
         self._gec_init(
             {}, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
         )
-        
+
     def fit(
         self,
         X: ndarray,
