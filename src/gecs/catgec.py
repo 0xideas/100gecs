@@ -210,7 +210,6 @@ class CatGEC(CatBoostClassifier, GECBase):
             "allow_writing_files",
             "final_ctr_computation_mode",
             "approx_on_full_history",
-            "boosting_type",
             "simple_ctr",
             "combinations_ctr",
             "per_feature_ctr",
