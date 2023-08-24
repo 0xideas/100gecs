@@ -215,9 +215,9 @@ class GECBase:
         for selected_arm, hyperparameter_inputs in zip(
             self.selected_arms_, self.hyperparameter_scores_["inputs"]
         ):
-            args = self._build_arguments(
+            args = self._process_arguments(self._build_arguments(
                 selected_arm, hyperparameter_inputs
-            )
+            ))
             hyperparamters.append(args)
 
         return hyperparamters
@@ -431,7 +431,7 @@ class GECBase:
 
     def _process_arguments(self, arguments):
         args = copy.deepcopy(arguments)
-        bagging = "gec_bagging_yes" in args
+        bagging = args["gec_bagging"] == "gec_bagging_yes"
         if bagging:
             assert "subsample" in args
             args["subsample_freq"] = 1
