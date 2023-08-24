@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gecs"
-version = "0.34.1"
+version = "0.34.2"
 authors = ["Leon Luithlen <leontimnaluithlen@gmail.com>"]
 description = "LightGBM Classifier with integrated bayesian hyperparameter optimization"
 keywords = ["lightgbm", "classification", "machine learning", "hyperparameter optimization", "classifier"]
@@ -14,16 +14,16 @@ include = [
 
 
 [tool.poetry.dependencies]
-python = "3.10.*"
-pandas = "1.5.2"
-numpy = "1.23.5"
-scikit-learn = "1.2.2"
-scipy = "1.10.1"
+python = ">=3.10.0, <3.13.0"
+pandas = ">=1.5.2"
+numpy = ">=1.23.5"
+scikit-learn = ">=1.2.2"
+scipy = ">=1.10.1"
 lightgbm = "3.3.5"
-matplotlib = "3.7.1"
-poetry = "1.3.2"
-pytest = "7.2.1"
-typer = "0.9.0"
-tqdm = "4.65.0"
+matplotlib = ">=3.7.1"
+poetry = ">=1.3.2"
+pytest = ">=7.2.2"
+typer = ">=0.9.0"
+tqdm = ">=4.65.0"
 catboost = "1.2"
 
