@@ -496,9 +496,9 @@ class GECBase:
                     score = np.mean(cross_val_scores)
                 else:
                     score = -np.mean(cross_val_score)
-        except:
+        except Exception as e:
             warnings.warn(
-                f"Could not calculate cross val scores for parameters: {params}"
+                f"Could not calculate cross val scores for parameters: {params}, due to {e}"
             )
             score = 0.0
         return score
