@@ -218,10 +218,12 @@ class LightGER(LGBMRegressor, GECBase):
             "colsample_bytree",  # feature_fraction
             "subsample",
         ]
+        categorical_hyperparameters = [
+            ("boosting_type", ["gbdt", "dart", "rf"]),
+        ]
         self._gec_init(
-            kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args
+            {}, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
         )
-
     def fit(
         self,
         X: ndarray,

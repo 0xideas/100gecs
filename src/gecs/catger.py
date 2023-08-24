@@ -209,7 +209,6 @@ class CatGER(CatBoostRegressor, GECBase):
             "task_type",
             "device_config",
             "devices",
-            "bootstrap_type",
             "mvs_reg",
             "sampling_frequency",
             "sampling_unit",
@@ -258,8 +257,12 @@ class CatGER(CatBoostRegressor, GECBase):
             "colsample_bylevel",  # feature_fraction
             "subsample",
         ]
+        categorical_hyperparameters = [
+            ("boosting_type", ["Plain"]),
+            ("bootstrap_type", ["Bayesian", "Bernoulli", "MVS", "No"])
+        ]
         self._gec_init(
-            {}, frozen, non_optimized_init_args, optimization_candidate_init_args
+            {}, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
         )
 
     def fit(
