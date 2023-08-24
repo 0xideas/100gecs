@@ -462,19 +462,19 @@ class GECBase:
             ) = self._optimise_hyperparameters(n_iter, X, y)
 
             best_params_grid = self._find_best_parameters()
-            self.best_params_gec_["grid"] = self._replace_fixed_args(best_params_grid)
+            self.best_params_gec_["grid"] = self._process_arguments(self._replace_fixed_args(best_params_grid))
             self.best_scores_gec_["grid"] = self.score_single_iteration(
-                X, y, self._process_arguments(self.best_params_gec_["grid"])
+                X, y, self.best_params_gec_["grid"]
             )
 
             best_params_grid_from_search = self._find_best_parameters_from_search(
                 self.best_arm_, self.best_params_raw_
             )
-            self.best_params_gec_["grid_from_search"] = self._replace_fixed_args(
+            self.best_params_gec_["grid_from_search"] = self._process_arguments(self._replace_fixed_args(
                 best_params_grid_from_search
-            )
+            ))
             self.best_scores_gec_["grid_from_search"] = self.score_single_iteration(
-                X, y, self._process_arguments(self.best_params_gec_["grid_from_search"])
+                X, y, self.best_params_gec_["grid_from_search"]
             )
 
             for source, score in self.best_scores_gec_.items():
