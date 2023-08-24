@@ -330,7 +330,7 @@ class CatGEC(CatBoostClassifier, GECBase):
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
     def __sklearn_clone__(self):
-        class_ = CatLightGEC()
+        class_ = CatGEC()
 
         for k, v in self.__dict__.items():
             class_.__dict__[k] = copy.deepcopy(v)
