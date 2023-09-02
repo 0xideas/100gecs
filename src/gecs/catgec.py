@@ -271,7 +271,6 @@ class CatGEC(CatBoostClassifier, GECBase):
             ("bootstrap_type", ["Bayesian", "Bernoulli", "MVS", "No"]),
         ]
         self._gec_init(
-            {},
             frozen,
             non_optimized_init_args,
             optimization_candidate_init_args,
