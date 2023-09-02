@@ -28,11 +28,6 @@ from sklearn.utils._testing import ignore_warnings
 from sklearn.utils.extmath import cartesian
 from tqdm import tqdm
 
-from gecs.catgec import CatGEC
-from gecs.catger import CatGER
-from gecs.lightgec import LightGEC
-from gecs.lightger import LightGER
-
 
 class GECBase:
     def _gec_init(
@@ -263,7 +258,7 @@ class GECBase:
     @classmethod
     def deserialize(
         cls, path: str, X: Optional[ndarray] = None, y: Optional[ndarray] = None
-    ) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
+    ):
         """Deserialize a model and fit underlying LGBMClassifier if X and y are provided
 
         Parameters
@@ -423,11 +418,11 @@ class GECBase:
         self.gec_hyperparameters_.update(gec_hyperparameters)
         self._set_gec_attributes()
 
-    def freeze(self) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
+    def freeze(self):
         self.frozen = True
         return self
 
-    def unfreeze(self) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
+    def unfreeze(self):
         self.frozen = False
         return self
 
@@ -462,7 +457,7 @@ class GECBase:
 
     def _fit_inner(
         self, X: ndarray, y: ndarray, n_iter: int, fixed_hyperparameters: List[str]
-    ) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
+    ):
 
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters
         fixed_hyperparameters = [
