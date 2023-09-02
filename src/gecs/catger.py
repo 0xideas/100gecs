@@ -383,7 +383,6 @@ class CatGER(CatBoostRegressor, GECBase):
         bagging = args["gec_bagging"] == "gec_bagging_yes"
         if bagging:
             assert "subsample" in args
-            args["sampling_frequency"] = 1
         else:
             del args["subsample"]
         del args["gec_bagging"]
