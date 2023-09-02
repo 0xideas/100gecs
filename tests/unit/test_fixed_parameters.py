@@ -19,7 +19,7 @@ lightgecs_expanded = [
 
 fixed_hyperparameters_catgecs = [
     ["n_estimators", "num_leaves"],
-    ["bootstrap_type", "colsample_bylevel", "min_child_samples", "learning_rate"]
+    ["bootstrap_type", "colsample_bylevel", "min_child_samples", "learning_rate"],
 ]
 
 catgecs = [(CatGEC, "y_class", "catgec"), (CatGER, "y_real", "catger")]
@@ -30,7 +30,9 @@ catgecs_expanded = [
 ]
 
 
-@pytest.mark.parametrize("gec_class,y_switch,gec_switch,fixed_hyperparameters", (lightgecs_expanded))
+@pytest.mark.parametrize(
+    "gec_class,y_switch,gec_switch,fixed_hyperparameters", (lightgecs_expanded)
+)
 def test_fixed_parameters_lightgecs(
     gec_class,
     y_switch,
@@ -53,7 +55,6 @@ def test_fixed_parameters_lightgecs(
     else:
         pass
 
-    
     gec = gec_class(**params)
 
     gec = return_monkeypatch_gecs_class(gec)
@@ -62,8 +63,10 @@ def test_fixed_parameters_lightgecs(
     gec.fit(X, y, fixed_hyperparameters=fixed_hyperparameters)
 
     tried_hyperparameters = gec.tried_hyperparameters()
-    variable_hyperparameters = set(gec._optimization_candidate_init_args).union(set([s[0] for s in gec.categorical_hyperparameters[:-1]])).difference(
-        set(fixed_hyperparameters)
+    variable_hyperparameters = (
+        set(gec._optimization_candidate_init_args)
+        .union(set([s[0] for s in gec.categorical_hyperparameters[:-1]]))
+        .difference(set(fixed_hyperparameters))
     )
 
     for tried_hyperparameter_combination in tried_hyperparameters:
@@ -72,11 +75,10 @@ def test_fixed_parameters_lightgecs(
                 tried_hyperparameter_combination[fixed_hyperparameter]
                 == lightgecs_params[fixed_hyperparameter]
             )
-        
+
         for tried_param, tried_value in tried_hyperparameter_combination.items():
             if tried_param not in variable_hyperparameters.union({"subsample_freq"}):
                 assert tried_value == lightgecs_params[tried_param], tried_param
-
 
     for variable_hyperparameter in variable_hyperparameters:
         hyperparameter_present_count = np.sum(

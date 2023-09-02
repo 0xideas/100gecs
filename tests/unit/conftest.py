@@ -55,6 +55,7 @@ def lightgecs_params():
         "frozen": False,
     }
 
+
 @pytest.fixture(scope="session")
 def catgec_params():
     return {
@@ -179,6 +180,7 @@ def catgec_params():
         "frozen": False,
     }
 
+
 @pytest.fixture(scope="session")
 def catger_params():
     return {
@@ -295,6 +297,8 @@ def catger_params():
         "fixed_binary_splits": None,
         "frozen": False,
     }
+
+
 def monkey_patch_gecs_class(class_):
     def single_peak_real_hps_fn(
         params: Dict[str, Optional[Union[str, float, int, float64]]]
