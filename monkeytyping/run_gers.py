@@ -1,9 +1,11 @@
 import os
+
 import numpy as np
-from sklearn.model_selection import cross_val_score
 from sklearn.datasets import load_diabetes
-from gecs.lightger import LightGER
+from sklearn.model_selection import cross_val_score
+
 from gecs.catger import CatGER
+from gecs.lightger import LightGER
 
 if __name__ == "__main__":
     gers_ = [(LightGER, LightGER()), (CatGER, CatGER())]
@@ -16,9 +18,9 @@ if __name__ == "__main__":
         _ = ger.predict(X)
 
         path = "./ger.json"
-        ger.serialize(path) 
-        _ = ger_class.deserialize(path, X, y) 
-        _ = ger_class.deserialize(path) 
+        ger.serialize(path)
+        _ = ger_class.deserialize(path, X, y)
+        _ = ger_class.deserialize(path)
         os.remove(path)
 
         ger.freeze()
@@ -26,4 +28,3 @@ if __name__ == "__main__":
         _ = ger.predict(X)
         ger_score = np.mean(cross_val_score(ger, X, y))
         ger.unfreeze()
-
