@@ -258,10 +258,14 @@ class CatGER(CatBoostRegressor, GECBase):
         ]
         categorical_hyperparameters = [
             ("boosting_type", ["Plain"]),
-            ("bootstrap_type", ["Bayesian", "Bernoulli", "MVS", "No"])
+            ("bootstrap_type", ["Bayesian", "Bernoulli", "MVS", "No"]),
         ]
         self._gec_init(
-            {}, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
+            {},
+            frozen,
+            non_optimized_init_args,
+            optimization_candidate_init_args,
+            categorical_hyperparameters,
         )
 
     def fit(
@@ -361,7 +365,7 @@ class CatGER(CatBoostRegressor, GECBase):
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
-    ):
+    ) -> float64:
 
         if "subsample_freq" in params:
             del params["subsample_freq"]
@@ -370,10 +374,12 @@ class CatGER(CatBoostRegressor, GECBase):
 
         return self._calculate_cv_score(X, y, params, CatBoostRegressor)
 
-    def retrieve_hyperparameter(self, hyperparameter):
+    def retrieve_hyperparameter(self, hyperparameter: str) -> Optional[str]:
         return self._init_params.get(hyperparameter, None)
 
-    def _replace_fixed_args(self, params):
+    def _replace_fixed_args(
+        self, params: Dict[str, Optional[Union[int, float, str]]]
+    ) -> Dict[str, Optional[Union[int, float, str]]]:
         if self.fix_boosting_type_:
             params["boosting_type"] = self._init_params["boosting_type"]
 

@@ -220,7 +220,11 @@ class LightGEC(LGBMClassifier, GECBase):
             ("boosting_type", ["gbdt", "dart", "rf"]),
         ]
         self._gec_init(
-            {}, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
+            {},
+            frozen,
+            non_optimized_init_args,
+            optimization_candidate_init_args,
+            categorical_hyperparameters,
         )
 
     def fit(
@@ -308,13 +312,17 @@ class LightGEC(LGBMClassifier, GECBase):
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
-    ):
+    ) -> float64:
         return self._calculate_cv_score(X, y, params, LGBMClassifier)
 
-    def retrieve_hyperparameter(self, hyperparameter):
+    def retrieve_hyperparameter(
+        self, hyperparameter: str
+    ) -> Optional[Union[int, str, float]]:
         return getattr(self, hyperparameter)
 
-    def _replace_fixed_args(self, params):
+    def _replace_fixed_args(
+        self, params: Dict[str, Optional[Union[int, float, str]]]
+    ) -> Dict[str, Optional[Union[int, float, str]]]:
         if self.fix_boosting_type_:
             params["boosting_type"] = self.boosting_type
 
