@@ -32,13 +32,11 @@ from tqdm import tqdm
 class GECBase:
     def _gec_init(
         self,
-        kwargs: Dict[Any, Any],
         frozen: bool,
         non_optimized_init_args: List[str],
         optimization_candidate_init_args: List[str],
         categorical_hyperparameters: List[Tuple[str, List[str]]],
     ) -> None:
-        self._init_kwargs = {k: v for k, v in kwargs.items() if k not in ["subsample"]}
 
         self.fix_boosting_type_ = False
         self.fix_bootstrap_type_ = False
@@ -747,12 +745,7 @@ class GECBase:
             )
         )
 
-        return {
-            **arguments,
-            **self.fixed_params,
-            **self._init_args,
-            **self._init_kwargs,
-        }
+        return {**self.fixed_params, **self._init_args, **arguments}
 
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian(self) -> None:

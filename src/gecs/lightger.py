@@ -220,7 +220,6 @@ class LightGER(LGBMRegressor, GECBase):
             ("boosting_type", ["gbdt", "dart", "rf"]),
         ]
         self._gec_init(
-            {},
             frozen,
             non_optimized_init_args,
             optimization_candidate_init_args,
