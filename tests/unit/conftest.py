@@ -1,10 +1,11 @@
-import pytest
-import numpy as np
-
-import pandas as pd
 import json
-from numpy import ndarray, float64
-from typing import Dict, Optional, Union, Any
+from typing import Any, Dict, Optional, Union
+
+import numpy as np
+import pandas as pd
+import pytest
+from numpy import float64, ndarray
+
 
 @pytest.fixture(scope="session")
 def seed():
@@ -30,7 +31,7 @@ def y_class(y_real, seed):
 
 @pytest.fixture(scope="session")
 def lightgecs_params():
-    return({    
+    return {
         "boosting_type": "gbdt",
         "num_leaves": 31,
         "max_depth": -1,
@@ -52,41 +53,51 @@ def lightgecs_params():
         "silent": "warn",
         "importance_type": "split",
         "frozen": False,
-    })
+    }
+
 
 def monkey_patch_gecs_class(class_):
-
-    def single_peak_real_hps_fn(params:  Dict[str, Optional[Union[str, float, int, float64]]]):
+    def single_peak_real_hps_fn(
+        params: Dict[str, Optional[Union[str, float, int, float64]]]
+    ):
         score_constituents = {}
 
-        score_constituents["learning_rate_loss"] = abs(params["learning_rate"]-0.5)
+        score_constituents["learning_rate_loss"] = abs(params["learning_rate"] - 0.5)
 
-        score_constituents["reg_alpha_loss"] = abs(params["reg_alpha"]-2.5)
+        score_constituents["reg_alpha_loss"] = abs(params["reg_alpha"] - 2.5)
 
-        score_constituents["reg_lambda_loss"] = abs(params["reg_lambda"]-0.2)
+        score_constituents["reg_lambda_loss"] = abs(params["reg_lambda"] - 0.2)
 
-        score_constituents["min_child_weight_loss"] = abs(params["min_child_weight"]-0.1)*10
+        score_constituents["min_child_weight_loss"] = (
+            abs(params["min_child_weight"] - 0.1) * 10
+        )
 
-        score_constituents["min_child_samples_loss"] = abs(params["min_child_samples"]-5)
+        score_constituents["min_child_samples_loss"] = abs(
+            params["min_child_samples"] - 5
+        )
 
-        score_constituents["colsample_bytree_loss"] = abs(params["colsample_bytree"]-0.7)
+        score_constituents["colsample_bytree_loss"] = abs(
+            params["colsample_bytree"] - 0.7
+        )
 
-        score = (20.0 - np.sum(list(score_constituents.values())))/20.0
-        return(score, [score_constituents])
+        score = (20.0 - np.sum(list(score_constituents.values()))) / 20.0
+        return (score, [score_constituents])
 
     def _calculate_cv_score_monkeypatch(
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
-        class_: Any
+        class_: Any,
     ) -> float64:
         score, data = single_peak_real_hps_fn(params)
 
-        return(score)
-    
+        return score
+
     class_._calculate_cv_score = _calculate_cv_score_monkeypatch
 
-    return(class_)
+    return class_
+
+
 @pytest.fixture(scope="session")
 def return_monkeypatch_gecs_class():
-    return(monkey_patch_gecs_class)
+    return monkey_patch_gecs_class
