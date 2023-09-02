@@ -318,10 +318,15 @@ class LightGER(LGBMRegressor, GECBase):
     ) -> Optional[Union[int, str, float]]:
         return getattr(self, hyperparameter)
 
-    def _replace_fixed_args(
-        self, params: Dict[str, Optional[Union[int, float, str]]]
+    def _process_arguments(
+        self, arguments: Dict[str, Optional[Union[int, float, str]]]
     ) -> Dict[str, Optional[Union[int, float, str]]]:
-        if self.fix_boosting_type_:
-            params["boosting_type"] = self.boosting_type
-
-        return params
+        args = copy.deepcopy(arguments)
+        bagging = args["gec_bagging"] == "gec_bagging_yes"
+        if bagging:
+            assert "subsample" in args
+            args["subsample_freq"] = 1
+        else:
+            del args["subsample"]
+        del args["gec_bagging"]
+        return args

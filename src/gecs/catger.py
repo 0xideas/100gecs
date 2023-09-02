@@ -377,10 +377,15 @@ class CatGER(CatBoostRegressor, GECBase):
     def retrieve_hyperparameter(self, hyperparameter: str) -> Optional[str]:
         return self._init_params.get(hyperparameter, None)
 
-    def _replace_fixed_args(
-        self, params: Dict[str, Optional[Union[int, float, str]]]
+    def _process_arguments(
+        self, arguments: Dict[str, Optional[Union[int, float, str]]]
     ) -> Dict[str, Optional[Union[int, float, str]]]:
-        if self.fix_boosting_type_:
-            params["boosting_type"] = self._init_params["boosting_type"]
-
-        return params
+        args = copy.deepcopy(arguments)
+        bagging = args["gec_bagging"] == "gec_bagging_yes"
+        if bagging:
+            assert "subsample" in args
+            args["sampling_frequency"] = 1
+        else:
+            del args["subsample"]
+        del args["gec_bagging"]
+        return args
