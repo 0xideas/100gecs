@@ -1,3 +1,9 @@
+# monkeytype run monkeytyping/run_gers.py
+# monkeytype apply gecs.gec_base
+# monkeytype apply gecs.catger
+# monkeytype apply gecs.lightger
+
+
 import os
 
 import numpy as np

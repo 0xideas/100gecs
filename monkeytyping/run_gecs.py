@@ -1,3 +1,8 @@
+# monkeytype run monkeytyping/run_gecs.py
+# monkeytype apply gecs.gec_base
+# monkeytype apply gecs.catgec
+# monkeytype apply gecs.lightgec
+
 import os
 
 import numpy as np
