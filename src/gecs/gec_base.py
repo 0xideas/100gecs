@@ -41,6 +41,7 @@ class GECBase:
         self._init_kwargs = {k: v for k, v in kwargs.items() if k not in ["subsample"]}
 
         self.fix_boosting_type_ = False
+        self.fix_bootstrap_type_ = False
 
         self.frozen = frozen
 
@@ -94,7 +95,15 @@ class GECBase:
             self._categorical_hyperparameter_combinations = [
                 hp_comb
                 for hp_comb in self._categorical_hyperparameter_combinations
-                if hp_comb.startswith(self.boosting_type)
+                if hp_comb.startswith(self.retrieve_hyperparameter("boosting_type"))
+            ]
+
+        if self.fix_bootstrap_type_:
+            self._categorical_hyperparameter_combinations = [
+                hp_comb
+                for hp_comb in self._categorical_hyperparameter_combinations
+                if hp_comb.split("-")[1]
+                == self.retrieve_hyperparameter("bootstrap_type")
             ]
 
         ten_to_ten_thousand = np.concatenate(
@@ -442,24 +451,12 @@ class GECBase:
 
         return params
 
-    def _process_arguments(
-        self, arguments: Dict[str, Optional[Union[int, float, str]]]
-    ) -> Dict[str, Optional[Union[int, float, str]]]:
-        args = copy.deepcopy(arguments)
-        bagging = args["gec_bagging"] == "gec_bagging_yes"
-        if bagging:
-            assert "subsample" in args
-            args["subsample_freq"] = 1
-        else:
-            del args["subsample"]
-        del args["gec_bagging"]
-        return args
-
     def _fit_inner(
         self, X: ndarray, y: ndarray, n_iter: int, fixed_hyperparameters: List[str]
     ):
 
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters
+        self.fix_bootstrap_type_ = "bootstrap_type" in fixed_hyperparameters
         fixed_hyperparameters = [
             hp for hp in fixed_hyperparameters if hp != "boosting_type"
         ]
@@ -711,6 +708,14 @@ class GECBase:
             self.best_params_ = self._process_arguments(arguments)
             self.best_params_raw_ = arguments
             self.best_arm_ = selected_arm
+
+    def _replace_fixed_args(
+        self, params: Dict[str, Optional[Union[int, float, str]]]
+    ) -> Dict[str, Optional[Union[int, float, str]]]:
+        if self.fix_boosting_type_:
+            params["boosting_type"] = self.retrieve_hyperparameter("boosting_type")
+
+        return params
 
     def _build_arguments(
         self,
