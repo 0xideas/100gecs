@@ -8,7 +8,7 @@ import os
 import warnings
 from datetime import datetime
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Type, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,12 +27,16 @@ from sklearn.model_selection import cross_val_score
 from sklearn.utils._testing import ignore_warnings
 from sklearn.utils.extmath import cartesian
 from tqdm import tqdm
+from gecs.catgec import CatGEC
+from gecs.catger import CatGER
+from gecs.lightgec import LightGEC
+from gecs.lightger import LightGER
 
 
 class GECBase:
     def _gec_init(
-        self, kwargs, frozen, non_optimized_init_args, optimization_candidate_init_args, categorical_hyperparameters
-    ):
+        self, kwargs: Dict[Any, Any], frozen: bool, non_optimized_init_args: List[str], optimization_candidate_init_args: List[str], categorical_hyperparameters: List[Tuple[str, List[str]]]
+    ) -> None:
         self._init_kwargs = {k: v for k, v in kwargs.items() if k not in ["subsample"]}
 
         self.fix_boosting_type_ = False
@@ -247,7 +251,7 @@ class GECBase:
             raise Exception(f"type {type_} currently not supported")
 
     @classmethod
-    def deserialize(cls, path, X=None, y=None):
+    def deserialize(cls, path: str, X: Optional[ndarray]=None, y: Optional[ndarray]=None) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
         """Deserialize a model and fit underlying LGBMClassifier if X and y are provided
 
         Parameters
@@ -291,11 +295,11 @@ class GECBase:
         return gec
 
     @classmethod
-    def _convert_gaussian_process_data_from_deserialisation(cls, data_dict):
+    def _convert_gaussian_process_data_from_deserialisation(cls, data_dict: Dict[str, List[Union[List[float], float]]]) -> Dict[str, List[Union[List[float], float]]]:
         converted_dict = {k: list(v) for k, v in data_dict.items()}
         return converted_dict
 
-    def serialize(self, path):
+    def serialize(self, path: str) -> None:
         """Serialize GEC model object
 
         Parameters
@@ -405,11 +409,11 @@ class GECBase:
         self.gec_hyperparameters_.update(gec_hyperparameters)
         self._set_gec_attributes()
 
-    def freeze(self):
+    def freeze(self) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
         self.frozen = True
         return self
 
-    def unfreeze(self):
+    def unfreeze(self) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
         self.frozen = False
         return self
 
@@ -429,7 +433,7 @@ class GECBase:
 
         return params
 
-    def _process_arguments(self, arguments):
+    def _process_arguments(self, arguments: Dict[str, Optional[Union[int, float, str]]]) -> Dict[str, Optional[Union[int, float, str]]]:
         args = copy.deepcopy(arguments)
         bagging = args["gec_bagging"] == "gec_bagging_yes"
         if bagging:
@@ -441,7 +445,7 @@ class GECBase:
         return(args)
     
 
-    def _fit_inner(self, X, y, n_iter, fixed_hyperparameters):
+    def _fit_inner(self, X: ndarray, y: ndarray, n_iter: int, fixed_hyperparameters: List[str]) -> Union[CatGER, CatGEC, LightGER, LightGEC]:
 
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters
         fixed_hyperparameters = [
@@ -491,7 +495,7 @@ class GECBase:
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
-        class_,
+        class_: Any,
     ) -> float64:
         clf = class_(**params)
         try:

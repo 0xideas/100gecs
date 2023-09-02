@@ -372,7 +372,7 @@ class CatGEC(CatBoostClassifier, GECBase):
         X: ndarray,
         y: ndarray,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
-    ):
+    ) -> Union[float, float64]:
 
         if "subsample_freq" in params:
             del params["subsample_freq"]
@@ -381,11 +381,12 @@ class CatGEC(CatBoostClassifier, GECBase):
 
         return self._calculate_cv_score(X, y, params, CatBoostClassifier)
 
-    def retrieve_hyperparameter(self, hyperparameter):
+    def retrieve_hyperparameter(self, hyperparameter: str) -> None:
         return self._init_params.get(hyperparameter, None)
 
-    def _replace_fixed_args(self, params):
+    def _replace_fixed_args(self, params: Dict[str, Optional[Union[int, float, str]]]) -> Dict[str, Optional[Union[int, float, str]]]:
         if self.fix_boosting_type_:
             params["boosting_type"] = self._init_params["boosting_type"]
 
         return params
+
