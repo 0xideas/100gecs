@@ -104,54 +104,20 @@ class GECBase:
                 == self.retrieve_hyperparameter("bootstrap_type")
             ]
 
-        ten_to_ten_thousand = np.concatenate(
-            [
-                np.arange(10, 100, 10),
-                np.arange(100, 200, 20),
-                np.arange(200, 500, 50),
-                np.arange(500, 100, 100),
-                np.arange(1000, 10001, 1000),
-            ]
-        )
         real_hyperparameters_all_across_classes = [
+            ("learning_rate", np.exp(np.arange(-6.5, 0, 0.2))),
+            ("num_leaves", np.unique(np.exp(np.arange(0, 7.5, 0.5)).astype(int))),
             (
-                "learning_rate",
-                (
-                    np.concatenate(
-                        [np.arange(0.001, 0.5, 0.003), np.arange(0.5, 0.95, 0.02)]
-                    )
-                    ** 2
-                ),
+                "n_estimators",
+                np.unique((np.exp(np.arange(1, 7.5, 0.5)) * 3).astype(int)),
             ),
-            ("num_leaves", np.array(list(range(1, 100)) + list(range(100, 1000, 5)))),
-            ("n_estimators", ten_to_ten_thousand),
-            (
-                "reg_alpha",
-                np.concatenate(
-                    [np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]
-                ).round(4)
-                ** 2,
-            ),
-            (
-                "reg_lambda",
-                np.concatenate(
-                    [np.arange(0.0, 0.5, 0.01), np.arange(0.0, 10.0, 0.1)]
-                ).round(4)
-                ** 2,
-            ),
-            (
-                "min_child_weight",
-                list(
-                    np.concatenate(
-                        [np.arange(0.0, 0.1, 0.001), np.arange(0.1, 0.5, 0.05)]
-                    )
-                    ** 2
-                ),
-            ),
-            ("min_child_samples", np.arange(2, 50, 1)),
-            ("colsample_bytree", np.arange(0.1, 1.00, 0.01)),
-            ("colsample_bylevel", np.arange(0.1, 1.00, 0.01)),
-            ("subsample", [x / 100 for x in range(15, 101)]),
+            ("reg_alpha", np.exp(np.arange(-20, 4, 0.5))),
+            ("reg_lambda", np.exp(np.arange(-20, 4, 0.5))),
+            ("min_child_weight", np.exp(np.arange(-20, 0.0, 1.0))),
+            ("min_child_samples", np.arange(2, 50, 2)),
+            ("colsample_bytree", np.arange(0.1, 1.00, 0.05)),
+            ("colsample_bylevel", np.arange(0.1, 1.00, 0.05)),
+            ("subsample", [x / 100 for x in range(10, 101, 5)]),
         ]
         self._real_hyperparameters_all = [
             (n, r)
@@ -456,7 +422,9 @@ class GECBase:
         self.fix_boosting_type_ = "boosting_type" in fixed_hyperparameters
         self.fix_bootstrap_type_ = "bootstrap_type" in fixed_hyperparameters
         fixed_hyperparameters = [
-            hp for hp in fixed_hyperparameters if hp != "boosting_type"
+            hp
+            for hp in fixed_hyperparameters
+            if hp not in ["boosting_type", "bootstrap_type"]
         ]
 
         if not self.frozen:
