@@ -7,13 +7,11 @@ In this example, we optimize the validation log loss of cancer detection.
 
 import numpy as np
 import optuna.integration.lightgbm as lgb
-
-from lightgbm import early_stopping
-from lightgbm import log_evaluation
 import sklearn.datasets
+from cloud_io.load_dataset import load_dataset
+from lightgbm import early_stopping, log_evaluation
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from cloud_io.load_dataset import load_dataset
 
 data, target = load_dataset("bank", "../../data/bank-full.csv")
 train_x, val_x, train_y, val_y = train_test_split(data, target, test_size=0.25)
