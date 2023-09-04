@@ -528,7 +528,8 @@ class GECBase:
             warnings.warn(
                 f"Could not calculate cross val scores for parameters: {params_clean}, due to {e}"
             )
-            score = 0.0
+            score = np.nan
+
         return score
 
     def _optimise_hyperparameters(
@@ -569,9 +570,12 @@ class GECBase:
                 X, Y, self._process_arguments(arguments)
             )
 
-            self._update_gec_fields(
-                score, arguments, selected_arm, selected_combination, mean, sigma
-            )
+            if np.isnan(score) == False:
+                self._update_gec_fields(
+                    score, arguments, selected_arm, selected_combination, mean, sigma
+                )
+            else:
+                warnings.warn(f"score is nan for {arguments}")
 
         return (self.best_params_, self.best_score_gec_)
 
@@ -749,11 +753,11 @@ class GECBase:
 
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_gaussian(self) -> None:
-        self.gaussian.fit(
-            np.array(self.hyperparameter_scores_["inputs"]),
-            np.array(self.hyperparameter_scores_["output"])
-            - np.mean(self.hyperparameter_scores_["output"]),
-        )
+        output = np.array(self.hyperparameter_scores_["output"])
+        output = (output - np.max(output)) + 1
+        output[output < -1.0] = -1.0
+
+        self.gaussian.fit(np.array(self.hyperparameter_scores_["inputs"]), output)
 
     def _get_best_arm(self) -> str:
         mean_reward = np.array(
