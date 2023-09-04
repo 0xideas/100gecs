@@ -1,12 +1,27 @@
 import copy
 import inspect
-from typing import Callable, Dict, List, Optional, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 from lightgbm import LGBMRegressor
-from lightgbm.basic import LightGBMError
+from lightgbm.basic import Booster, LightGBMError
 from lightgbm.compat import SKLEARN_INSTALLED
-from numpy import float64, ndarray
+from lightgbm.sklearn import (
+    LGBMModel,
+    _EvalResultDict,
+    _LGBM_BoosterBestScoreType,
+    _LGBM_CategoricalFeatureConfiguration,
+    _LGBM_FeatureNameConfiguration,
+    _LGBM_InitScoreType,
+    _LGBM_LabelType,
+    _LGBM_ScikitCustomObjectiveFunction,
+    _LGBM_ScikitEvalMetricType,
+    _LGBM_ScikitMatrixLike,
+    _LGBM_ScikitValidSet,
+    _LGBM_WeightType,
+)
+from numpy import float64
 
 from .gec_base import GECBase
 
@@ -20,7 +35,7 @@ class LightGER(LGBMRegressor, GECBase):
         learning_rate: float = 0.1,
         n_estimators: int = 100,
         subsample_for_bin: int = 200000,
-        objective: Optional[Union[str, Callable]] = None,
+        objective: Optional[Union[str, _LGBM_ScikitCustomObjectiveFunction]] = None,
         class_weight: Optional[Union[Dict, str]] = None,
         min_split_gain: float = 0.0,
         min_child_weight: float = 1e-3,
@@ -31,8 +46,7 @@ class LightGER(LGBMRegressor, GECBase):
         reg_alpha: float = 0.0,
         reg_lambda: float = 0.0,
         random_state: Optional[Union[int, np.random.RandomState]] = None,
-        n_jobs: int = -1,
-        silent: Union[bool, str] = "warn",
+        n_jobs: Optional[int] = None,
         importance_type: str = "split",
         frozen: bool = False,
         **kwargs,
@@ -57,7 +71,6 @@ class LightGER(LGBMRegressor, GECBase):
         boosting_type : str, optional (default='gbdt')
             'gbdt', traditional Gradient Boosting Decision Tree.
             'dart', Dropouts meet Multiple Additive Regression Trees.
-            'goss', Gradient-based One-Side Sampling.
             'rf', Random Forest.
         num_leaves : int, optional (default=31)
             Maximum tree leaves for base learners.
@@ -75,7 +88,7 @@ class LightGER(LGBMRegressor, GECBase):
         objective : str, callable or None, optional (default=None)
             Specify the learning task and the corresponding learning objective or
             a custom objective function to be used (see note below).
-            Default: 'regression' for LGBMRegressor, 'binary' or 'multiclass' for LGBMRegressor, 'lambdarank' for LGBMRanker.
+            Default: 'regression' for LGBMRegressor, 'binary' or 'multiclass' for LGBMClassifier, 'lambdarank' for LGBMRanker.
         class_weight : dict, 'balanced' or None, optional (default=None)
             Weights associated with classes in the form ``{class_label: weight}``.
             Use this parameter only for multi-class classification task;
@@ -91,7 +104,7 @@ class LightGER(LGBMRegressor, GECBase):
         min_split_gain : float, optional (default=0.)
             Minimum loss reduction required to make a further partition on a leaf node of the tree.
         min_child_weight : float, optional (default=1e-3)
-            Minimum sum of instance weight (hessian) needed in a child (leaf).
+            Minimum sum of instance weight (Hessian) needed in a child (leaf).
         min_child_samples : int, optional (default=20)
             Minimum number of data needed in a child (leaf).
         subsample : float, optional (default=1.)
@@ -109,10 +122,21 @@ class LightGER(LGBMRegressor, GECBase):
             If int, this number is used to seed the C++ code.
             If RandomState object (numpy), a random integer is picked based on its state to seed the C++ code.
             If None, default seeds in C++ code are used.
-        n_jobs : int, optional (default=-1)
-            Number of parallel threads.
-        silent : bool, optional (default=True)
-            Whether to print messages while running boosting.
+        n_jobs : int or None, optional (default=None)
+            Number of parallel threads to use for training (can be changed at prediction time by
+            passing it as an extra keyword argument).
+
+            For better performance, it is recommended to set this to the number of physical cores
+            in the CPU.
+
+            Negative integers are interpreted as following joblib's formula (n_cpus + 1 + n_jobs), just like
+            scikit-learn (so e.g. -1 means using all threads). A value of zero corresponds the default number of
+            threads configured for OpenMP in the system. A value of ``None`` (the default) corresponds
+            to using the number of physical cores in the system (its correct detection requires
+            either the ``joblib`` or the ``psutil`` util libraries to be installed).
+
+            .. versionchanged:: 4.0.0
+
         importance_type : str, optional (default='split')
             The type of feature importance to be filled into ``feature_importances_``.
             If 'split', result contains numbers of times the feature is used in a model.
@@ -129,32 +153,35 @@ class LightGER(LGBMRegressor, GECBase):
         ----
         A custom objective function can be provided for the ``objective`` parameter.
         In this case, it should have the signature
-        ``objective(y_true, y_pred) -> grad, hess`` or
-        ``objective(y_true, y_pred, group) -> grad, hess``:
+        ``objective(y_true, y_pred) -> grad, hess``,
+        ``objective(y_true, y_pred, weight) -> grad, hess``
+        or ``objective(y_true, y_pred, weight, group) -> grad, hess``:
 
-            y_true : array-like of shape = [n_samples]
+            y_true : numpy 1-D array of shape = [n_samples]
                 The target values.
-            y_pred : array-like of shape = [n_samples] or shape = [n_samples * n_classes] (for multi-class task)
+            y_pred : numpy 1-D array of shape = [n_samples] or numpy 2-D array of shape = [n_samples, n_classes] (for multi-class task)
                 The predicted values.
                 Predicted values are returned before any transformation,
                 e.g. they are raw margin instead of probability of positive class for binary task.
-            group : array-like
+            weight : numpy 1-D array of shape = [n_samples]
+                The weight of samples. Weights should be non-negative.
+            group : numpy 1-D array
                 Group/query data.
                 Only used in the learning-to-rank task.
                 sum(group) = n_samples.
                 For example, if you have a 100-document dataset with ``group = [10, 20, 40, 10, 10, 10]``, that means that you have 6 groups,
                 where the first 10 records are in the first group, records 11-30 are in the second group, records 31-70 are in the third group, etc.
-            grad : array-like of shape = [n_samples] or shape = [n_samples * n_classes] (for multi-class task)
+            grad : numpy 1-D array of shape = [n_samples] or numpy 2-D array of shape = [n_samples, n_classes] (for multi-class task)
                 The value of the first order derivative (gradient) of the loss
                 with respect to the elements of y_pred for each sample point.
-            hess : array-like of shape = [n_samples] or shape = [n_samples * n_classes] (for multi-class task)
+            hess : numpy 1-D array of shape = [n_samples] or numpy 2-D array of shape = [n_samples, n_classes] (for multi-class task)
                 The value of the second order derivative (Hessian) of the loss
                 with respect to the elements of y_pred for each sample point.
 
-        For multi-class task, the y_pred is group by class_id first, then group by row_id.
-        If you want to get i-th row y_pred in j-th class, the access way is y_pred[j * num_data + i]
-        and you should group grad and hess in this way as well.
+        For multi-class task, y_pred is a numpy 2-D array of shape = [n_samples, n_classes],
+        and grad and hess should be returned in the same format.
         """
+
         if not SKLEARN_INSTALLED:
             raise LightGBMError(
                 "scikit-learn is required for lightgbm.sklearn. "
@@ -178,21 +205,20 @@ class LightGER(LGBMRegressor, GECBase):
         self.reg_lambda = reg_lambda
         self.random_state = random_state
         self.n_jobs = n_jobs
-        self.silent = silent
         self.importance_type = importance_type
-        self._Booster = None
-        self._evals_result = None
-        self._best_score = None
-        self._best_iteration = None
-        self._other_params = {}
+        self._Booster: Optional[Booster] = None
+        self._evals_result: _EvalResultDict = {}
+        self._best_score: _LGBM_BoosterBestScoreType = {}
+        self._best_iteration: int = -1
+        self._other_params: Dict[str, Any] = {}
         self._objective = objective
         self.class_weight = class_weight
-        self._class_weight = None
-        self._class_map = None
-        self._n_features = None
-        self._n_features_in = None
-        self._classes = None
-        self._n_classes = None
+        self._class_weight: Optional[Union[Dict, str]] = None
+        self._class_map: Optional[Dict[int, int]] = None
+        self._n_features: int = -1
+        self._n_features_in: int = -1
+        self._classes: Optional[np.ndarray] = None
+        self._n_classes: int = -1
         self.set_params(**kwargs)
         non_optimized_init_args = [
             "max_depth",
@@ -202,7 +228,6 @@ class LightGER(LGBMRegressor, GECBase):
             "min_split_gain",
             "random_state",
             "n_jobs",
-            "silent",
             "importance_type",
         ]
         optimization_candidate_init_args = [
@@ -228,21 +253,21 @@ class LightGER(LGBMRegressor, GECBase):
 
     def fit(
         self,
-        X: ndarray,
-        y: ndarray,
+        X: _LGBM_ScikitMatrixLike,
+        y: _LGBM_LabelType,
         n_iter: int = 50,
         fixed_hyperparameters: List[str] = ["n_estimators", "num_leaves"],
-        sample_weight=None,
-        init_score=None,
-        eval_set=None,
-        eval_names=None,
-        eval_sample_weight=None,
-        eval_init_score=None,
-        eval_metric=None,
-        feature_name="auto",
-        categorical_feature="auto",
-        callbacks=None,
-        init_model=None,
+        sample_weight: Optional[_LGBM_WeightType] = None,
+        init_score: Optional[_LGBM_InitScoreType] = None,
+        eval_set: Optional[List[_LGBM_ScikitValidSet]] = None,
+        eval_names: Optional[List[str]] = None,
+        eval_sample_weight: Optional[List[_LGBM_WeightType]] = None,
+        eval_init_score: Optional[List[_LGBM_InitScoreType]] = None,
+        eval_metric: Optional[_LGBM_ScikitEvalMetricType] = None,
+        feature_name: _LGBM_FeatureNameConfiguration = "auto",
+        categorical_feature: _LGBM_CategoricalFeatureConfiguration = "auto",
+        callbacks: Optional[List[Callable]] = None,
+        init_model: Optional[Union[str, Path, Booster, LGBMModel]] = None,
     ) -> "LightGER":
         """Docstring is inherited from the LGBMRegressor.
 
@@ -287,7 +312,7 @@ class LightGER(LGBMRegressor, GECBase):
 
         return params
 
-    def _fit_best_params(self, X: ndarray, y: ndarray) -> None:
+    def _fit_best_params(self, X: _LGBM_ScikitMatrixLike, y: _LGBM_LabelType) -> None:
 
         if hasattr(self, "best_params") and self.best_params_ is not None:
             for k, v in self.best_params_.items():
@@ -298,8 +323,8 @@ class LightGER(LGBMRegressor, GECBase):
 
     def score_single_iteration(
         self,
-        X: ndarray,
-        y: ndarray,
+        X: _LGBM_ScikitMatrixLike,
+        y: _LGBM_LabelType,
         params: Dict[str, Optional[Union[str, float, int, float64]]],
     ) -> float64:
         return self._calculate_cv_score(X, y, params, LGBMRegressor)
