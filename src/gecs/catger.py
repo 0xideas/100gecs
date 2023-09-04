@@ -324,14 +324,6 @@ class CatGER(CatBoostRegressor, GECBase):
         }
         self._fit_inner(X, y, n_iter, fixed_hyperparameters)
 
-    def __sklearn_clone__(self):
-        class_ = CatGER()
-
-        for k, v in self.__dict__.items():
-            class_.__dict__[k] = copy.deepcopy(v)
-
-        return class_
-
     def set_params(self, **kwargs) -> None:
         if "frozen" in kwargs:
             setattr(self, "frozen", kwargs.pop("frozen"))
