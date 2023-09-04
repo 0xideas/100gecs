@@ -32,8 +32,8 @@ def load_bank_dataset(path, share=0.1):
             yesNoBinary(data[col]) if col in binary else data[col]
             for col in data.columns
         ],
-        1,
-    ).drop(categorical_columns, 1)
+        axis=1,
+    ).drop(categorical_columns, axis=1)
     X, y = data2.values[:, :-1], data2.values[:, -1]
     np.random.seed(102)
     ind = np.random.uniform(0, 1, X.shape[0]) < share
