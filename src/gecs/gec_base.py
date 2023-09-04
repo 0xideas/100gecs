@@ -106,7 +106,7 @@ class GECBase:
 
         real_hyperparameters_all_across_classes = [
             ("learning_rate", np.exp(np.arange(-6.5, 0, 0.2))),
-            ("num_leaves", np.unique(np.exp(np.arange(0, 7.5, 0.5)).astype(int))),
+            ("num_leaves", np.exp(np.arange(2, 7.5, 0.4)).astype(int)),
             (
                 "n_estimators",
                 np.unique((np.exp(np.arange(1, 7.5, 0.5)) * 3).astype(int)),
