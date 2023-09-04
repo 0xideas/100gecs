@@ -246,11 +246,11 @@ class CatGER(CatBoostRegressor, GECBase):
             "embedding_features",
             "eval_fraction",
             "fixed_binary_splits",
+            "num_leaves",
         ]
         optimization_candidate_init_args = [
             "learning_rate",
             "n_estimators",
-            "num_leaves",
             "reg_lambda",
             "min_child_samples",
             "colsample_bylevel",  # feature_fraction
@@ -272,7 +272,7 @@ class CatGER(CatBoostRegressor, GECBase):
         X,
         y=None,
         n_iter=50,
-        fixed_hyperparameters=["n_estimators", "num_leaves"],
+        fixed_hyperparameters=["n_estimators"],
         cat_features=None,
         text_features=None,
         embedding_features=None,
