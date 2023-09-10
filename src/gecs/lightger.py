@@ -256,7 +256,7 @@ class LightGER(LGBMRegressor, GECBase):
         X: _LGBM_ScikitMatrixLike,
         y: _LGBM_LabelType,
         n_iter: int = 50,
-        fixed_hyperparameters: List[str] = ["n_estimators", "num_leaves"],
+        fixed_hyperparameters: List[str] = ["n_estimators"],
         sample_weight: Optional[_LGBM_WeightType] = None,
         init_score: Optional[_LGBM_InitScoreType] = None,
         eval_set: Optional[List[_LGBM_ScikitValidSet]] = None,
