@@ -512,7 +512,7 @@ class GECBase:
             np.random.seed(int(datetime.now().timestamp() % 1 * 1e7))
 
         n_random_exploration = min(
-            self.gec_hyperparameters_["n_random_exploration"], int(n_iter / 2)
+            self.gec_hyperparameters_["n_random_exploration"], int(n_iter / 2.0)
         )
 
         for i in tqdm(list(range(n_iter))):
@@ -609,9 +609,9 @@ class GECBase:
 
     def _get_combinations_to_score(self, sets: ndarray) -> List[ndarray]:
         if len(self.hyperparameter_scores_["inputs"]):
-            n_best = max(
+            n_best = min(max(
                 3, int(self.gec_iter_ * self.gec_hyperparameters_["best_share"])
-            )
+            ), 20)
             best_interactions = np.argsort(
                 np.array(self.hyperparameter_scores_["output"])
             )[-n_best:]
