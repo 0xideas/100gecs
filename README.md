@@ -33,6 +33,8 @@ By default, `LightGEC` optimizes `boosting_type`, `learning_rate`, `reg_alpha`, 
 
     pip install gecs
 
+The installation requires `cmake`, which can be installed using `apt` on linux or `brew` on mac.
+
 
 ## Usage
 
