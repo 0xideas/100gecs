@@ -1,8 +1,6 @@
 - Which hyperparameters should be optimized?
-    Currently, the CatBoost based models allow the user to optimize 
->       ["learning_rate", "n_estimators", "reg_lambda", "min_child_samples", "colsample_bylevel" "subsample"]
-    And the LGBM based models allow the uer to optimize
->       ["learning_rate", "n_estimators", "num_leaves", "reg_alpha","reg_lambda", "min_child_samples", "min_child_weight", "colsample_bytree", "subsample"]
+    Currently, the CatBoost based models allow the user to optimize the hyperparameters listed in `optimization_candidate_init_args` that can be found [here](https://github.com/0xideas/100gecs/blob/ffcae80e2bdd410cdd1d00d0382685db22210762/src/gecs/catgec.py#L261) `categorical_hyperparameters` just below.
+    And the LGBM based models allow the uer to optimize the hyperparameters listed with the same variable names from [here](https://github.com/0xideas/100gecs/blob/ffcae80e2bdd410cdd1d00d0382685db22210762/src/gecs/lightgec.py#L231)
     Are these the right hyperparameters to tune? Are there any important ones missing?
 
 - What are the appropriate hyperparameter ranges and intervals?
