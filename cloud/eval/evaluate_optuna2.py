@@ -18,13 +18,11 @@ from sklearn.model_selection import train_test_split
 # FYI: Objective functions can take additional arguments
 # (https://optuna.readthedocs.io/en/stable/faq.html#objective-func-additional-args).
 def objective(trial):
-    data, target = load_dataset("bank", "../../data/bank-full.csv")
+    data, target = load_dataset("cover", "../../data/covtype.data")
     train_x, valid_x, train_y, valid_y = train_test_split(data, target, test_size=0.25)
     dtrain = lgb.Dataset(train_x, label=train_y)
 
     param = {
-        "objective": "binary",
-        "metric": "binary_logloss",
         "verbosity": -1,
         "boosting_type": "gbdt",
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0, log=True),
@@ -44,7 +42,7 @@ def objective(trial):
 
 
 study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=50)
+study.optimize(objective, n_trials=100)
 
 print("Number of finished trials: {}".format(len(study.trials)))
 

@@ -1,0 +1,2 @@
+- custom CrossValidation object with early stopping
+- add XGBoost child class
