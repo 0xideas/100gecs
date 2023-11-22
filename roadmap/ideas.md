@@ -1,2 +1,3 @@
 - custom CrossValidation object with early stopping
 - add XGBoost child class
+- add CrossValidation for timeseries that does ordered splits
